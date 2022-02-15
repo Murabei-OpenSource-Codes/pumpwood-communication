@@ -4,8 +4,10 @@ developed by Murabei Data Science and is under BSD-3-Clause license.
 
 <p align="center" width="60%">
   <img src="doc/sitelogo-horizontal.png" /> <br>
-  [Pumpwood](https://en.wikipedia.org/wiki/Cecropia) is a native brasilian tree which has a symbiotic relation
-  with ants (Murabei)
+
+  <a href="https://en.wikipedia.org/wiki/Cecropia">
+    Pumpwood is a native brasilian tree
+  </a> which has a symbiotic relation with ants (Murabei)
 </p>
 
 ## Quick start
