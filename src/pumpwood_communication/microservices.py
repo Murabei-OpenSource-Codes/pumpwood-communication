@@ -769,8 +769,8 @@ class PumpWoodMicroService():
         Kwargs:
           auth_header(dict): Dictionary containing the auth header.
           save_path (str): Path of the directory to save file.
-          if_exists {'fail', 'change_name', 'overwrite'}: Set what to do if there
-                is a file with same name.
+          if_exists {'fail', 'change_name', 'overwrite'}: Set what to do if
+            there is a file with same name.
 
         Returns:
           requset.response or str
