@@ -1,0 +1,5 @@
+requests
+simplejson
+pandas
+Shapely>=1.7.0
+geopandas>=0.8.1
