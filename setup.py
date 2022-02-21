@@ -1,7 +1,10 @@
 """setup."""
 import os
 import setuptools
-from pip.req import parse_requirements
+try:  # for pip >= 10
+    from pip._internal.req import parse_requirements
+except ImportError:  # for pip <= 9.0.3
+    from pip.req import parse_requirements
 
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
@@ -9,8 +12,11 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
 
 requirements_path = os.path.join(
     os.path.dirname(__file__), 'requirements.txt')
-install_reqs = parse_requirements(requirements_path)
-reqs = [str(ir.req) for ir in install_reqs]
+install_reqs = parse_requirements(requirements_path, session=False)
+try:
+    requirements = [str(ir.req) for ir in install_reqs]
+except Exception:
+    requirements = [str(ir.requirement) for ir in install_reqs]
 
 
 # allow setup.py to be run from any path
@@ -18,7 +24,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setuptools.setup(
     name='pumpwood-communication',
-    version='0.68',
+    version='0.69',
     include_package_data=True,
     license='BSD-3-Clause License',
     description='Package for inter Pumpwood loging and comunication',
@@ -32,7 +38,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     package_dir={"": "src"},
-    install_requires=reqs,
+    install_requires=requirements,
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.6",
 )
