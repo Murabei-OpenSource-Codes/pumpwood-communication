@@ -279,7 +279,8 @@ class PumpWoodMicroService():
                     status_code=response.status_code,
                     payload=exception_payload)
             else:
-                raise Exception(str(response_dict))
+                msg_dict = PumpWoodMicroService.angular_json(response)
+                raise Exception(json.dumps(msg_dict, indent=2))
 
     def request_post(self, url: str, data: any, files: list = None,
                      auth_header: dict = None):
