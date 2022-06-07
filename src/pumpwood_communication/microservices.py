@@ -439,7 +439,8 @@ class PumpWoodMicroService():
 
     def list(self, model_class: str, filter_dict: dict = {},
              exclude_dict: dict = {}, order_by: list = [],
-             auth_header: dict = None, fields: list = None):
+             auth_header: dict = None, fields: list = None,
+             default_fields: bool = False, **kwargs) -> list:
         """
         List objects with pagination.
 
@@ -460,6 +461,8 @@ class PumpWoodMicroService():
           auth_header(dict): Dictionary containing the auth header.
           fields(list[str]): Select the fields to be returned by the list
             end-point.
+          default_fields [bool]: Return the fields specified at
+              self.list_fields.
 
         Returns:
           list: Contaiing objects serialized by list Serializer.
@@ -472,8 +475,9 @@ class PumpWoodMicroService():
 
         """
         url_str = self._build_list_url(model_class)
-        post_data = {'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
-                     'order_by': order_by}
+        post_data = {
+            'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
+            'order_by': order_by, 'default_fields': default_fields}
         if fields is not None:
             post_data["fields"] = fields
         return self.request_post(url=url_str, data=post_data,
@@ -486,7 +490,8 @@ class PumpWoodMicroService():
     def list_without_pag(self, model_class: str, filter_dict: dict = {},
                          exclude_dict: dict = {}, order_by: list = [],
                          auth_header: dict = None, return_type: str = 'list',
-                         convert_geometry: bool = True, fields: list = None):
+                         convert_geometry: bool = True, fields: list = None,
+                         default_fields: bool = False, **kwargs):
         """
         List object without pagination.
 
@@ -509,7 +514,8 @@ class PumpWoodMicroService():
           convert_geometry(bool) = True: Covert geometry to shapely.
           fields(list[str]): Select the fields to be returned by the list
             end-point.
-
+          default_fields [bool]: Return the fields specified at
+              self.list_fields.
         Returns:
           list: Contaiing objects serialized by list Serializer.
 
@@ -521,8 +527,10 @@ class PumpWoodMicroService():
 
         """
         url_str = self._build_list_without_pag_url(model_class)
-        post_data = {'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
-                     'order_by': order_by}
+        post_data = {
+            'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
+            'order_by': order_by, 'default_fields': default_fields}
+
         if fields is not None:
             post_data["fields"] = fields
         results = self.request_post(
@@ -693,8 +701,8 @@ class PumpWoodMicroService():
           save_path (str): Path of the directory to save file.
           file_name (str): Name of the file, if None it will have same name as
                 saved in PumpWood.
-          if_exists {'fail', 'change_name', 'overwrite'}: Set what to do if there
-                is a file with same name.
+          if_exists {'fail', 'change_name', 'overwrite'}: Set what to do if
+            there is a file with same name.
         Returns:
           requset.response or str
         Raises:
@@ -1681,6 +1689,7 @@ class PumpWoodMicroService():
 
     def get_queue_matrix(self, queue_pk: int, auth_header: dict = None,
                          save_as_excel: str = None):
+        """Download model queue estimation matrix."""
         file_content = self.retrieve_file(
             model_class="ModelQueue", pk=queue_pk,
             file_field="model_matrix_file", auth_header=auth_header,
