@@ -12,6 +12,7 @@ import requests
 import pandas as pd
 import geopandas as geopd
 import numpy as np
+import datetime
 from shapely import geometry
 from typing import Union, List
 from multiprocessing import Pool
@@ -19,9 +20,7 @@ from pandas import ExcelWriter
 from copy import deepcopy
 
 from pumpwood_communication.exceptions import (
-    exceptions_dict,
-    PumpWoodException,
-    PumpWoodUnauthorized,
+    exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
     PumpWoodObjectSavingException)
 from pumpwood_communication.serializers import pumpJsonDump
 
@@ -264,15 +263,32 @@ class PumpWoodMicroService():
             No example
 
         """
+        datetime.datetime.utcnow()
         if not response.ok:
+            utcnow = datetime.datetime.utcnow()
             response_content_type = response.headers['content-type']
             if 'application/json' not in response_content_type.lower():
                 raise Exception(response.text)
 
+            # Request information
+            url = response.url
+            method = response.request.method
+
+            # Build error stack
             response_dict = PumpWoodMicroService.angular_json(response)
+            temp_dict = deepcopy(response_dict)
+            temp_dict["!exception_url!"] = url
+            temp_dict["!exception_method!"] = method
+            temp_dict["!exception_utcnow!"] = utcnow.isoformat()
+            exception_stack = temp_dict.get("!exception_stack!", [])
+            exception_stack.append(temp_dict)
+
+            # Propagate error
             exception_type = response_dict.pop("type", None)
             exception_message = response_dict.pop("message", "")
             exception_payload = response_dict.pop("payload", {})
+            exception_payload["!exception_stack!"] = exception_stack
+
             if exception_type is not None:
                 raise exceptions_dict[exception_type](
                     message=exception_message,
@@ -304,11 +320,9 @@ class PumpWoodMicroService():
         """
         if files is None:
             request_header = self._check__auth_header(auth_header=auth_header)
-
             post_url = self.server_url + url
             response = requests.post(
-                url=post_url,
-                data=pumpJsonDump(data),
+                url=post_url, data=pumpJsonDump(data),
                 verify=self.verify_ssl, headers=request_header)
 
             self.error_handler(response)
@@ -416,8 +430,25 @@ class PumpWoodMicroService():
             url=list_url, auth_header=auth_header)
         return routes
 
-    def dummy_call(self, payload=None, auth_header: dict = None):
-        """List routes that have been registed at Kong."""
+    def dummy_call(self, payload: dict = None,
+                   auth_header: dict = None) -> dict:
+        """
+        Return a dummy call to ensure headers and payload reaching app.
+
+        Args:
+            No args.
+        Kwards:
+            payload (dict]): Payload to be returned by the dummy call
+                end-point.
+            auth_header (dict): Auth header if microservice not logged.
+
+        Return:
+            Return a dictonary with:
+            - full_path (dict): Full path of the request.
+            - method (dict): Method used at the call
+            - headers (dict): Headers at the request.
+            - data (dict): Post payload sent at the request.
+        """
         list_url = None
         if self.auth_suffix is None:
             list_url = 'rest/pumpwood/dummy-call/'
@@ -433,13 +464,35 @@ class PumpWoodMicroService():
                 url=list_url, data=payload,
                 auth_header=auth_header)
 
+    def dummy_raise(self, exception_class: str, payload: dict = {},
+                    auth_header: dict = None) -> None:
+        """
+        Raise an Pumpwood error with the payload.
+
+        Can be used for debug purposes.
+
+        Args:
+            payload (dict):
+            auth_header (dict):
+        Return:
+            Should not return any results, all possible call should result
+            in raising the correspondent error.
+        Exceptions:
+            Should raise the correspondent error passed on exception_class
+            arg, with payload.
+        """
+        url = 'rest/pumpwood/dummy-raise/'
+        payload["exception_class"] = exception_class
+        self.request_post(url=url, data=payload, auth_header=auth_header)
+
     @staticmethod
     def _build_list_url(model_class: str):
         return "rest/%s/list/" % (model_class.lower(),)
 
     def list(self, model_class: str, filter_dict: dict = {},
              exclude_dict: dict = {}, order_by: list = [],
-             auth_header: dict = None, fields: list = None):
+             auth_header: dict = None, fields: list = None,
+             default_fields: bool = False, **kwargs) -> list:
         """
         List objects with pagination.
 
@@ -460,6 +513,8 @@ class PumpWoodMicroService():
           auth_header(dict): Dictionary containing the auth header.
           fields(list[str]): Select the fields to be returned by the list
             end-point.
+          default_fields [bool]: Return the fields specified at
+              self.list_fields.
 
         Returns:
           list: Contaiing objects serialized by list Serializer.
@@ -472,8 +527,9 @@ class PumpWoodMicroService():
 
         """
         url_str = self._build_list_url(model_class)
-        post_data = {'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
-                     'order_by': order_by}
+        post_data = {
+            'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
+            'order_by': order_by, 'default_fields': default_fields}
         if fields is not None:
             post_data["fields"] = fields
         return self.request_post(url=url_str, data=post_data,
@@ -486,7 +542,8 @@ class PumpWoodMicroService():
     def list_without_pag(self, model_class: str, filter_dict: dict = {},
                          exclude_dict: dict = {}, order_by: list = [],
                          auth_header: dict = None, return_type: str = 'list',
-                         convert_geometry: bool = True, fields: list = None):
+                         convert_geometry: bool = True, fields: list = None,
+                         default_fields: bool = False, **kwargs):
         """
         List object without pagination.
 
@@ -509,7 +566,8 @@ class PumpWoodMicroService():
           convert_geometry(bool) = True: Covert geometry to shapely.
           fields(list[str]): Select the fields to be returned by the list
             end-point.
-
+          default_fields [bool]: Return the fields specified at
+              self.list_fields.
         Returns:
           list: Contaiing objects serialized by list Serializer.
 
@@ -521,8 +579,10 @@ class PumpWoodMicroService():
 
         """
         url_str = self._build_list_without_pag_url(model_class)
-        post_data = {'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
-                     'order_by': order_by}
+        post_data = {
+            'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
+            'order_by': order_by, 'default_fields': default_fields}
+
         if fields is not None:
             post_data["fields"] = fields
         results = self.request_post(
@@ -693,8 +753,8 @@ class PumpWoodMicroService():
           save_path (str): Path of the directory to save file.
           file_name (str): Name of the file, if None it will have same name as
                 saved in PumpWood.
-          if_exists {'fail', 'change_name', 'overwrite'}: Set what to do if there
-                is a file with same name.
+          if_exists {'fail', 'change_name', 'overwrite'}: Set what to do if
+            there is a file with same name.
         Returns:
           requset.response or str
         Raises:
@@ -1681,6 +1741,7 @@ class PumpWoodMicroService():
 
     def get_queue_matrix(self, queue_pk: int, auth_header: dict = None,
                          save_as_excel: str = None):
+        """Download model queue estimation matrix."""
         file_content = self.retrieve_file(
             model_class="ModelQueue", pk=queue_pk,
             file_field="model_matrix_file", auth_header=auth_header,
