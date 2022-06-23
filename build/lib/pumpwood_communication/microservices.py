@@ -263,7 +263,6 @@ class PumpWoodMicroService():
             No example
 
         """
-        datetime.datetime.utcnow()
         if not response.ok:
             utcnow = datetime.datetime.utcnow()
             response_content_type = response.headers['content-type']
@@ -467,16 +466,21 @@ class PumpWoodMicroService():
                 url=list_url, data=payload,
                 auth_header=auth_header)
 
-    def dummy_raise(self, exception_class: str, payload: dict = {},
-                    auth_header: dict = None) -> None:
+    def dummy_raise(self, exception_class: str, exception_deep: int,
+                    payload: dict = {}, auth_header: dict = None) -> None:
         """
         Raise an Pumpwood error with the payload.
 
         Can be used for debug purposes.
 
         Args:
-            payload (dict):
-            auth_header (dict):
+            exception_class (str): Class of the exception to be raised.
+            exception_deep (int): Deep of the exception in microservice
+                calls.
+        Kwards:
+            payload (dict]): Payload to be returned by the dummy call
+                end-point.
+            auth_header (dict): Auth header if microservice not logged.
         Return:
             Should not return any results, all possible call should result
             in raising the correspondent error.
@@ -486,6 +490,7 @@ class PumpWoodMicroService():
         """
         url = 'rest/pumpwood/dummy-raise/'
         payload["exception_class"] = exception_class
+        payload["exception_deep"] = exception_deep
         self.request_post(url=url, data=payload, auth_header=auth_header)
 
     @staticmethod
