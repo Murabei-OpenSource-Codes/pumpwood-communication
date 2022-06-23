@@ -276,17 +276,20 @@ class PumpWoodMicroService():
 
             # Build error stack
             response_dict = PumpWoodMicroService.angular_json(response)
+
+            # Removing previus error stack
+            exception_stack = response_dict.pop("!exception_stack!", [])
+
             temp_dict = deepcopy(response_dict)
             temp_dict["!exception_url!"] = url
             temp_dict["!exception_method!"] = method
             temp_dict["!exception_utcnow!"] = utcnow.isoformat()
-            exception_stack = temp_dict.get("!exception_stack!", [])
-            exception_stack.append(temp_dict)
+            exception_stack.insert(0, temp_dict)
 
             # Propagate error
-            exception_type = response_dict.pop("type", None)
-            exception_message = response_dict.pop("message", "")
-            exception_payload = response_dict.pop("payload", {})
+            exception_type = response_dict.get("type", None)
+            exception_message = response_dict.get("message", "")
+            exception_payload = response_dict.get("payload", {})
             exception_payload["!exception_stack!"] = exception_stack
 
             if exception_type is not None:
