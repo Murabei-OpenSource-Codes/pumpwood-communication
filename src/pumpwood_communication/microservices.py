@@ -3,11 +3,11 @@ Module microservice.py.
 
 Class and functions to help comunication between PumpWood like systems.
 """
-import simplejson as json
-import gzip
 import re
 import os
 import io
+import simplejson as json
+import gzip
 import requests
 import pandas as pd
 import geopandas as geopd
@@ -18,7 +18,6 @@ from typing import Union, List
 from multiprocessing import Pool
 from pandas import ExcelWriter
 from copy import deepcopy
-
 from pumpwood_communication.exceptions import (
     exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
     PumpWoodObjectSavingException)
@@ -277,15 +276,16 @@ class PumpWoodMicroService():
             response_dict = PumpWoodMicroService.angular_json(response)
 
             # Removing previus error stack
-            payload = response_dict["payload"]
-            exception_stack = payload.pop("!exception_stack!", [])
-            exception_deep = len(exception_stack)
+            payload = deepcopy(response_dict["payload"])
+            exception_stack = deepcopy(payload.get("!exception_stack!", []))
+            del payload["!exception_stack!"]
 
+            exception_deep = len(exception_stack)
             exception_dict = {
                 "exception_url": url,
                 "exception_method": method,
                 "exception_utcnow": utcnow.isoformat(),
-                "exception_deep": exception_deep
+                "exception_deep": exception_deep + 1
             }
             exception_stack.insert(0, exception_dict)
             payload["!exception_stack!"] = exception_stack
