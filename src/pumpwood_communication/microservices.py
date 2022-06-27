@@ -265,12 +265,21 @@ class PumpWoodMicroService():
         if not response.ok:
             utcnow = datetime.datetime.utcnow()
             response_content_type = response.headers['content-type']
-            if 'application/json' not in response_content_type.lower():
-                raise PumpWoodOtherException(message=response.text)
 
             # Request information
             url = response.url
             method = response.request.method
+
+            if 'application/json' not in response_content_type.lower():
+                # Raise the exception as first in exception deep.
+                exception_dict = [{
+                    "exception_url": url,
+                    "exception_method": method,
+                    "exception_utcnow": utcnow.isoformat(),
+                    "exception_deep": 1}]
+                raise PumpWoodOtherException(
+                    message=response.text, payload={
+                        "!exception_stack!": exception_dict})
 
             # Build error stack
             response_dict = PumpWoodMicroService.angular_json(response)
@@ -299,10 +308,8 @@ class PumpWoodMicroService():
                     status_code=response.status_code,
                     payload=payload)
             else:
-                msg_dict = PumpWoodMicroService.angular_json(response)
                 raise PumpWoodOtherException(
-                    message="Not PumpWood JSON error",
-                    payload=msg_dict)
+                    message="Not mapped exception JSON", payload=payload)
 
     def request_post(self, url: str, data: any, files: list = None,
                      auth_header: dict = None):
