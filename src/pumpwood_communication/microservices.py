@@ -285,7 +285,7 @@ class PumpWoodMicroService():
             response_dict = PumpWoodMicroService.angular_json(response)
 
             # Removing previus error stack
-            payload = deepcopy(response_dict["payload"])
+            payload = deepcopy(response_dict.get("payload", {}))
             exception_stack = deepcopy(payload.pop("!exception_stack!", []))
 
             exception_deep = len(exception_stack)
