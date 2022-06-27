@@ -1,358 +1,358 @@
 Metadata-Version: 2.1
 Name: pumpwood-communication
-Version: 0.71.8
+Version: 0.71.9
 Summary: Package for inter Pumpwood loging and comunication
 Home-page: https://github.com/Murabei-OpenSource-Codes/pumpwood-communication
 Author: André Andrade Baceti
 Author-email: a.baceti@murabei.com
 License: BSD-3-Clause License
-Description: # PumpWood Communication
-        This packages facilitates the communication with end-points with Pumpwood pattern and helps with authentication. This package was
-        developed by Murabei Data Science and is under BSD-3-Clause license.
-        
-        <p align="center" width="60%">
-          <img src="doc/sitelogo-horizontal.png" /> <br>
-        
-          <a href="https://en.wikipedia.org/wiki/Cecropia">
-            Pumpwood is a native brasilian tree
-          </a> which has a symbiotic relation with ants (Murabei)
-        </p>
-        
-        ## Quick start
-        The main class in package is PumpWoodMicroService and it abstract
-        all end-point communication using functions. It is possible to
-        set the credentials when initializing the object or after using the
-        init method.
-        
-        ```
-        from pumpwood_communication.microservices import PumpWoodMicroService
-        
-        microservice = PumpWoodMicroService(
-            server_url="http://0.0.0.0:8080/",
-            username="pumpwood", password="pumpwood")
-        microservice.login()
-        ```
-        
-        Some times is easier to create the object and then set the credentials,
-        this can be done using the init method
-        ```
-        from pumpwood_communication.microservices import PumpWoodMicroService
-        
-        microservice = PumpWoodMicroService()
-        
-        # After many validations or other functions
-        [...]
-        
-        microservice.init(
-            server_url="http://0.0.0.0:8080/",
-            username="pumpwood", password="pumpwood")
-        microservice.login()
-        ```
-        
-        PumpWoodMicroService constructor and init method have some basic parameters.
-        - <b>name:</b> Name of the microservice (object to make communication), it is
-          only used for debug proposes, and does not afect usage.
-        - <b>server_url:</b> URL of the server to connect using a Pumpwood pattern.
-        - <b>username:</b> Username for the connection.
-        - <b>password:</b> Password for the connection.
-        - <b>verify_ssl:</b> At sobre test enviroment the end-point may have a self
-          assigned certificates.
-        
-        ## Quick start
-        It will be explored some basic usage for the package, for more information
-        check documentation.
-        
-        ## Basic definition
-        There are some concepts that might make it ease to understand the general
-        structure of pumpwood based end-point.
-        
-        Pumpwood end-points are organized in `model_class` which is the class exposed
-        thought the Pumpwood Api. Every object in Pumpwood have its own primary key,
-        which is retrieved as pk at JSON responses indenpendetly how if is used at the
-        database (pk may be a `id` or `indentification_id` at DB).
-        
-        All end-points for a given `model_class` are structured with the
-        structure `rest/[model_class]/[end-point]/[?pk]&[query parameters]`. Some
-        examples below:
-        - [POST] `rest/user/list/`
-        - [POST] `rest/user/list-without-pag/`
-        - [POST] `rest/user/save/`
-        - [GET] `rest/user/retrieve/5/`
-        - [POST] `rest/company/save/`
-        - [POST] `rest/company/actions/duplicate/5/`
-        - [GET] `rest/company/actions/`
-        
-        ## Raise and error treatment
-        When a Pumpwood exception is identified on the request response the microservice re-raise it using the same exception. This helps debug and propagating errors on other end-points.
-        
-        It is possible to use exceptions defined at PumpWood microservice at exceptions.
-        
-        ```
-        from pumpwood_communication.exceptions import PumpWoodException
-        
-        raise PumpWoodException(
-          message="Error to be mapped using the APIs",
-          payload={
-              "payload": "payload-data"
-          })
-        ```
-        
-        ## Basic usage
-        ### List and list without pagination
-        Both methods list objects using dictionaries passed as payload on a post request.
-        
-        ```
-        from pumpwood_communication.microservices import PumpWoodMicroService
-        
-        microservice = PumpWoodMicroService(
-            server_url="http://0.0.0.0:8080/",
-            username="pumpwood", password="pumpwood")
-        microservice.login()
-        
-        list_results = microservice.list(
-            model_class="Company",
-            filter_dict={
-              "name__icontains": "Acme",
-            }, exclude_dict={
-              "status__in": ["deprected", "inactive"],
-            },
-            order_by=["holding_name", "-name"]
-        )
-        ```
-        
-        Using `filter_dict` and `exclude_dict` is possible adjust the query of the objects. It is also possible to order the results
-        using a list of fields, names starting with `-` will order
-        in decrescent.
-        
-        `list` method paginate the results acording to backend page
-        size default. `list_without_pag` does not paginate and must
-        be used with caution for a large number of objects. It is
-        possible to paginate the results using the pks recived.
-        
-        ```
-        microservice = PumpWoodMicroService(
-            server_url="http://0.0.0.0:8080/",
-            username="pumpwood", password="pumpwood")
-        microservice.login()
-        
-        # Get the first page results using the filters and the
-        # order
-        pag_1 = microservice.list(
-            model_class="Company",
-            filter_dict={
-              "name__icontains": "Acme",
-            }, exclude_dict={
-              "status__in": ["deprected", "inactive"],
-            },
-            order_by=["holding_name", "-name"]
-        )
-        
-        # Get the list of the pks recived
-        pag_1_pks = [obj["pk"] for obj in pag_1]
-        
-        # Use in the next page query
-        pag_2 = microservice.list(
-            model_class="Company",
-            filter_dict={
-              "name__icontains": "Acme",
-            }, exclude_dict={
-              "status__in": ["deprected", "inactive"],
-              "pk__in": pag_1_pks
-            },
-            order_by=["holding_name", "-name"]
-        )
-        ```
-        
-        If is also possible to restrict the fields returned by end-point
-        using `fields` parameter, if None the default columns with be
-        returned.
-        
-        Using `__` is possible to access related fields and apply
-        operators to the request (almost equal to Django api). Some
-        examples of operators:
-        
-        #### Time/Date and Numeric
-        - <b>gt:</b> Greater then.
-        - <b>lt:</b> Less then.
-        - <b>gte:</b> Greater then and equal.
-        - <b>lte:</b> Less then and equal.
-        
-        #### List of values
-        - <b>in:</b> Check if a values is present in a list.
-        
-        #### Text field
-        - <b>contains:</b> Check if a value contains another.
-        - <b>icontains:</b> Check if a value contains another, case insensitive.
-        - <b>unaccent_icontains:</b> Se o texto contém o texto especificado desconsiderando o case e os acentos.
-        - <b>startswith:</b> Se o texto começa com.
-        - <b>istartswith:</b> Se o texto começa com sem considerar o case.
-        - <b>unaccent_istartswith:</b> Se o texto começa com sem considerar o case e os acentos.
-        - <b>endswith:</b> Se o texto termina com.
-        - <b>iendswith:</b> Se o texto termina com e desconsiderando o case.
-        - <b>unaccent_iendswith:</b> Se o texto termina com e desconsiderando o case e os acentos.
-        
-        #### Campos de data e tempo:
-        - <b>year:</b> Se a data é no ano especificado.
-        - <b>month:</b> Se a data é no mês especificado.
-        - <b>day:</b> Se a data é no dia especificado.
-        
-        #### JSON Fields
-        
-        It is possible to access JSON key/value using `->` operator.
-        
-        ```
-        list_results = microservice.list(
-            model_class="Company",
-            filter_dict={
-              "json_dimensions->dim1__icontains": "test_dimention",
-            }, exclude_dict={
-              "json_extra_info->parameter__in": [
-                1, "1", None],
-            },
-            order_by=[
-              "json_extra_info->company-cat", "-name"]
-        )
-        ```
-        
-        ### Saving and updating objects
-        To save and update object it is possible to use the `save` method. It takes a dictionary with a model_class indicating the
-        end-point that will be used.
-        
-        If a pk is passed at the dictionary then the object will be
-        updated. pk=None also lead to adding a new object to database.
-        
-        ```
-        # Creating a new object
-        microservice.save(obj_dict={
-          "model_class": "Company",
-          "name": "New Company",
-          "json_extra_info": {
-              "cat": "joe"
-          },
-          "json_dimensions": {
-              "dim1": "test_save"
-          }
-        })
-        
-        # Updating a object in database
-        microservice.save(obj_dict={
-          "pk": 5,
-          "model_class": "Company",
-          "name": "New Company",
-          "json_extra_info": {
-              "cat": "joe"
-          },
-          "json_dimensions": {
-              "dim1": "test_save"
-          }
-        })
-        ```
-        
-        ### Actions: listing and executing
-        At each model_class it is possible to associate actions, they
-        can be regular or static (not associated with an object). For each model_class is possible to list the available actions using `list_actions` functions
-        
-        ```
-        resp_list_actions = microservice.list_actions(
-            model_class="Company")
-        # [
-        #   {
-        #     "action_name": "duplicate",
-        #     "doc_string": "Doc string of the function",
-        #     "info": "Duplicate the company at the database.",
-        #     "is_static_function": false,
-        #     "parameters": {
-        #       "suffix": {
-        #         "default_value": "new ",
-        #         "required": false,
-        #         "type": "bool"
-        #       },
-        #       "clone_id": {
-        #         "default_value": None,
-        #         "required": true,
-        #         "type": "bool"
-        #       }
-        #     }
-        #   },
-        #   {
-        #     "action_name": "create_company_from_holding",
-        #     "doc_string": "Doc string of the function",
-        #     "info": "Create a company associated to a holding.",
-        #     "is_static_function": true,
-        #     "parameters": {
-        #       "holding_name": {
-        #         "default_value": None,
-        #         "required": true,
-        #         "type": "str"
-        #       },
-        #       "parameters": {
-        #         "default_value": {},
-        #         "required": false,
-        #         "type": "dict"
-        #       }
-        #     }
-        #   }
-        # ]
-        ```
-        
-        To execute an action it is possible to use execute_action function. It
-        execute at a model_class.
-        
-        ```
-        microservice.execute_action(
-            model_class="Company", pk=1, action="duplicate", parameters={
-                "clone_id": True})
-        
-        microservice.execute_action(
-            model_class="Company", action="create_company_from_holding", parameters={
-                "holding_name": "Holding one",
-                "parameters": {"parm1": 1, "param2": 2}})
-        ```
-        
-        ### Other functions
-        It is possible to use other functions, the documentation can be gatered using the doc string. Some of the functions in microservice.
-        
-        - error_handler
-        - request_post
-        - request_get
-        - request_delete
-        - list_registered_routes
-        - list_registered_endpoints
-        - list
-        - list_without_pag
-        - list_dimentions
-        - list_dimention_values
-        - list_one
-        - retrieve
-        - retrieve_file
-        - retrieve_streaming_file
-        - save
-        - save_streaming_file
-        - delete
-        - remove_file_field
-        - delete_many
-        - list_actions
-        - execute_action
-        - search_options
-        - fill_options
-        - pivot
-        - bulk_save
-        - parallel_request_get
-        - paralell_request_post
-        - paralell_request_delete
-        - parallel_retrieve
-        - parallel_list
-        - parallel_list_without_pag
-        - parallel_list_one
-        - parallel_save
-        - parallel_delete
-        - parallel_delete_many
-        - parallel_execute_action
-        - parallel_bulk_save
-        - parallel_pivot
-        
-Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
 Classifier: Operating System :: OS Independent
 Requires-Python: >=3.6
 Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# PumpWood Communication
+This packages facilitates the communication with end-points with Pumpwood pattern and helps with authentication. This package was
+developed by Murabei Data Science and is under BSD-3-Clause license.
+
+<p align="center" width="60%">
+  <img src="doc/sitelogo-horizontal.png" /> <br>
+
+  <a href="https://en.wikipedia.org/wiki/Cecropia">
+    Pumpwood is a native brasilian tree
+  </a> which has a symbiotic relation with ants (Murabei)
+</p>
+
+## Quick start
+The main class in package is PumpWoodMicroService and it abstract
+all end-point communication using functions. It is possible to
+set the credentials when initializing the object or after using the
+init method.
+
+```
+from pumpwood_communication.microservices import PumpWoodMicroService
+
+microservice = PumpWoodMicroService(
+    server_url="http://0.0.0.0:8080/",
+    username="pumpwood", password="pumpwood")
+microservice.login()
+```
+
+Some times is easier to create the object and then set the credentials,
+this can be done using the init method
+```
+from pumpwood_communication.microservices import PumpWoodMicroService
+
+microservice = PumpWoodMicroService()
+
+# After many validations or other functions
+[...]
+
+microservice.init(
+    server_url="http://0.0.0.0:8080/",
+    username="pumpwood", password="pumpwood")
+microservice.login()
+```
+
+PumpWoodMicroService constructor and init method have some basic parameters.
+- <b>name:</b> Name of the microservice (object to make communication), it is
+  only used for debug proposes, and does not afect usage.
+- <b>server_url:</b> URL of the server to connect using a Pumpwood pattern.
+- <b>username:</b> Username for the connection.
+- <b>password:</b> Password for the connection.
+- <b>verify_ssl:</b> At sobre test enviroment the end-point may have a self
+  assigned certificates.
+
+## Quick start
+It will be explored some basic usage for the package, for more information
+check documentation.
+
+## Basic definition
+There are some concepts that might make it ease to understand the general
+structure of pumpwood based end-point.
+
+Pumpwood end-points are organized in `model_class` which is the class exposed
+thought the Pumpwood Api. Every object in Pumpwood have its own primary key,
+which is retrieved as pk at JSON responses indenpendetly how if is used at the
+database (pk may be a `id` or `indentification_id` at DB).
+
+All end-points for a given `model_class` are structured with the
+structure `rest/[model_class]/[end-point]/[?pk]&[query parameters]`. Some
+examples below:
+- [POST] `rest/user/list/`
+- [POST] `rest/user/list-without-pag/`
+- [POST] `rest/user/save/`
+- [GET] `rest/user/retrieve/5/`
+- [POST] `rest/company/save/`
+- [POST] `rest/company/actions/duplicate/5/`
+- [GET] `rest/company/actions/`
+
+## Raise and error treatment
+When a Pumpwood exception is identified on the request response the microservice re-raise it using the same exception. This helps debug and propagating errors on other end-points.
+
+It is possible to use exceptions defined at PumpWood microservice at exceptions.
+
+```
+from pumpwood_communication.exceptions import PumpWoodException
+
+raise PumpWoodException(
+  message="Error to be mapped using the APIs",
+  payload={
+      "payload": "payload-data"
+  })
+```
+
+## Basic usage
+### List and list without pagination
+Both methods list objects using dictionaries passed as payload on a post request.
+
+```
+from pumpwood_communication.microservices import PumpWoodMicroService
+
+microservice = PumpWoodMicroService(
+    server_url="http://0.0.0.0:8080/",
+    username="pumpwood", password="pumpwood")
+microservice.login()
+
+list_results = microservice.list(
+    model_class="Company",
+    filter_dict={
+      "name__icontains": "Acme",
+    }, exclude_dict={
+      "status__in": ["deprected", "inactive"],
+    },
+    order_by=["holding_name", "-name"]
+)
+```
+
+Using `filter_dict` and `exclude_dict` is possible adjust the query of the objects. It is also possible to order the results
+using a list of fields, names starting with `-` will order
+in decrescent.
+
+`list` method paginate the results acording to backend page
+size default. `list_without_pag` does not paginate and must
+be used with caution for a large number of objects. It is
+possible to paginate the results using the pks recived.
+
+```
+microservice = PumpWoodMicroService(
+    server_url="http://0.0.0.0:8080/",
+    username="pumpwood", password="pumpwood")
+microservice.login()
+
+# Get the first page results using the filters and the
+# order
+pag_1 = microservice.list(
+    model_class="Company",
+    filter_dict={
+      "name__icontains": "Acme",
+    }, exclude_dict={
+      "status__in": ["deprected", "inactive"],
+    },
+    order_by=["holding_name", "-name"]
+)
+
+# Get the list of the pks recived
+pag_1_pks = [obj["pk"] for obj in pag_1]
+
+# Use in the next page query
+pag_2 = microservice.list(
+    model_class="Company",
+    filter_dict={
+      "name__icontains": "Acme",
+    }, exclude_dict={
+      "status__in": ["deprected", "inactive"],
+      "pk__in": pag_1_pks
+    },
+    order_by=["holding_name", "-name"]
+)
+```
+
+If is also possible to restrict the fields returned by end-point
+using `fields` parameter, if None the default columns with be
+returned.
+
+Using `__` is possible to access related fields and apply
+operators to the request (almost equal to Django api). Some
+examples of operators:
+
+#### Time/Date and Numeric
+- <b>gt:</b> Greater then.
+- <b>lt:</b> Less then.
+- <b>gte:</b> Greater then and equal.
+- <b>lte:</b> Less then and equal.
+
+#### List of values
+- <b>in:</b> Check if a values is present in a list.
+
+#### Text field
+- <b>contains:</b> Check if a value contains another.
+- <b>icontains:</b> Check if a value contains another, case insensitive.
+- <b>unaccent_icontains:</b> Se o texto contém o texto especificado desconsiderando o case e os acentos.
+- <b>startswith:</b> Se o texto começa com.
+- <b>istartswith:</b> Se o texto começa com sem considerar o case.
+- <b>unaccent_istartswith:</b> Se o texto começa com sem considerar o case e os acentos.
+- <b>endswith:</b> Se o texto termina com.
+- <b>iendswith:</b> Se o texto termina com e desconsiderando o case.
+- <b>unaccent_iendswith:</b> Se o texto termina com e desconsiderando o case e os acentos.
+
+#### Campos de data e tempo:
+- <b>year:</b> Se a data é no ano especificado.
+- <b>month:</b> Se a data é no mês especificado.
+- <b>day:</b> Se a data é no dia especificado.
+
+#### JSON Fields
+
+It is possible to access JSON key/value using `->` operator.
+
+```
+list_results = microservice.list(
+    model_class="Company",
+    filter_dict={
+      "json_dimensions->dim1__icontains": "test_dimention",
+    }, exclude_dict={
+      "json_extra_info->parameter__in": [
+        1, "1", None],
+    },
+    order_by=[
+      "json_extra_info->company-cat", "-name"]
+)
+```
+
+### Saving and updating objects
+To save and update object it is possible to use the `save` method. It takes a dictionary with a model_class indicating the
+end-point that will be used.
+
+If a pk is passed at the dictionary then the object will be
+updated. pk=None also lead to adding a new object to database.
+
+```
+# Creating a new object
+microservice.save(obj_dict={
+  "model_class": "Company",
+  "name": "New Company",
+  "json_extra_info": {
+      "cat": "joe"
+  },
+  "json_dimensions": {
+      "dim1": "test_save"
+  }
+})
+
+# Updating a object in database
+microservice.save(obj_dict={
+  "pk": 5,
+  "model_class": "Company",
+  "name": "New Company",
+  "json_extra_info": {
+      "cat": "joe"
+  },
+  "json_dimensions": {
+      "dim1": "test_save"
+  }
+})
+```
+
+### Actions: listing and executing
+At each model_class it is possible to associate actions, they
+can be regular or static (not associated with an object). For each model_class is possible to list the available actions using `list_actions` functions
+
+```
+resp_list_actions = microservice.list_actions(
+    model_class="Company")
+# [
+#   {
+#     "action_name": "duplicate",
+#     "doc_string": "Doc string of the function",
+#     "info": "Duplicate the company at the database.",
+#     "is_static_function": false,
+#     "parameters": {
+#       "suffix": {
+#         "default_value": "new ",
+#         "required": false,
+#         "type": "bool"
+#       },
+#       "clone_id": {
+#         "default_value": None,
+#         "required": true,
+#         "type": "bool"
+#       }
+#     }
+#   },
+#   {
+#     "action_name": "create_company_from_holding",
+#     "doc_string": "Doc string of the function",
+#     "info": "Create a company associated to a holding.",
+#     "is_static_function": true,
+#     "parameters": {
+#       "holding_name": {
+#         "default_value": None,
+#         "required": true,
+#         "type": "str"
+#       },
+#       "parameters": {
+#         "default_value": {},
+#         "required": false,
+#         "type": "dict"
+#       }
+#     }
+#   }
+# ]
+```
+
+To execute an action it is possible to use execute_action function. It
+execute at a model_class.
+
+```
+microservice.execute_action(
+    model_class="Company", pk=1, action="duplicate", parameters={
+        "clone_id": True})
+
+microservice.execute_action(
+    model_class="Company", action="create_company_from_holding", parameters={
+        "holding_name": "Holding one",
+        "parameters": {"parm1": 1, "param2": 2}})
+```
+
+### Other functions
+It is possible to use other functions, the documentation can be gatered using the doc string. Some of the functions in microservice.
+
+- error_handler
+- request_post
+- request_get
+- request_delete
+- list_registered_routes
+- list_registered_endpoints
+- list
+- list_without_pag
+- list_dimentions
+- list_dimention_values
+- list_one
+- retrieve
+- retrieve_file
+- retrieve_streaming_file
+- save
+- save_streaming_file
+- delete
+- remove_file_field
+- delete_many
+- list_actions
+- execute_action
+- search_options
+- fill_options
+- pivot
+- bulk_save
+- parallel_request_get
+- paralell_request_post
+- paralell_request_delete
+- parallel_retrieve
+- parallel_list
+- parallel_list_without_pag
+- parallel_list_one
+- parallel_save
+- parallel_delete
+- parallel_delete_many
+- parallel_execute_action
+- parallel_bulk_save
+- parallel_pivot

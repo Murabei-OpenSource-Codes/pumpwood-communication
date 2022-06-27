@@ -20,7 +20,7 @@ from pandas import ExcelWriter
 from copy import deepcopy
 from pumpwood_communication.exceptions import (
     exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
-    PumpWoodObjectSavingException)
+    PumpWoodObjectSavingException, PumpWoodOtherException)
 from pumpwood_communication.serializers import pumpJsonDump
 
 
@@ -266,7 +266,7 @@ class PumpWoodMicroService():
             utcnow = datetime.datetime.utcnow()
             response_content_type = response.headers['content-type']
             if 'application/json' not in response_content_type.lower():
-                raise Exception(response.text)
+                raise PumpWoodOtherException(message=response.text)
 
             # Request information
             url = response.url
@@ -277,8 +277,7 @@ class PumpWoodMicroService():
 
             # Removing previus error stack
             payload = deepcopy(response_dict["payload"])
-            exception_stack = deepcopy(payload.get("!exception_stack!", []))
-            del payload["!exception_stack!"]
+            exception_stack = deepcopy(payload.pop("!exception_stack!", []))
 
             exception_deep = len(exception_stack)
             exception_dict = {
@@ -301,7 +300,9 @@ class PumpWoodMicroService():
                     payload=payload)
             else:
                 msg_dict = PumpWoodMicroService.angular_json(response)
-                raise Exception(json.dumps(msg_dict, indent=2))
+                raise PumpWoodOtherException(
+                    message="Not PumpWood JSON error",
+                    payload=msg_dict)
 
     def request_post(self, url: str, data: any, files: list = None,
                      auth_header: dict = None):
