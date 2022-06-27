@@ -308,8 +308,10 @@ class PumpWoodMicroService():
                     status_code=response.status_code,
                     payload=payload)
             else:
+                response_dict["!exception_stack!"] = exception_stack
                 raise PumpWoodOtherException(
-                    message="Not mapped exception JSON", payload=payload)
+                    message="Not mapped exception JSON",
+                    payload=response_dict)
 
     def request_post(self, url: str, data: any, files: list = None,
                      auth_header: dict = None):
