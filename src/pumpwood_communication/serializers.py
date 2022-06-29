@@ -13,6 +13,7 @@ from datetime import time
 from pandas import Timestamp
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry import mapping
+from sqlalchemy_utils.types.choice import Choice
 
 
 class PumpWoodJSONEncoder(JSONEncoder):
@@ -39,6 +40,8 @@ class PumpWoodJSONEncoder(JSONEncoder):
             return np.asscalar(obj)
         if isinstance(obj, BaseGeometry):
             return mapping(obj)
+        if isinstance(obj, Choice):
+            return obj.code
         else:
             raise TypeError(
                 "Unserializable object {} of type {}".format(obj, type(obj)))
