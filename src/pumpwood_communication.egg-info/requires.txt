@@ -1,4 +1,5 @@
-simplejson
-pandas
+SQLAlchemy-Utils==0.37.8
 Shapely>=1.7.0
 geopandas>=0.8.1
+pandas
+simplejson
