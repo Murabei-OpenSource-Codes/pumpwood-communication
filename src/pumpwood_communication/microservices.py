@@ -3,11 +3,11 @@ Module microservice.py.
 
 Class and functions to help comunication between PumpWood like systems.
 """
-import simplejson as json
-import gzip
 import re
 import os
 import io
+import simplejson as json
+import gzip
 import requests
 import pandas as pd
 import geopandas as geopd
@@ -18,10 +18,9 @@ from typing import Union, List
 from multiprocessing import Pool
 from pandas import ExcelWriter
 from copy import deepcopy
-
 from pumpwood_communication.exceptions import (
     exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
-    PumpWoodObjectSavingException)
+    PumpWoodObjectSavingException, PumpWoodOtherException)
 from pumpwood_communication.serializers import pumpJsonDump
 
 
@@ -263,40 +262,56 @@ class PumpWoodMicroService():
             No example
 
         """
-        datetime.datetime.utcnow()
         if not response.ok:
             utcnow = datetime.datetime.utcnow()
             response_content_type = response.headers['content-type']
-            if 'application/json' not in response_content_type.lower():
-                raise Exception(response.text)
 
             # Request information
             url = response.url
             method = response.request.method
 
+            if 'application/json' not in response_content_type.lower():
+                # Raise the exception as first in exception deep.
+                exception_dict = [{
+                    "exception_url": url,
+                    "exception_method": method,
+                    "exception_utcnow": utcnow.isoformat(),
+                    "exception_deep": 1}]
+                raise PumpWoodOtherException(
+                    message=response.text, payload={
+                        "!exception_stack!": exception_dict})
+
             # Build error stack
             response_dict = PumpWoodMicroService.angular_json(response)
-            temp_dict = deepcopy(response_dict)
-            temp_dict["!exception_url!"] = url
-            temp_dict["!exception_method!"] = method
-            temp_dict["!exception_utcnow!"] = utcnow.isoformat()
-            exception_stack = temp_dict.get("!exception_stack!", [])
-            exception_stack.append(temp_dict)
+
+            # Removing previus error stack
+            payload = deepcopy(response_dict.get("payload", {}))
+            exception_stack = deepcopy(payload.pop("!exception_stack!", []))
+
+            exception_deep = len(exception_stack)
+            exception_dict = {
+                "exception_url": url,
+                "exception_method": method,
+                "exception_utcnow": utcnow.isoformat(),
+                "exception_deep": exception_deep + 1
+            }
+            exception_stack.insert(0, exception_dict)
+            payload["!exception_stack!"] = exception_stack
 
             # Propagate error
-            exception_type = response_dict.pop("type", None)
-            exception_message = response_dict.pop("message", "")
-            exception_payload = response_dict.pop("payload", {})
-            exception_payload["!exception_stack!"] = exception_stack
+            exception_message = response_dict.get("message", "")
+            exception_type = response_dict.get("type", None)
 
             if exception_type is not None:
                 raise exceptions_dict[exception_type](
                     message=exception_message,
                     status_code=response.status_code,
-                    payload=exception_payload)
+                    payload=payload)
             else:
-                msg_dict = PumpWoodMicroService.angular_json(response)
-                raise Exception(json.dumps(msg_dict, indent=2))
+                response_dict["!exception_stack!"] = exception_stack
+                raise PumpWoodOtherException(
+                    message="Not mapped exception JSON",
+                    payload=response_dict)
 
     def request_post(self, url: str, data: any, files: list = None,
                      auth_header: dict = None):
@@ -464,16 +479,21 @@ class PumpWoodMicroService():
                 url=list_url, data=payload,
                 auth_header=auth_header)
 
-    def dummy_raise(self, exception_class: str, payload: dict = {},
-                    auth_header: dict = None) -> None:
+    def dummy_raise(self, exception_class: str, exception_deep: int,
+                    payload: dict = {}, auth_header: dict = None) -> None:
         """
         Raise an Pumpwood error with the payload.
 
         Can be used for debug purposes.
 
         Args:
-            payload (dict):
-            auth_header (dict):
+            exception_class (str): Class of the exception to be raised.
+            exception_deep (int): Deep of the exception in microservice
+                calls.
+        Kwards:
+            payload (dict]): Payload to be returned by the dummy call
+                end-point.
+            auth_header (dict): Auth header if microservice not logged.
         Return:
             Should not return any results, all possible call should result
             in raising the correspondent error.
@@ -483,6 +503,7 @@ class PumpWoodMicroService():
         """
         url = 'rest/pumpwood/dummy-raise/'
         payload["exception_class"] = exception_class
+        payload["exception_deep"] = exception_deep
         self.request_post(url=url, data=payload, auth_header=auth_header)
 
     @staticmethod
