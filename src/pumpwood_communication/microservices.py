@@ -15,7 +15,7 @@ import numpy as np
 import datetime
 from shapely import geometry
 from typing import Union, List
-from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor
 from pandas import ExcelWriter
 from copy import deepcopy
 from pumpwood_communication.exceptions import (
@@ -1311,7 +1311,7 @@ class PumpWoodMicroService():
         pool_arguments = [
             {'url': u, 'auth_header': auth_header} for u in urls_list]
 
-        with Pool(n_parallel) as p:
+        with ThreadPoolExecutor(n_parallel) as p:
             return p.map(self._request_get_wrapper, pool_arguments)
 
     def _request_post_wrapper(self, arguments: dict):
@@ -1349,7 +1349,7 @@ class PumpWoodMicroService():
                 {'url': urls_list[i], 'data': data_list[i],
                  'auth_header': auth_header})
 
-        with Pool(n_parallel) as p:
+        with ThreadPoolExecutor(n_parallel) as p:
             return p.map(self._request_post_wrapper, pool_arguments)
 
     def _request_delete_wrapper(self, arguments):
@@ -1379,7 +1379,7 @@ class PumpWoodMicroService():
         pool_arguments = [
             {'url': u, 'auth_header': auth_header} for u in urls_list]
 
-        with Pool(n_parallel) as p:
+        with ThreadPoolExecutor(n_parallel) as p:
             return p.map(self._request_delete_wrapper, pool_arguments)
 
     ####################
