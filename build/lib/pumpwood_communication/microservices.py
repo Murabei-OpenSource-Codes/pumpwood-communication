@@ -6,6 +6,8 @@ Class and functions to help comunication between PumpWood like systems.
 import re
 import os
 import io
+import sys
+import logging
 import simplejson as json
 import gzip
 import requests
@@ -15,13 +17,21 @@ import numpy as np
 import datetime
 from shapely import geometry
 from typing import Union, List
-from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import Pool
 from pandas import ExcelWriter
 from copy import deepcopy
 from pumpwood_communication.exceptions import (
     exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
     PumpWoodObjectSavingException, PumpWoodOtherException)
 from pumpwood_communication.serializers import pumpJsonDump
+
+
+# Creating logger for MicroService calls
+Log_Format = "%(levelname)s %(asctime)s - %(message)s"
+logging.basicConfig()
+logging.basicConfig(stream=sys.stdout, format=Log_Format)
+microservice_logger = logging.getLogger('pumpwood_comunication')
+microservice_logger.setLevel(logging.INFO)
 
 
 def break_in_chunks(df_to_break: pd.DataFrame, chunksize: int = 1000):
@@ -1281,16 +1291,28 @@ class PumpWoodMicroService():
     # Paralell aux functions
     def _request_get_wrapper(self, arguments: dict):
         try:
-            return self.request_get(**arguments)
+            results = self.request_get(**arguments)
+            print("- process finished")
+            return results
         except Exception as e:
             raise Exception("Error on parallel get: " + str(e))
 
     @staticmethod
-    def flatten_parallel(parallel_result):
-        """Concat all parallel return to one list."""
-        return [item for sublist in parallel_result for item in sublist]
+    def flatten_parallel(parallel_result: list):
+        """
+        Concat all parallel return to one list.
 
-    def parallel_request_get(self, urls_list: list, n_parallel: int = 10,
+        Args:
+            parallel_result (list): A list of lists to be flated (concatenate
+                all lists into one).
+        Return:
+            A list with all sub list itens.
+        """
+        return [
+            item for sublist in parallel_result
+            for item in sublist]
+
+    def parallel_request_get(self, urls_list: list, n_parallel: int = None,
                              auth_header: dict = None):
         """
         Make many [n_parallel] get request.
@@ -1298,7 +1320,9 @@ class PumpWoodMicroService():
         Args:
             urls_list (list): List of urls to make get requests.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the get request reponses.
@@ -1308,20 +1332,30 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         pool_arguments = [
             {'url': u, 'auth_header': auth_header} for u in urls_list]
 
-        with ThreadPoolExecutor(n_parallel) as p:
-            return p.map(self._request_get_wrapper, pool_arguments)
+        with Pool(n_parallel) as p:
+            print('Waiting for tasks to complete')
+            logging.basicConfig(level=logging.DEBUG)
+            results = p.map(self._request_get_wrapper, pool_arguments)
+        return results
 
     def _request_post_wrapper(self, arguments: dict):
         try:
-            return self.request_post(**arguments)
+            result = self.request_post(**arguments)
+            print("- process finished")
+            return result
         except Exception as e:
             raise Exception("Error in parallel post: " + str(e))
 
     def paralell_request_post(self, urls_list: list, data_list: list,
-                              n_parallel: int = 10, auth_header: dict = None):
+                              n_parallel: int = None,
+                              auth_header: dict = None):
         """
         Make many [n_parallel] post request.
 
@@ -1329,7 +1363,9 @@ class PumpWoodMicroService():
             urls_list (list<str>): List of urls to make get requests.
             data_list (list<any>): List of data to be used as post payloads.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the post request reponses.
@@ -1349,16 +1385,20 @@ class PumpWoodMicroService():
                 {'url': urls_list[i], 'data': data_list[i],
                  'auth_header': auth_header})
 
-        with ThreadPoolExecutor(n_parallel) as p:
-            return p.map(self._request_post_wrapper, pool_arguments)
+        with Pool(n_parallel) as p:
+            results = p.map(self._request_post_wrapper, pool_arguments)
+
+        return results
 
     def _request_delete_wrapper(self, arguments):
         try:
-            return self.request_delete(**arguments)
+            result = self.request_delete(**arguments)
+            print("- process finished")
+            return result
         except Exception as e:
             raise Exception("Error in parallel delete: " + str(e))
 
-    def paralell_request_delete(self, urls_list: list, n_parallel: int = 10,
+    def paralell_request_delete(self, urls_list: list, n_parallel: int = None,
                                 auth_header: dict = None):
         """
         Make many [n_parallel] delete request.
@@ -1366,7 +1406,9 @@ class PumpWoodMicroService():
         Args:
             urls_list (list): List of urls to make get requests.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the get request reponses.
@@ -1379,13 +1421,13 @@ class PumpWoodMicroService():
         pool_arguments = [
             {'url': u, 'auth_header': auth_header} for u in urls_list]
 
-        with ThreadPoolExecutor(n_parallel) as p:
+        with Pool(n_parallel) as p:
             return p.map(self._request_delete_wrapper, pool_arguments)
 
     ####################
     # Paralell functions
     def parallel_retrieve(self, model_class: Union[str, List[str]],
-                          list_pk: List[int], n_parallel: int = 10,
+                          list_pk: List[int], n_parallel: int = None,
                           auth_header: dict = None):
         """
         Make many [n_parallel] retrieve request.
@@ -1394,7 +1436,9 @@ class PumpWoodMicroService():
             model_class (str, List[str]): Model Class to retrieve.
             list_pk (List[int]): List of the pks to retrieve.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1404,6 +1448,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         if type(model_class) != list:
             model_class = [model_class]*len(list_pk)
 
@@ -1419,7 +1467,7 @@ class PumpWoodMicroService():
             auth_header=auth_header)
 
     def parallel_list(self, model_class: Union[str, List[str]],
-                      list_args: List[dict], n_parallel: int = 10,
+                      list_args: List[dict], n_parallel: int = None,
                       auth_header: dict = None):
         """
         Make many [n_parallel] list request.
@@ -1429,7 +1477,9 @@ class PumpWoodMicroService():
             list_args_list (list): A list of list request args (filter_dict,
                                    exclude_dict, order_by).
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1439,6 +1489,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         urls_list = None
         if type(model_class) == str:
             urls_list = [self._build_list_url(model_class)]*len(list_args)
@@ -1447,12 +1501,15 @@ class PumpWoodMicroService():
                 raise Exception('len(model_class) != len(list_args)')
             urls_list = [self._build_list_url(m) for m in model_class]
 
+        print(
+            "## Starting parallel_list: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
 
     def parallel_list_without_pag(self, model_class: Union[str, List[str]],
-                                  list_args: List[dict], n_parallel: int = 10,
+                                  list_args: List[dict],
+                                  n_parallel: int = None,
                                   auth_header: dict = None):
         """
         Make many [n_parallel] list_without_pag request.
@@ -1463,7 +1520,9 @@ class PumpWoodMicroService():
                                                (filter_dict,exclude_dict,
                                                order_by).
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1473,6 +1532,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         urls_list = None
         if type(model_class) == str:
             url_temp = [self._build_list_without_pag_url(model_class)]
@@ -1484,12 +1547,14 @@ class PumpWoodMicroService():
             urls_list = [
                 self._build_list_without_pag_url(m) for m in model_class]
 
+        print(
+            "## Starting parallel_list_without_pag: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
 
     def parallel_list_one(self, model_class: Union[str, List[str]],
-                          list_pk: List[int], n_parallel: int = 10,
+                          list_pk: List[int], n_parallel: int = None,
                           auth_header: dict = None):
         """
         Make many [n_parallel] list_one request.
@@ -1498,7 +1563,9 @@ class PumpWoodMicroService():
             model_class (str or list<str>): Model Class to retrieve.
             list_pk (list): List of the pks to retrieve.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1508,6 +1575,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         if type(model_class) != list:
             model_class = [model_class]*len(list_pk)
 
@@ -1519,12 +1590,14 @@ class PumpWoodMicroService():
                                      pk=list_pk[i])
             for i in range(len(model_class))]
 
+        print(
+            "## Starting parallel_list_one: %s" % len(urls_list))
         return self.parallel_request_get(
             urls_list=urls_list, n_parallel=n_parallel,
             auth_header=auth_header)
 
     def parallel_save(self, list_obj_dict: List[dict],
-                      n_parallel: int = 10, auth_header: dict = None):
+                      n_parallel: int = None, auth_header: dict = None):
         """
         Make many [n_parallel] save requests.
 
@@ -1532,7 +1605,9 @@ class PumpWoodMicroService():
             list_obj_dict (list<dict>): List of dictionaries containing
                 PumpWood objects (must have at least 'model_class' key)
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1542,14 +1617,20 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         urls_list = [
             self._build_save_url(obj['model_class']) for obj in list_obj_dict]
+        print(
+            "## Starting parallel_save: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_obj_dict,
             n_parallel=n_parallel, auth_header=auth_header)
 
     def parallel_delete(self, model_class: Union[str, List[str]],
-                        list_pk: List[int], n_parallel: int = 10,
+                        list_pk: List[int], n_parallel: int = None,
                         auth_header: dict = None):
         """
         Make many [n_parallel] delete requests.
@@ -1559,7 +1640,9 @@ class PumpWoodMicroService():
             list_obj_dict (list<dict>): List of dictionaries containing
                 PumpWood objects (must have at least 'model_class' key)
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1569,6 +1652,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         if type(model_class) != list:
             model_class = [model_class]*len(list_pk)
 
@@ -1580,12 +1667,14 @@ class PumpWoodMicroService():
                                            pk=list_pk[i])
             for i in range(len(model_class))]
 
+        print(
+            "## Starting parallel_delete: %s" % len(urls_list))
         return self.parallel_request_get(
             urls_list=urls_list, n_parallel=n_parallel,
             auth_header=auth_header)
 
     def parallel_delete_many(self, model_class: Union[str, List[str]],
-                             list_args: List[dict], n_parallel: int = 10,
+                             list_args: List[dict], n_parallel: int = None,
                              auth_header: dict = None):
         """
         Make many [n_parallel] list_without_pag request.
@@ -1596,7 +1685,9 @@ class PumpWoodMicroService():
                                                (filter_dict,exclude_dict,
                                                order_by).
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1606,6 +1697,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         urls_list = None
         if type(model_class) == str:
             url_temp = [self._build_delete_many_request_url(model_class)]
@@ -1617,6 +1712,8 @@ class PumpWoodMicroService():
             urls_list = [
                 self._build_list_without_pag_url(m) for m in model_class]
 
+        print(
+            "## Starting parallel_delete_many: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
@@ -1625,7 +1722,7 @@ class PumpWoodMicroService():
                                 pk: Union[int, List[int]],
                                 action: Union[str, List[str]],
                                 parameters: Union[dict, List[dict]] = {},
-                                n_parallel: int = 10,
+                                n_parallel: int = None,
                                 auth_header: dict = None):
         """
         Make many [n_parallel] execute_action requests.
@@ -1640,7 +1737,9 @@ class PumpWoodMicroService():
         Kwargs:
             parameters (dict, list[dict]): Parameters used to perform actions
                 or a single dict to be used in all actions.
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1650,6 +1749,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         parallel_length = None
         if type(model_class) == list:
             if parallel_length is not None:
@@ -1690,12 +1793,14 @@ class PumpWoodMicroService():
                 model_class=model_class[i], action=action[i], pk=pk[i])
             for i in range(parallel_length)]
 
+        print(
+            "## Starting parallel_execute_action: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=parameters,
             n_parallel=n_parallel, auth_header=auth_header)
 
     def parallel_bulk_save(self, model_class, data_to_save,
-                           n_parallel: int = 10, chunksize: int = 1000,
+                           n_parallel: int = None, chunksize: int = 1000,
                            auth_header: dict = None):
         """
         Break data_to_save in many parallel requests.
@@ -1710,6 +1815,10 @@ class PumpWoodMicroService():
         Return:
             list: List of the responses of bulk_save.
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         if type(data_to_save) == list:
             data_to_save = pd.DataFrame(data_to_save)
 
@@ -1718,12 +1827,14 @@ class PumpWoodMicroService():
         url = self._build_bulk_save_url(model_class)
         urls_list = [url]*len(chunks)
 
+        print(
+            "## Starting parallel_bulk_save: %s" % len(urls_list))
         self.paralell_request_post(
             urls_list=urls_list, data_list=chunks,
             n_parallel=n_parallel, auth_header=auth_header)
 
     def parallel_pivot(self, model_class: str, list_args: List[dict],
-                       columns: List[str], format: str, n_parallel: int = 10,
+                       columns: List[str], format: str, n_parallel: int = None,
                        variables: list = None, show_deleted=False,
                        auth_header: dict = None):
         """
@@ -1738,7 +1849,9 @@ class PumpWoodMicroService():
             format (str): Format of returned table. See pandas.DataFrame
                 to_dict args.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the pivot request reponses.
@@ -1748,6 +1861,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         url_temp = [self._build_pivot_url(model_class)]
         urls_list = url_temp*len(list_args)
         for q in list_args:
@@ -1756,6 +1873,8 @@ class PumpWoodMicroService():
             q["columns"] = columns
             q["format"] = format
 
+        print(
+            "## Starting parallel_pivot: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
