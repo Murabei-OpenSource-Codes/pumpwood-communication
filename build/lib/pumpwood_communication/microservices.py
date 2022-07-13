@@ -642,12 +642,12 @@ class PumpWoodMicroService():
             raise Exception("return_type must be 'list' or 'dataframe'")
 
     @staticmethod
-    def _build_list_dimentions(model_class: str):
-        return "rest/%s/list-dimentions/" % (model_class.lower(),)
+    def _build_list_dimensions(model_class: str):
+        return "rest/%s/list-dimensions/" % (model_class.lower(),)
 
-    def list_dimentions(self, model_class: str, filter_dict: dict = {},
+    def list_dimensions(self, model_class: str, filter_dict: dict = {},
                         exclude_dict: dict = {}, auth_header: dict = None):
-        """List dimentions avaiable for model_class with the filters.
+        """List dimensions avaiable for model_class with the filters.
 
         Parameters
         ----------
@@ -668,7 +668,7 @@ class PumpWoodMicroService():
         list
             List of keys avaiable in results from the query dict.
         """
-        url_str = self._build_list_dimentions(model_class)
+        url_str = self._build_list_dimensions(model_class)
         post_data = {'filter_dict': filter_dict, 'exclude_dict': exclude_dict}
         return self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
@@ -680,7 +680,7 @@ class PumpWoodMicroService():
     def list_dimention_values(self, model_class: str, key: str,
                               filter_dict: dict = {}, exclude_dict: dict = {},
                               auth_header: dict = None):
-        """List dimentions avaiable for model_class with the filters.
+        """List dimensions avaiable for model_class with the filters.
 
         Parameters
         ----------
