@@ -46,6 +46,12 @@ class PumpWoodDataLoadingException(PumpWoodException):
     pass
 
 
+class PumpWoodDatabaseError(PumpWoodException):
+    """Errors raised by Postgres and not treated by other handlers."""
+
+    pass
+
+
 class PumpWoodDataTransformationException(PumpWoodException):
     """Problem when transforming model data."""
 

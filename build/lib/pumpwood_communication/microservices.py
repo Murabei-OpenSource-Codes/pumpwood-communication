@@ -15,6 +15,7 @@ import pandas as pd
 import geopandas as geopd
 import numpy as np
 import datetime
+import copy
 from shapely import geometry
 from typing import Union, List
 from multiprocessing import Pool
@@ -523,7 +524,8 @@ class PumpWoodMicroService():
     def list(self, model_class: str, filter_dict: dict = {},
              exclude_dict: dict = {}, order_by: list = [],
              auth_header: dict = None, fields: list = None,
-             default_fields: bool = False, **kwargs) -> list:
+             default_fields: bool = False, limit: int = None,
+             **kwargs) -> list:
         """
         List objects with pagination.
 
@@ -546,6 +548,7 @@ class PumpWoodMicroService():
             end-point.
           default_fields [bool]: Return the fields specified at
               self.list_fields.
+          limit [int]: Set the limit of elements of the returned query.
 
         Returns:
           list: Contaiing objects serialized by list Serializer.
@@ -560,11 +563,77 @@ class PumpWoodMicroService():
         url_str = self._build_list_url(model_class)
         post_data = {
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
-            'order_by': order_by, 'default_fields': default_fields}
+            'order_by': order_by, 'default_fields': default_fields,
+            'limit': limit}
         if fields is not None:
             post_data["fields"] = fields
-        return self.request_post(url=url_str, data=post_data,
-                                 auth_header=auth_header)
+        return self.request_post(
+            url=url_str, data=post_data, auth_header=auth_header)
+
+    def list_by_chunck(self, model_class: str, filter_dict: dict = {},
+                       exclude_dict: dict = {}, auth_header: dict = None,
+                       fields: list = None, default_fields: bool = False,
+                       chuck_size: int = 50000, order_by_col: str = "pk",
+                       **kwargs) -> list:
+        """
+        List object fetching them by chucks using pk to paginate.
+
+        List data by chunck to load by datasets without breaking the backend
+        or receive server timeout. It load chunks orderring the results using
+        id of the tables, it can be changed but it should be unique otherwise
+        unexpected results may occur.
+
+        Args:
+          model_class (str): Model class of the end-point
+
+        Kwargs:
+          filter_dict (dict) = {}: Filter dict to be used at the query
+            (objects.filter arguments).
+          exclude_dict (dict) = {}:  Exclude dict to be used at the query
+            (objects.exclude arguments).
+          order_by_col (str) = "pk": Field that will order the chuncks,
+            it must be unique or unexpected results may occur. Most of the
+            cases id column will work, it may break at one_to_one relation
+            tables with other id columns.
+          auth_header (dict) = None: Dictionary containing the auth header.
+          fields (list[str]) = None: Select the fields to be returned by the
+            list end-point.
+          default_fields (bool) = False: Return the fields specified at
+              self.list_fields.
+          limit [int]: Set the limit of elements of the returned query.
+
+        Returns:
+          list: Contaiing objects serialized by list Serializer.
+
+        Raises:
+          No especific raises.
+
+        Example:
+          No example yet.
+
+        """
+        copy_filter_dict = copy.deepcopy(filter_dict)
+        list_all_results = self.list(
+            model_class=model_class, filter_dict=copy_filter_dict,
+            exclude_dict=exclude_dict, order_by=[order_by_col],
+            auth_header=auth_header, fields=fields,
+            default_fields=default_fields, limit=chuck_size)
+        if len(list_all_results) == 0:
+            return list_all_results
+
+        while True:
+            print("- fetching chunk")
+            max_order_col = list_all_results[-1][order_by_col]
+            copy_filter_dict[order_by_col + "__gt"] = max_order_col
+            temp_results = self.list(
+                model_class=model_class, filter_dict=copy_filter_dict,
+                exclude_dict=exclude_dict, order_by=[order_by_col],
+                auth_header=auth_header, fields=fields,
+                default_fields=default_fields, limit=chuck_size)
+            if len(temp_results) == 0:
+                break
+            list_all_results.extend(temp_results)
+        return list_all_results
 
     @staticmethod
     def _build_list_without_pag_url(model_class: str):
