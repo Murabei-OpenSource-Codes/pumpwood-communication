@@ -573,8 +573,7 @@ class PumpWoodMicroService():
     def list_by_chunck(self, model_class: str, filter_dict: dict = {},
                        exclude_dict: dict = {}, auth_header: dict = None,
                        fields: list = None, default_fields: bool = False,
-                       chuck_size: int = 50000, order_by_col: str = "pk",
-                       **kwargs) -> list:
+                       chunk_size: int = 50000, **kwargs) -> list:
         """
         List object fetching them by chucks using pk to paginate.
 
@@ -591,16 +590,12 @@ class PumpWoodMicroService():
             (objects.filter arguments).
           exclude_dict (dict) = {}:  Exclude dict to be used at the query
             (objects.exclude arguments).
-          order_by_col (str) = "pk": Field that will order the chuncks,
-            it must be unique or unexpected results may occur. Most of the
-            cases id column will work, it may break at one_to_one relation
-            tables with other id columns.
           auth_header (dict) = None: Dictionary containing the auth header.
           fields (list[str]) = None: Select the fields to be returned by the
             list end-point.
           default_fields (bool) = False: Return the fields specified at
               self.list_fields.
-          limit [int]: Set the limit of elements of the returned query.
+          chuck_size [int]: Number of objects to be fetched each query.
 
         Returns:
           list: Contaiing objects serialized by list Serializer.
@@ -613,26 +608,25 @@ class PumpWoodMicroService():
 
         """
         copy_filter_dict = copy.deepcopy(filter_dict)
-        list_all_results = self.list(
-            model_class=model_class, filter_dict=copy_filter_dict,
-            exclude_dict=exclude_dict, order_by=[order_by_col],
-            auth_header=auth_header, fields=fields,
-            default_fields=default_fields, limit=chuck_size)
-        if len(list_all_results) == 0:
-            return list_all_results
 
+        list_all_results = []
+        max_order_col = 0
         while True:
-            print("- fetching chunk")
-            max_order_col = list_all_results[-1][order_by_col]
-            copy_filter_dict[order_by_col + "__gt"] = max_order_col
+            print("- fetching chunk [{}]".format(max_order_col))
+            copy_filter_dict["pk__gt"] = max_order_col
             temp_results = self.list(
                 model_class=model_class, filter_dict=copy_filter_dict,
-                exclude_dict=exclude_dict, order_by=[order_by_col],
+                exclude_dict=exclude_dict, order_by=["pk"],
                 auth_header=auth_header, fields=fields,
-                default_fields=default_fields, limit=chuck_size)
+                default_fields=default_fields, limit=chunk_size)
+
+            # Break if results is empty
             if len(temp_results) == 0:
                 break
+
+            max_order_col = temp_results[-1]["pk"]
             list_all_results.extend(temp_results)
+
         return list_all_results
 
     @staticmethod
@@ -743,10 +737,10 @@ class PumpWoodMicroService():
             url=url_str, data=post_data, auth_header=auth_header)
 
     @staticmethod
-    def _build_list_dimention_values(model_class: str):
-        return "rest/%s/list-dimention-values/" % (model_class.lower(), )
+    def _build_list_dimension_values(model_class: str):
+        return "rest/%s/list-dimension-values/" % (model_class.lower(), )
 
-    def list_dimention_values(self, model_class: str, key: str,
+    def list_dimension_values(self, model_class: str, key: str,
                               filter_dict: dict = {}, exclude_dict: dict = {},
                               auth_header: dict = None):
         """List dimensions avaiable for model_class with the filters.
@@ -771,7 +765,7 @@ class PumpWoodMicroService():
         list
             List of keys avaiable in results from the query dict.
         """
-        url_str = self._build_list_dimention_values(model_class)
+        url_str = self._build_list_dimension_values(model_class)
         post_data = {'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
                      'key': key}
         return self.request_post(
@@ -1334,6 +1328,57 @@ class PumpWoodMicroService():
             "show_deleted": show_deleted}
         return self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
+
+    def flat_list_by_chucks(self, model_class: str, filter_dict: dict = {},
+                            exclude_dict: dict = {}, fields: list = None,
+                            show_deleted=False, auth_header: dict = None,
+                            chunk_size: int = 100000):
+        """
+        Use the same end-point as pivot which does not unserialize results.
+
+        Args:
+            model_class (str): Model class to be pivoted.
+            filter_dict (dict): Dictionary to to be used in objects.filter
+                                argument (Same as list end-point).
+            exclude_dict (dict): Dictionary to to be used in objects.exclude
+                                 argument (Same as list end-point).
+        Kwargs:
+            fields (list[str]) = None: List of the variables to be returned,
+                if None, the default variables will be returned.
+            show_deleted (bool): If deleted data should be returned.
+            auth_header(dict): Dictionary containing the auth header.
+        Returns:
+            dict or list: Depends on format type used to convert
+                          pandas.DataFrame
+        Raises:
+            Dependends on backend implementation
+        Example:
+            No example yet.
+
+        """
+        temp_filter_dict = copy.deepcopy(filter_dict)
+        url_str = self._build_pivot_url(model_class)
+        max_pk = 0
+
+        # Fetch data until an empty result is returned
+        list_dataframes = []
+        while True:
+            print("- fetching chunk [{}]".format(max_pk))
+            temp_filter_dict["pk__gt"] = max_pk
+            post_data = {
+                'format': 'list',
+                'filter_dict': temp_filter_dict, 'exclude_dict': exclude_dict,
+                'order_by': ["pk"], "variables": fields,
+                "show_deleted": show_deleted, "limit": chunk_size,
+                "add_pk_column": True}
+            temp_dateframe = pd.DataFrame(self.request_post(
+                url=url_str, data=post_data, auth_header=auth_header))
+            # Break if results are empty
+            if len(temp_dateframe) == 0:
+                break
+            max_pk = temp_dateframe["id"].max()
+            list_dataframes.append(temp_dateframe)
+        return pd.concat(list_dataframes)
 
     @staticmethod
     def _build_bulk_save_url(model_class: str):
