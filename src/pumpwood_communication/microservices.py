@@ -570,7 +570,7 @@ class PumpWoodMicroService():
         return self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
 
-    def list_by_chunck(self, model_class: str, filter_dict: dict = {},
+    def list_by_chunks(self, model_class: str, filter_dict: dict = {},
                        exclude_dict: dict = {}, auth_header: dict = None,
                        fields: list = None, default_fields: bool = False,
                        chunk_size: int = 50000, **kwargs) -> list:
@@ -1329,7 +1329,7 @@ class PumpWoodMicroService():
         return self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
 
-    def flat_list_by_chucks(self, model_class: str, filter_dict: dict = {},
+    def flat_list_by_chunks(self, model_class: str, filter_dict: dict = {},
                             exclude_dict: dict = {}, fields: list = None,
                             show_deleted=False, auth_header: dict = None,
                             chunk_size: int = 100000):
