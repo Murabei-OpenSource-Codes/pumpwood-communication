@@ -6,6 +6,8 @@ Class and functions to help comunication between PumpWood like systems.
 import re
 import os
 import io
+import sys
+import logging
 import simplejson as json
 import gzip
 import requests
@@ -13,6 +15,7 @@ import pandas as pd
 import geopandas as geopd
 import numpy as np
 import datetime
+import copy
 from shapely import geometry
 from typing import Union, List
 from multiprocessing import Pool
@@ -22,6 +25,14 @@ from pumpwood_communication.exceptions import (
     exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
     PumpWoodObjectSavingException, PumpWoodOtherException)
 from pumpwood_communication.serializers import pumpJsonDump
+
+
+# Creating logger for MicroService calls
+Log_Format = "%(levelname)s %(asctime)s - %(message)s"
+logging.basicConfig()
+logging.basicConfig(stream=sys.stdout, format=Log_Format)
+microservice_logger = logging.getLogger('pumpwood_comunication')
+microservice_logger.setLevel(logging.INFO)
 
 
 def break_in_chunks(df_to_break: pd.DataFrame, chunksize: int = 1000):
@@ -513,7 +524,8 @@ class PumpWoodMicroService():
     def list(self, model_class: str, filter_dict: dict = {},
              exclude_dict: dict = {}, order_by: list = [],
              auth_header: dict = None, fields: list = None,
-             default_fields: bool = False, **kwargs) -> list:
+             default_fields: bool = False, limit: int = None,
+             **kwargs) -> list:
         """
         List objects with pagination.
 
@@ -536,6 +548,7 @@ class PumpWoodMicroService():
             end-point.
           default_fields [bool]: Return the fields specified at
               self.list_fields.
+          limit [int]: Set the limit of elements of the returned query.
 
         Returns:
           list: Contaiing objects serialized by list Serializer.
@@ -550,11 +563,71 @@ class PumpWoodMicroService():
         url_str = self._build_list_url(model_class)
         post_data = {
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
-            'order_by': order_by, 'default_fields': default_fields}
+            'order_by': order_by, 'default_fields': default_fields,
+            'limit': limit}
         if fields is not None:
             post_data["fields"] = fields
-        return self.request_post(url=url_str, data=post_data,
-                                 auth_header=auth_header)
+        return self.request_post(
+            url=url_str, data=post_data, auth_header=auth_header)
+
+    def list_by_chunks(self, model_class: str, filter_dict: dict = {},
+                       exclude_dict: dict = {}, auth_header: dict = None,
+                       fields: list = None, default_fields: bool = False,
+                       chunk_size: int = 50000, **kwargs) -> list:
+        """
+        List object fetching them by chucks using pk to paginate.
+
+        List data by chunck to load by datasets without breaking the backend
+        or receive server timeout. It load chunks orderring the results using
+        id of the tables, it can be changed but it should be unique otherwise
+        unexpected results may occur.
+
+        Args:
+          model_class (str): Model class of the end-point
+
+        Kwargs:
+          filter_dict (dict) = {}: Filter dict to be used at the query
+            (objects.filter arguments).
+          exclude_dict (dict) = {}:  Exclude dict to be used at the query
+            (objects.exclude arguments).
+          auth_header (dict) = None: Dictionary containing the auth header.
+          fields (list[str]) = None: Select the fields to be returned by the
+            list end-point.
+          default_fields (bool) = False: Return the fields specified at
+              self.list_fields.
+          chuck_size [int]: Number of objects to be fetched each query.
+
+        Returns:
+          list: Contaiing objects serialized by list Serializer.
+
+        Raises:
+          No especific raises.
+
+        Example:
+          No example yet.
+
+        """
+        copy_filter_dict = copy.deepcopy(filter_dict)
+
+        list_all_results = []
+        max_order_col = 0
+        while True:
+            print("- fetching chunk [{}]".format(max_order_col))
+            copy_filter_dict["pk__gt"] = max_order_col
+            temp_results = self.list(
+                model_class=model_class, filter_dict=copy_filter_dict,
+                exclude_dict=exclude_dict, order_by=["pk"],
+                auth_header=auth_header, fields=fields,
+                default_fields=default_fields, limit=chunk_size)
+
+            # Break if results is empty
+            if len(temp_results) == 0:
+                break
+
+            max_order_col = temp_results[-1]["pk"]
+            list_all_results.extend(temp_results)
+
+        return list_all_results
 
     @staticmethod
     def _build_list_without_pag_url(model_class: str):
@@ -632,12 +705,12 @@ class PumpWoodMicroService():
             raise Exception("return_type must be 'list' or 'dataframe'")
 
     @staticmethod
-    def _build_list_dimentions(model_class: str):
-        return "rest/%s/list-dimentions/" % (model_class.lower(),)
+    def _build_list_dimensions(model_class: str):
+        return "rest/%s/list-dimensions/" % (model_class.lower(),)
 
-    def list_dimentions(self, model_class: str, filter_dict: dict = {},
+    def list_dimensions(self, model_class: str, filter_dict: dict = {},
                         exclude_dict: dict = {}, auth_header: dict = None):
-        """List dimentions avaiable for model_class with the filters.
+        """List dimensions avaiable for model_class with the filters.
 
         Parameters
         ----------
@@ -658,19 +731,19 @@ class PumpWoodMicroService():
         list
             List of keys avaiable in results from the query dict.
         """
-        url_str = self._build_list_dimentions(model_class)
+        url_str = self._build_list_dimensions(model_class)
         post_data = {'filter_dict': filter_dict, 'exclude_dict': exclude_dict}
         return self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
 
     @staticmethod
-    def _build_list_dimention_values(model_class: str):
-        return "rest/%s/list-dimention-values/" % (model_class.lower(), )
+    def _build_list_dimension_values(model_class: str):
+        return "rest/%s/list-dimension-values/" % (model_class.lower(), )
 
-    def list_dimention_values(self, model_class: str, key: str,
+    def list_dimension_values(self, model_class: str, key: str,
                               filter_dict: dict = {}, exclude_dict: dict = {},
                               auth_header: dict = None):
-        """List dimentions avaiable for model_class with the filters.
+        """List dimensions avaiable for model_class with the filters.
 
         Parameters
         ----------
@@ -692,7 +765,7 @@ class PumpWoodMicroService():
         list
             List of keys avaiable in results from the query dict.
         """
-        url_str = self._build_list_dimention_values(model_class)
+        url_str = self._build_list_dimension_values(model_class)
         post_data = {'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
                      'key': key}
         return self.request_post(
@@ -1223,6 +1296,7 @@ class PumpWoodMicroService():
 
         Args:
             model_class (str): Model class to be pivoted.
+        Kwargs:
             columns (str): Fields to be used as columns.
             format (str): Format to be used to convert pandas.DataFrame to
                           dictionary, must be in ['dict','list','series',
@@ -1233,7 +1307,6 @@ class PumpWoodMicroService():
                                  argument (Same as list end-point).
             order_by (list): Dictionary to to be used in objects.order_by
                              argument (Same as list end-point).
-        Kwargs:
             variables (list[str]) = None: List of the variables to be returned,
                 if None, the default variables will be returned.
             show_deleted (bool): If deleted data should be returned.
@@ -1255,6 +1328,143 @@ class PumpWoodMicroService():
             "show_deleted": show_deleted}
         return self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
+
+    def flat_list_by_chunks(self, model_class: str, filter_dict: dict = {},
+                            exclude_dict: dict = {}, fields: list = None,
+                            show_deleted=False, auth_header: dict = None,
+                            chunk_size: int = 1000000):
+        """
+        Use the same end-point as pivot which does not unserialize results.
+
+        Args:
+            model_class (str): Model class to be pivoted.
+        Kwargs:
+            filter_dict (dict): Dictionary to to be used in objects.filter
+                                argument (Same as list end-point).
+            exclude_dict (dict): Dictionary to to be used in objects.exclude
+                                 argument (Same as list end-point).
+            fields (list[str]) = None: List of the variables to be returned,
+                if None, the default variables will be returned.
+            show_deleted (bool): If deleted data should be returned.
+            auth_header(dict): Dictionary containing the auth header.
+            chunk_size (int): Limit of data to fetch per call.
+        Returns:
+            dict or list: Depends on format type used to convert
+                          pandas.DataFrame
+        Raises:
+            Dependends on backend implementation
+        Example:
+            No example yet.
+        """
+        temp_filter_dict = copy.deepcopy(filter_dict)
+        url_str = self._build_pivot_url(model_class)
+        max_pk = 0
+
+        # Fetch data until an empty result is returned
+        list_dataframes = []
+        while True:
+            print("- fetching chunk [{}]".format(max_pk))
+            temp_filter_dict["pk__gt"] = max_pk
+            post_data = {
+                'format': 'list',
+                'filter_dict': temp_filter_dict, 'exclude_dict': exclude_dict,
+                'order_by': ["pk"], "variables": fields,
+                "show_deleted": show_deleted, "limit": chunk_size,
+                "add_pk_column": True}
+            temp_dateframe = pd.DataFrame(self.request_post(
+                url=url_str, data=post_data, auth_header=auth_header))
+
+            # Break if results are empty
+            if len(temp_dateframe) == 0:
+                break
+
+            max_pk = int(temp_dateframe["id"].max())
+            list_dataframes.append(temp_dateframe)
+        if len(list_dataframes) == 0:
+            return pd.DataFrame()
+        else:
+            return pd.concat(list_dataframes)
+
+    def _flat_list_by_chunks_wrapper(self, arguments: dict):
+        try:
+            results = self.flat_list_by_chunks(**arguments)
+            print("-- flat_list_by_chunks_wrapper finished")
+            return results
+        except Exception as e:
+            raise Exception("Error on parallel flat: " + str(e))
+
+    def parallel_by_month_flat_list(self, model_class: str,
+                                    start_date: str, end_date: str,
+                                    filter_dict: dict = {},
+                                    exclude_dict: dict = {},
+                                    fields: list = None,
+                                    show_deleted: bool = False,
+                                    auth_header: dict = None,
+                                    chunk_size: int = 1000000,
+                                    n_parallel: int = 5):
+        """
+        Fetch data using flat list in parallel by month.
+
+        Data End-Point are particionated by month, using parallel calls
+        using month as filter may reduce time of processing the data. It is
+        recomendated to use attribute_id in filter when quering
+        DatabaseVariable information due to particion.
+
+        Args:
+            model_class (str): Data model class.
+            start_date (str): Start date to query data.
+            end_data (str): End date to query data.
+        Kwargs:
+            filter_dict (dict): Dictionary to to be used in objects.filter
+                                argument (Same as list end-point).
+            exclude_dict (dict): Dictionary to to be used in objects.exclude
+                                 argument (Same as list end-point).
+            fields (list[str]) = None: List of the variables to be returned,
+                if None, the default variables will be returned.
+            show_deleted (bool): If deleted data should be returned.
+            auth_header(dict): Dictionary containing the auth header.
+            chunk_size (int): Limit of data to fetch per call.
+            n_parallel (int): Number of parallel calls to backend.
+        """
+        # Create a list of month and include start and end dates if not at
+        # the beging of a month
+        start_date = pd.to_datetime(start_date)
+        end_date = pd.to_datetime(end_date)
+        list_month_sequence = pd.date_range(
+            start=start_date, end=end_date, freq='MS').tolist()
+        month_sequence = pd.Series(
+            [start_date] + list_month_sequence + [end_date]
+        ).drop_duplicates().sort_values()
+
+        # Create a dataframe with month partition to query information
+        month_df = pd.DataFrame({'end': month_sequence})
+        month_df['start'] = month_df['end'].shift()
+        month_df.dropna(inplace=True)
+        list_dict = month_df.to_dict("records")
+
+        # Create a list of arguments to parallel calls by month
+        pool_arguments = []
+        for x in list_dict:
+            # Add month particion on month parallel processing
+            temp_filter_dict = copy.deepcopy(filter_dict)
+            temp_filter_dict.update({
+                "time__gte": x["start"], "time__lt": x["end"]})
+            pool_arguments.append({
+                "model_class": model_class,
+                "filter_dict": temp_filter_dict,
+                "exclude_dict": exclude_dict,
+                "fields": fields,
+                "show_deleted": show_deleted,
+                "chunk_size": chunk_size,
+                "auth_header": auth_header})
+
+        # Perform parallel calls to backend each chucked by chunk_size
+        with Pool(n_parallel) as p:
+            results = p.map(self._flat_list_by_chunks_wrapper, pool_arguments)
+
+        # Concat all results in a dataframe
+        print("# Concating all results")
+        return pd.concat(results)
 
     @staticmethod
     def _build_bulk_save_url(model_class: str):
@@ -1281,16 +1491,28 @@ class PumpWoodMicroService():
     # Paralell aux functions
     def _request_get_wrapper(self, arguments: dict):
         try:
-            return self.request_get(**arguments)
+            results = self.request_get(**arguments)
+            print("- _request_get_wrapper finished")
+            return results
         except Exception as e:
             raise Exception("Error on parallel get: " + str(e))
 
     @staticmethod
-    def flatten_parallel(parallel_result):
-        """Concat all parallel return to one list."""
-        return [item for sublist in parallel_result for item in sublist]
+    def flatten_parallel(parallel_result: list):
+        """
+        Concat all parallel return to one list.
 
-    def parallel_request_get(self, urls_list: list, n_parallel: int = 10,
+        Args:
+            parallel_result (list): A list of lists to be flated (concatenate
+                all lists into one).
+        Return:
+            A list with all sub list itens.
+        """
+        return [
+            item for sublist in parallel_result
+            for item in sublist]
+
+    def parallel_request_get(self, urls_list: list, n_parallel: int = None,
                              auth_header: dict = None):
         """
         Make many [n_parallel] get request.
@@ -1298,7 +1520,9 @@ class PumpWoodMicroService():
         Args:
             urls_list (list): List of urls to make get requests.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the get request reponses.
@@ -1308,20 +1532,30 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         pool_arguments = [
             {'url': u, 'auth_header': auth_header} for u in urls_list]
 
         with Pool(n_parallel) as p:
-            return p.map(self._request_get_wrapper, pool_arguments)
+            print('Waiting for tasks to complete')
+            logging.basicConfig(level=logging.DEBUG)
+            results = p.map(self._request_get_wrapper, pool_arguments)
+        return results
 
     def _request_post_wrapper(self, arguments: dict):
         try:
-            return self.request_post(**arguments)
+            result = self.request_post(**arguments)
+            print("- _request_post_wrapper finished")
+            return result
         except Exception as e:
             raise Exception("Error in parallel post: " + str(e))
 
     def paralell_request_post(self, urls_list: list, data_list: list,
-                              n_parallel: int = 10, auth_header: dict = None):
+                              n_parallel: int = None,
+                              auth_header: dict = None):
         """
         Make many [n_parallel] post request.
 
@@ -1329,7 +1563,9 @@ class PumpWoodMicroService():
             urls_list (list<str>): List of urls to make get requests.
             data_list (list<any>): List of data to be used as post payloads.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the post request reponses.
@@ -1350,15 +1586,19 @@ class PumpWoodMicroService():
                  'auth_header': auth_header})
 
         with Pool(n_parallel) as p:
-            return p.map(self._request_post_wrapper, pool_arguments)
+            results = p.map(self._request_post_wrapper, pool_arguments)
+
+        return results
 
     def _request_delete_wrapper(self, arguments):
         try:
-            return self.request_delete(**arguments)
+            result = self.request_delete(**arguments)
+            print("- _request_delete_wrapper finished")
+            return result
         except Exception as e:
             raise Exception("Error in parallel delete: " + str(e))
 
-    def paralell_request_delete(self, urls_list: list, n_parallel: int = 10,
+    def paralell_request_delete(self, urls_list: list, n_parallel: int = None,
                                 auth_header: dict = None):
         """
         Make many [n_parallel] delete request.
@@ -1366,7 +1606,9 @@ class PumpWoodMicroService():
         Args:
             urls_list (list): List of urls to make get requests.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the get request reponses.
@@ -1385,7 +1627,7 @@ class PumpWoodMicroService():
     ####################
     # Paralell functions
     def parallel_retrieve(self, model_class: Union[str, List[str]],
-                          list_pk: List[int], n_parallel: int = 10,
+                          list_pk: List[int], n_parallel: int = None,
                           auth_header: dict = None):
         """
         Make many [n_parallel] retrieve request.
@@ -1394,7 +1636,9 @@ class PumpWoodMicroService():
             model_class (str, List[str]): Model Class to retrieve.
             list_pk (List[int]): List of the pks to retrieve.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1404,6 +1648,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         if type(model_class) != list:
             model_class = [model_class]*len(list_pk)
 
@@ -1419,7 +1667,7 @@ class PumpWoodMicroService():
             auth_header=auth_header)
 
     def parallel_list(self, model_class: Union[str, List[str]],
-                      list_args: List[dict], n_parallel: int = 10,
+                      list_args: List[dict], n_parallel: int = None,
                       auth_header: dict = None):
         """
         Make many [n_parallel] list request.
@@ -1429,7 +1677,9 @@ class PumpWoodMicroService():
             list_args_list (list): A list of list request args (filter_dict,
                                    exclude_dict, order_by).
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1439,6 +1689,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         urls_list = None
         if type(model_class) == str:
             urls_list = [self._build_list_url(model_class)]*len(list_args)
@@ -1447,12 +1701,15 @@ class PumpWoodMicroService():
                 raise Exception('len(model_class) != len(list_args)')
             urls_list = [self._build_list_url(m) for m in model_class]
 
+        print(
+            "## Starting parallel_list: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
 
     def parallel_list_without_pag(self, model_class: Union[str, List[str]],
-                                  list_args: List[dict], n_parallel: int = 10,
+                                  list_args: List[dict],
+                                  n_parallel: int = None,
                                   auth_header: dict = None):
         """
         Make many [n_parallel] list_without_pag request.
@@ -1463,7 +1720,9 @@ class PumpWoodMicroService():
                                                (filter_dict,exclude_dict,
                                                order_by).
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1473,6 +1732,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         urls_list = None
         if type(model_class) == str:
             url_temp = [self._build_list_without_pag_url(model_class)]
@@ -1484,12 +1747,14 @@ class PumpWoodMicroService():
             urls_list = [
                 self._build_list_without_pag_url(m) for m in model_class]
 
+        print(
+            "## Starting parallel_list_without_pag: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
 
     def parallel_list_one(self, model_class: Union[str, List[str]],
-                          list_pk: List[int], n_parallel: int = 10,
+                          list_pk: List[int], n_parallel: int = None,
                           auth_header: dict = None):
         """
         Make many [n_parallel] list_one request.
@@ -1498,7 +1763,9 @@ class PumpWoodMicroService():
             model_class (str or list<str>): Model Class to retrieve.
             list_pk (list): List of the pks to retrieve.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1508,6 +1775,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         if type(model_class) != list:
             model_class = [model_class]*len(list_pk)
 
@@ -1519,12 +1790,14 @@ class PumpWoodMicroService():
                                      pk=list_pk[i])
             for i in range(len(model_class))]
 
+        print(
+            "## Starting parallel_list_one: %s" % len(urls_list))
         return self.parallel_request_get(
             urls_list=urls_list, n_parallel=n_parallel,
             auth_header=auth_header)
 
     def parallel_save(self, list_obj_dict: List[dict],
-                      n_parallel: int = 10, auth_header: dict = None):
+                      n_parallel: int = None, auth_header: dict = None):
         """
         Make many [n_parallel] save requests.
 
@@ -1532,7 +1805,9 @@ class PumpWoodMicroService():
             list_obj_dict (list<dict>): List of dictionaries containing
                 PumpWood objects (must have at least 'model_class' key)
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1542,14 +1817,20 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         urls_list = [
             self._build_save_url(obj['model_class']) for obj in list_obj_dict]
+        print(
+            "## Starting parallel_save: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_obj_dict,
             n_parallel=n_parallel, auth_header=auth_header)
 
     def parallel_delete(self, model_class: Union[str, List[str]],
-                        list_pk: List[int], n_parallel: int = 10,
+                        list_pk: List[int], n_parallel: int = None,
                         auth_header: dict = None):
         """
         Make many [n_parallel] delete requests.
@@ -1559,7 +1840,9 @@ class PumpWoodMicroService():
             list_obj_dict (list<dict>): List of dictionaries containing
                 PumpWood objects (must have at least 'model_class' key)
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1569,6 +1852,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         if type(model_class) != list:
             model_class = [model_class]*len(list_pk)
 
@@ -1580,12 +1867,14 @@ class PumpWoodMicroService():
                                            pk=list_pk[i])
             for i in range(len(model_class))]
 
+        print(
+            "## Starting parallel_delete: %s" % len(urls_list))
         return self.parallel_request_get(
             urls_list=urls_list, n_parallel=n_parallel,
             auth_header=auth_header)
 
     def parallel_delete_many(self, model_class: Union[str, List[str]],
-                             list_args: List[dict], n_parallel: int = 10,
+                             list_args: List[dict], n_parallel: int = None,
                              auth_header: dict = None):
         """
         Make many [n_parallel] list_without_pag request.
@@ -1596,7 +1885,9 @@ class PumpWoodMicroService():
                                                (filter_dict,exclude_dict,
                                                order_by).
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1606,6 +1897,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         urls_list = None
         if type(model_class) == str:
             url_temp = [self._build_delete_many_request_url(model_class)]
@@ -1617,6 +1912,8 @@ class PumpWoodMicroService():
             urls_list = [
                 self._build_list_without_pag_url(m) for m in model_class]
 
+        print(
+            "## Starting parallel_delete_many: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
@@ -1625,7 +1922,7 @@ class PumpWoodMicroService():
                                 pk: Union[int, List[int]],
                                 action: Union[str, List[str]],
                                 parameters: Union[dict, List[dict]] = {},
-                                n_parallel: int = 10,
+                                n_parallel: int = None,
                                 auth_header: dict = None):
         """
         Make many [n_parallel] execute_action requests.
@@ -1640,7 +1937,9 @@ class PumpWoodMicroService():
         Kwargs:
             parameters (dict, list[dict]): Parameters used to perform actions
                 or a single dict to be used in all actions.
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1650,6 +1949,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         parallel_length = None
         if type(model_class) == list:
             if parallel_length is not None:
@@ -1690,12 +1993,14 @@ class PumpWoodMicroService():
                 model_class=model_class[i], action=action[i], pk=pk[i])
             for i in range(parallel_length)]
 
+        print(
+            "## Starting parallel_execute_action: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=parameters,
             n_parallel=n_parallel, auth_header=auth_header)
 
     def parallel_bulk_save(self, model_class, data_to_save,
-                           n_parallel: int = 10, chunksize: int = 1000,
+                           n_parallel: int = None, chunksize: int = 1000,
                            auth_header: dict = None):
         """
         Break data_to_save in many parallel requests.
@@ -1710,6 +2015,10 @@ class PumpWoodMicroService():
         Return:
             list: List of the responses of bulk_save.
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         if type(data_to_save) == list:
             data_to_save = pd.DataFrame(data_to_save)
 
@@ -1718,12 +2027,14 @@ class PumpWoodMicroService():
         url = self._build_bulk_save_url(model_class)
         urls_list = [url]*len(chunks)
 
+        print(
+            "## Starting parallel_bulk_save: %s" % len(urls_list))
         self.paralell_request_post(
             urls_list=urls_list, data_list=chunks,
             n_parallel=n_parallel, auth_header=auth_header)
 
     def parallel_pivot(self, model_class: str, list_args: List[dict],
-                       columns: List[str], format: str, n_parallel: int = 10,
+                       columns: List[str], format: str, n_parallel: int = None,
                        variables: list = None, show_deleted=False,
                        auth_header: dict = None):
         """
@@ -1738,7 +2049,9 @@ class PumpWoodMicroService():
             format (str): Format of returned table. See pandas.DataFrame
                 to_dict args.
         Kwargs:
-            n_parallel (int): Number of simultaneus get requests.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the pivot request reponses.
@@ -1748,6 +2061,10 @@ class PumpWoodMicroService():
             No example yet.
 
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+
         url_temp = [self._build_pivot_url(model_class)]
         urls_list = url_temp*len(list_args)
         for q in list_args:
@@ -1756,6 +2073,8 @@ class PumpWoodMicroService():
             q["columns"] = columns
             q["format"] = format
 
+        print(
+            "## Starting parallel_pivot: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
