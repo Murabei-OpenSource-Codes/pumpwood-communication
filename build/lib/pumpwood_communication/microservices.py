@@ -1463,6 +1463,7 @@ class PumpWoodMicroService():
             results = p.map(self._flat_list_by_chunks_wrapper, pool_arguments)
 
         # Concat all results in a dataframe
+        print("# Concating all results")
         return pd.concat(results)
 
     @staticmethod

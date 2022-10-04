@@ -70,6 +70,12 @@ class PumpWoodObjectSavingException(PumpWoodException):
     pass
 
 
+class PumpWoodObjectDeleteException(PumpWoodException):
+    """Raise for errors in object deserialization."""
+
+    pass
+
+
 class PumpWoodActionArgsException(PumpWoodException):
     """Missing arguments to perform action."""
 
@@ -162,5 +168,6 @@ exceptions_dict = {
     "PumpWoodIntegrityError": PumpWoodIntegrityError,
     "PumpWoodWrongParameters": PumpWoodWrongParameters,
     "PumpWoodNotImplementedError": PumpWoodNotImplementedError,
-    "PumpWoodOtherException": PumpWoodOtherException
+    "PumpWoodOtherException": PumpWoodOtherException,
+    "PumpWoodObjectDeleteException": PumpWoodObjectDeleteException,
 }
