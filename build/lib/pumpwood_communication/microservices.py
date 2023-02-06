@@ -1339,7 +1339,6 @@ class PumpWoodMicroService():
         auth_header = args["auth_header"]
         chunk_size = args["chunk_size"]
 
-
         temp_filter_dict = copy.deepcopy(filter_dict)
         url_str = self._build_pivot_url(model_class)
         max_pk = 0
@@ -1348,7 +1347,7 @@ class PumpWoodMicroService():
         list_dataframes = []
         while True:
             print("- fetching chunk [{}]".format(max_pk))
-            temp_filter_dict["pk__gt"] = max_pk
+            temp_filter_dict["id__gt"] = max_pk
             post_data = {
                 'format': 'list',
                 'filter_dict': temp_filter_dict,
