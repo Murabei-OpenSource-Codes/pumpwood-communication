@@ -101,7 +101,7 @@ class PumpWoodObjectDoesNotExist(PumpWoodException):
 
 
 class PumpWoodQueryException(PumpWoodException):
-    """Problem when loading data at dataloaders and to_load models."""
+    """Problem when querying data, like wrong fields or operators."""
 
     pass
 

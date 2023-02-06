@@ -1,7 +1,7 @@
 """
 Module microservice.py.
 
-Class and functions to help comunication between PumpWood like systems.
+Class and functions to help communication between PumpWood like systems.
 """
 import re
 import os
@@ -24,7 +24,8 @@ from copy import deepcopy
 from pumpwood_communication.exceptions import (
     exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
     PumpWoodObjectSavingException, PumpWoodOtherException)
-from pumpwood_communication.serializers import pumpJsonDump
+from pumpwood_communication.serializers import (
+    pumpJsonDump, CompositePkBase64Converter)
 
 
 # Creating logger for MicroService calls
@@ -773,7 +774,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_list_one_url(model_class, pk):
-        return "rest/%s/list-one/%d/" % (model_class.lower(), pk)
+        return "rest/%s/list-one/%s/" % (model_class.lower(), pk)
 
     def list_one(self, model_class: str, pk: int, auth_header: dict = None):
         """
@@ -800,7 +801,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_retrieve_url(model_class: str, pk: int):
-        return "rest/%s/retrieve/%d/" % (model_class.lower(), pk)
+        return "rest/%s/retrieve/%s/" % (model_class.lower(), pk)
 
     def retrieve(self, model_class: str, pk: int, auth_header: dict = None):
         """
@@ -827,7 +828,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_retrieve_file_url(model_class: str, pk: int):
-        return "rest/%s/retrieve-file/%d/" % (model_class.lower(), pk)
+        return "rest/%s/retrieve-file/%s/" % (model_class.lower(), pk)
 
     def retrieve_file(self, model_class: str, pk: int, file_field: str,
                       auth_header: dict = None, save_file: bool = True,
@@ -903,7 +904,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_retrieve_file_straming_url(model_class: str, pk: int):
-        return "rest/%s/retrieve-file-streaming/%d/" % (
+        return "rest/%s/retrieve-file-streaming/%s/" % (
             model_class.lower(), pk)
 
     def retrieve_streaming_file(self, model_class: str, pk: int,
@@ -1076,7 +1077,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_delete_request_url(model_class, pk):
-        return "rest/%s/delete/%d/" % (model_class.lower(), pk)
+        return "rest/%s/delete/%s/" % (model_class.lower(), pk)
 
     def delete(self, model_class: str, pk: int, auth_header: dict = None):
         """
@@ -1104,7 +1105,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_remove_file_field(model_class, pk):
-        return "rest/%s/remove-file-field/%d/" % (model_class.lower(), pk)
+        return "rest/%s/remove-file-field/%s/" % (model_class.lower(), pk)
 
     def remove_file_field(self, model_class: str, pk: int, file_field: str,
                           auth_header: dict = None):
@@ -1318,7 +1319,6 @@ class PumpWoodMicroService():
             Dependends on backend implementation
         Example:
             No example yet.
-
         """
         url_str = self._build_pivot_url(model_class)
         post_data = {
@@ -1329,33 +1329,17 @@ class PumpWoodMicroService():
         return self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
 
-    def flat_list_by_chunks(self, model_class: str, filter_dict: dict = {},
-                            exclude_dict: dict = {}, fields: list = None,
-                            show_deleted=False, auth_header: dict = None,
-                            chunk_size: int = 1000000):
-        """
-        Use the same end-point as pivot which does not unserialize results.
+    def _flat_list_by_chunks_helper(self, args):
+        # Unpacking arguments
+        model_class = args["model_class"]
+        filter_dict = args["filter_dict"]
+        exclude_dict = args["exclude_dict"]
+        fields = args["fields"]
+        show_deleted = args["show_deleted"]
+        auth_header = args["auth_header"]
+        chunk_size = args["chunk_size"]
 
-        Args:
-            model_class (str): Model class to be pivoted.
-        Kwargs:
-            filter_dict (dict): Dictionary to to be used in objects.filter
-                                argument (Same as list end-point).
-            exclude_dict (dict): Dictionary to to be used in objects.exclude
-                                 argument (Same as list end-point).
-            fields (list[str]) = None: List of the variables to be returned,
-                if None, the default variables will be returned.
-            show_deleted (bool): If deleted data should be returned.
-            auth_header(dict): Dictionary containing the auth header.
-            chunk_size (int): Limit of data to fetch per call.
-        Returns:
-            dict or list: Depends on format type used to convert
-                          pandas.DataFrame
-        Raises:
-            Dependends on backend implementation
-        Example:
-            No example yet.
-        """
+
         temp_filter_dict = copy.deepcopy(filter_dict)
         url_str = self._build_pivot_url(model_class)
         max_pk = 0
@@ -1367,9 +1351,11 @@ class PumpWoodMicroService():
             temp_filter_dict["pk__gt"] = max_pk
             post_data = {
                 'format': 'list',
-                'filter_dict': temp_filter_dict, 'exclude_dict': exclude_dict,
-                'order_by': ["pk"], "variables": fields,
-                "show_deleted": show_deleted, "limit": chunk_size,
+                'filter_dict': temp_filter_dict,
+                'exclude_dict': exclude_dict,
+                'order_by': ["id"], "variables": fields,
+                "show_deleted": show_deleted, 
+                "limit": chunk_size,
                 "add_pk_column": True}
             temp_dateframe = pd.DataFrame(self.request_post(
                 url=url_str, data=post_data, auth_header=auth_header))
@@ -1384,6 +1370,117 @@ class PumpWoodMicroService():
             return pd.DataFrame()
         else:
             return pd.concat(list_dataframes)
+
+    def flat_list_by_chunks(self, model_class: str, filter_dict: dict = {},
+                            exclude_dict: dict = {}, fields: list = None,
+                            show_deleted: bool = False,
+                            auth_header: dict = None,
+                            chunk_size: int = 1000000,
+                            n_parallel: int = 4,
+                            create_composite_pk: bool = False):
+        """
+        Use the same end-point as pivot which does not unserialize results.
+
+        Args:
+            model_class (str): Model class to be pivoted.
+
+        Kwargs:
+            filter_dict (dict): Dictionary to to be used in objects.filter
+                                argument (Same as list end-point).
+            exclude_dict (dict): Dictionary to to be used in objects.exclude
+                                 argument (Same as list end-point).
+            fields (list[str]) = None: List of the variables to be returned,
+                if None, the default variables will be returned.
+            show_deleted (bool): If deleted data should be returned.
+            auth_header(dict): Dictionary containing the auth header.
+            chunk_size (int): Limit of data to fetch per call.
+            n_parallel (int): Number of parallel process to perform.
+
+        Returns:
+            dict or list: Depends on format type used to convert
+                          pandas.DataFrame
+
+        Raises:
+            Dependends on backend implementation
+
+        Example:
+            No example yet.
+        """
+        temp_filter_dict = copy.deepcopy(filter_dict)
+        fill_options = self.fill_options(
+            model_class=model_class, auth_header=auth_header)
+        primary_keys = fill_options["pk"]["column"]
+        partition = fill_options["pk"]["partition"] or []
+        resp_df = None
+        if 1 < len(partition):
+            partition_col_1st = partition[0]
+            filter_dict_keys = list(temp_filter_dict.keys())
+            partition_filter = None
+            count_partition_col_1st_filters = 0
+            for col in filter_dict_keys:
+                if partition_col_1st + "__in" == col:
+                    partition_filter = temp_filter_dict[col]
+                    del temp_filter_dict[col]
+                    count_partition_col_1st_filters = \
+                        count_partition_col_1st_filters + 1
+                elif partition_col_1st == col:
+                    partition_filter = [temp_filter_dict[col]]
+                    del temp_filter_dict[col]
+                    count_partition_col_1st_filters = \
+                        count_partition_col_1st_filters + 1
+            
+            # Validating query for partitioned tables
+            if partition_filter is None:
+                msg = (
+                    "Table is partitioned with sub-partitions, running queries "
+                    "without at least first level partition will lead to long "
+                    "waiting times or hanging queries. Please use first "
+                    "partition level in filter_dict with equal or in "
+                    "operators. Table partitions: {}"
+                ).format(partition)
+                raise PumpWoodException(message=msg)
+
+            if 1 < count_partition_col_1st_filters:
+                msg = (
+                    "Please give some help for the dev here, use just one "
+                    "filter_dict entry for first partition..."
+                ).format(partition)
+                raise PumpWoodException(message=msg)
+
+            # Parallelizing query using partition columns
+            pool_arguments = []
+            for filter_key in partition_filter:
+                request_filter_dict = copy.deepcopy(temp_filter_dict)
+                request_filter_dict[partition_col_1st] = filter_key
+                pool_arguments.append({
+                    "model_class": model_class,
+                    "filter_dict": request_filter_dict,
+                    "exclude_dict": exclude_dict,
+                    "fields": fields,
+                    "show_deleted": show_deleted,
+                    "auth_header": auth_header,
+                    "chunk_size": chunk_size})
+        
+            # Perform parallel calls to backend each chucked by chunk_size
+            with Pool(n_parallel) as p:
+                results = p.map(
+                    self._flat_list_by_chunks_helper,
+                    pool_arguments)
+            resp_df = pd.concat(results)
+        else:
+            results_key_data = self._flat_list_by_chunks_helper(
+                model_class=model_class, filter_dict=temp_filter_dict,
+                exclude_dict=exclude_dict, fields=fields,
+                show_deleted=show_deleted, auth_header=auth_header,
+                chunk_size=chunk_size)
+            resp_df = results_key_data
+        
+        if (1 < len(partition)) and create_composite_pk:
+            print("Creating composite pk")
+            resp_df["pk"] = resp_df[primary_keys].apply(
+                CompositePkBase64Converter.dump,
+                primary_keys=primary_keys, axis=1)
+        return resp_df
 
     def _flat_list_by_chunks_wrapper(self, arguments: dict):
         try:

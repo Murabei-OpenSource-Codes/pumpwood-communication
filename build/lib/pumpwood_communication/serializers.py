@@ -1,8 +1,9 @@
 """
 Module serializers.py.
 
-Miscelenius to help with serializers in comunication.
+Miscellaneous to help with serializers in communication.
 """
+import base64
 import simplejson as json
 import numpy as np
 import pandas as pd
@@ -14,6 +15,7 @@ from pandas import Timestamp
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry import mapping
 from sqlalchemy_utils.types.choice import Choice
+from pumpwood_communication.exceptions import PumpWoodException
 
 
 class PumpWoodJSONEncoder(JSONEncoder):
@@ -52,3 +54,62 @@ def pumpJsonDump(x, sort_keys=True):
     return json.dumps(
         x, cls=PumpWoodJSONEncoder, allow_nan=True,
         sort_keys=sort_keys)
+
+
+class CompositePkBase64Converter:
+    """Convert composite primary keys in base64 dictionary."""
+    @staticmethod
+    def dump(obj, primary_keys: list):
+        """
+        Convert primary keys and composite to a single value.
+
+        Treat cases when more than one column are used as primary keys,
+        at this cases, a base64 used on url serialization of the dictionary
+        is returned.
+
+        Args:
+            obj: SQLAlchemy object.
+            primary_keys [list]: List of primary keys of the object.
+        Kwargs:
+            No Kwargs.
+        Return [int | str]:
+            If the primary key is unique, return the value of the primary
+                key, if is have more than one column as primary key, return
+                a dictionary of the primary keys encoded as base64 url safe.
+        """
+        if len(primary_keys) == 1:
+            return getattr(obj, primary_keys[0])
+        else:
+            composite_pk_dict = {}
+            for pk_col in primary_keys:
+                composite_pk_dict[pk_col] = getattr(obj, pk_col)
+            composite_pk_str = pumpJsonDump(composite_pk_dict)
+            return base64.urlsafe_b64encode(
+                composite_pk_str.encode()).decode()
+    
+    @staticmethod
+    def load(value):
+        """
+        Convert encoded primary keys to values.
+
+        If the primary key is a string, try to transform it to dictionary
+        decoding json base64 to a dictionary.
+
+        Args:
+            value [int | str]: Primary key value as an integer or as a base64
+                encoded json dictionary.
+        Return [int | dict]:
+            Return the primary key as integer if possible, or try to decoded
+            it to a dictionary from a base64 encoded json.
+        """
+        try:
+            return int(value)
+        except:
+            try:
+                return json.loads(base64.b64decode(value))
+            except:
+                msg = (
+                    "Primary is not an integer and could no be "
+                    "decoded as a base64 encoded json dictionary")
+                raise PumpWoodException(message=msg, payload={"value": value})
+            
