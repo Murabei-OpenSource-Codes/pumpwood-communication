@@ -30,7 +30,7 @@ from multiprocessing import set_start_method
 
 ##########################################################
 # Set not to use fork as default for creating multiprocess
-set_start_method("spawn")
+set_start_method('forkserver', force=True)
 ##########################################################
 
 # Creating logger for MicroService calls
