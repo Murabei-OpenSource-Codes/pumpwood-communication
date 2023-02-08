@@ -28,10 +28,6 @@ from pumpwood_communication.serializers import (
     pumpJsonDump, CompositePkBase64Converter)
 from multiprocessing import set_start_method
 
-##########################################################
-# Set not to use fork as default for creating multiprocess
-set_start_method('forkserver', force=True)
-##########################################################
 
 # Creating logger for MicroService calls
 Log_Format = "%(levelname)s %(asctime)s - %(message)s"
