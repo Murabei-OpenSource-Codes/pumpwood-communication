@@ -153,7 +153,7 @@ class AirflowMicroService():
             # Check if fetched have passed max_results
             if max_results <= len(list_all_dags):
                 break
-        return list_all_dags
+        return [x.to_dict() for x in list_all_dags]
 
     def run_dag(self, dag_id: str, arguments: dict = {},
                 paused_raise_error: bool = True,
@@ -205,7 +205,8 @@ class AirflowMicroService():
         if dag_run_id_sufix is None:
             dag_run_id = dag_run_id + "__dag_id[{}]".format(dag_id)
         else:
-            dag_run_id = dag_run_id + "__" + dag_run_id_sufix
+            if dag_run_id_sufix != "":
+                dag_run_id = dag_run_id + "__" + dag_run_id_sufix
 
         # Create dag run object and sent it to Airflow queue
         dag_run_id = DAGRun(dag_run_id=dag_run_id, conf=arguments)
@@ -297,7 +298,7 @@ class AirflowMicroService():
             
             if limit <= len(all_results):
                 break
-        return all_results
+        return [x.to_dict() for x in all_results]
 
     def get_dag_run(self, dag_id: str, dag_run_id: str) -> dict:
         """
@@ -314,7 +315,7 @@ class AirflowMicroService():
 
         api_instance = dag_run_api.DAGRunApi(self._api_client)
         try:
-            return api_instance.get_dag_run(dag_id, dag_run_id)
+            return api_instance.get_dag_run(dag_id, dag_run_id).to_dict()
         except client.ApiException as e:
             msg = (
                 "If was not possible to find dag run with dag_id[{dag_id}]"
