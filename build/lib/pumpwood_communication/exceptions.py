@@ -155,6 +155,12 @@ class PumpWoodOtherException(PumpWoodException):
         return rv
 
 
+class AirflowMicroServiceException(PumpWoodException):
+    """Raises from AirflowMicroService."""
+
+    pass
+
+
 exceptions_dict = {
     "PumpWoodException": PumpWoodException,
     "PumpWoodDataLoadingException": PumpWoodDataLoadingException,
@@ -170,4 +176,5 @@ exceptions_dict = {
     "PumpWoodNotImplementedError": PumpWoodNotImplementedError,
     "PumpWoodOtherException": PumpWoodOtherException,
     "PumpWoodObjectDeleteException": PumpWoodObjectDeleteException,
+    "AirflowMicroServiceException": AirflowMicroServiceException
 }
