@@ -158,7 +158,7 @@ class AirflowMicroService():
     def run_dag(self, dag_id: str, arguments: dict = {},
                 paused_raise_error: bool = True,
                 dag_run_id: str = None,
-                dag_run_id_prefix: str = None) -> dict:
+                dag_run_id_sufix: str = None) -> dict:
         """
         Run an Airflow DAG passing arguments as arguments.
 
@@ -202,16 +202,16 @@ class AirflowMicroService():
                 "{time}__{random_letters}").format(
                     time=now_str, random_letters=random_letters)
         
-        if dag_run_id_prefix is None:
+        if dag_run_id_sufix is None:
             dag_run_id = dag_run_id + "__dag_id[{}]".format(dag_id)
         else:
-            dag_run_id = dag_run_id + dag_run_id_prefix
+            dag_run_id = dag_run_id + "__" + dag_run_id_sufix
 
         # Create dag run object and sent it to Airflow queue
         dag_run_id = DAGRun(dag_run_id=dag_run_id, conf=arguments)
         dagrun_api_instance = dag_run_api.DAGRunApi(self._api_client)
         dagrun_result = dagrun_api_instance.post_dag_run(dag_id, dag_run_id)
-        return dagrun_result
+        return dagrun_result.to_dict()
     
     def list_dag_runs(self, dag_id: str,
                       limit: int = 100,
