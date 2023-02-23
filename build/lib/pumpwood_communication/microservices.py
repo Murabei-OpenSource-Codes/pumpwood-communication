@@ -1,7 +1,7 @@
 """
 Module microservice.py.
 
-Class and functions to help comunication between PumpWood like systems.
+Class and functions to help communication between PumpWood like systems.
 """
 import re
 import os
@@ -24,7 +24,9 @@ from copy import deepcopy
 from pumpwood_communication.exceptions import (
     exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
     PumpWoodObjectSavingException, PumpWoodOtherException)
-from pumpwood_communication.serializers import pumpJsonDump
+from pumpwood_communication.serializers import (
+    pumpJsonDump, CompositePkBase64Converter)
+from multiprocessing import set_start_method
 
 
 # Creating logger for MicroService calls
@@ -773,7 +775,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_list_one_url(model_class, pk):
-        return "rest/%s/list-one/%d/" % (model_class.lower(), pk)
+        return "rest/%s/list-one/%s/" % (model_class.lower(), pk)
 
     def list_one(self, model_class: str, pk: int, auth_header: dict = None):
         """
@@ -800,7 +802,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_retrieve_url(model_class: str, pk: int):
-        return "rest/%s/retrieve/%d/" % (model_class.lower(), pk)
+        return "rest/%s/retrieve/%s/" % (model_class.lower(), pk)
 
     def retrieve(self, model_class: str, pk: int, auth_header: dict = None):
         """
@@ -827,7 +829,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_retrieve_file_url(model_class: str, pk: int):
-        return "rest/%s/retrieve-file/%d/" % (model_class.lower(), pk)
+        return "rest/%s/retrieve-file/%s/" % (model_class.lower(), pk)
 
     def retrieve_file(self, model_class: str, pk: int, file_field: str,
                       auth_header: dict = None, save_file: bool = True,
@@ -903,7 +905,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_retrieve_file_straming_url(model_class: str, pk: int):
-        return "rest/%s/retrieve-file-streaming/%d/" % (
+        return "rest/%s/retrieve-file-streaming/%s/" % (
             model_class.lower(), pk)
 
     def retrieve_streaming_file(self, model_class: str, pk: int,
@@ -1076,7 +1078,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_delete_request_url(model_class, pk):
-        return "rest/%s/delete/%d/" % (model_class.lower(), pk)
+        return "rest/%s/delete/%s/" % (model_class.lower(), pk)
 
     def delete(self, model_class: str, pk: int, auth_header: dict = None):
         """
@@ -1104,7 +1106,7 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_remove_file_field(model_class, pk):
-        return "rest/%s/remove-file-field/%d/" % (model_class.lower(), pk)
+        return "rest/%s/remove-file-field/%s/" % (model_class.lower(), pk)
 
     def remove_file_field(self, model_class: str, pk: int, file_field: str,
                           auth_header: dict = None):
@@ -1318,7 +1320,6 @@ class PumpWoodMicroService():
             Dependends on backend implementation
         Example:
             No example yet.
-
         """
         url_str = self._build_pivot_url(model_class)
         post_data = {
@@ -1329,33 +1330,16 @@ class PumpWoodMicroService():
         return self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
 
-    def flat_list_by_chunks(self, model_class: str, filter_dict: dict = {},
-                            exclude_dict: dict = {}, fields: list = None,
-                            show_deleted=False, auth_header: dict = None,
-                            chunk_size: int = 1000000):
-        """
-        Use the same end-point as pivot which does not unserialize results.
+    def _flat_list_by_chunks_helper(self, args):
+        # Unpacking arguments
+        model_class = args["model_class"]
+        filter_dict = args["filter_dict"]
+        exclude_dict = args["exclude_dict"]
+        fields = args["fields"]
+        show_deleted = args["show_deleted"]
+        auth_header = args["auth_header"]
+        chunk_size = args["chunk_size"]
 
-        Args:
-            model_class (str): Model class to be pivoted.
-        Kwargs:
-            filter_dict (dict): Dictionary to to be used in objects.filter
-                                argument (Same as list end-point).
-            exclude_dict (dict): Dictionary to to be used in objects.exclude
-                                 argument (Same as list end-point).
-            fields (list[str]) = None: List of the variables to be returned,
-                if None, the default variables will be returned.
-            show_deleted (bool): If deleted data should be returned.
-            auth_header(dict): Dictionary containing the auth header.
-            chunk_size (int): Limit of data to fetch per call.
-        Returns:
-            dict or list: Depends on format type used to convert
-                          pandas.DataFrame
-        Raises:
-            Dependends on backend implementation
-        Example:
-            No example yet.
-        """
         temp_filter_dict = copy.deepcopy(filter_dict)
         url_str = self._build_pivot_url(model_class)
         max_pk = 0
@@ -1363,19 +1347,24 @@ class PumpWoodMicroService():
         # Fetch data until an empty result is returned
         list_dataframes = []
         while True:
-            print("- fetching chunk [{}]".format(max_pk))
-            temp_filter_dict["pk__gt"] = max_pk
+            sys.stdout.write(".")
+            sys.stdout.flush()
+            temp_filter_dict["id__gt"] = max_pk
             post_data = {
                 'format': 'list',
-                'filter_dict': temp_filter_dict, 'exclude_dict': exclude_dict,
-                'order_by': ["pk"], "variables": fields,
-                "show_deleted": show_deleted, "limit": chunk_size,
+                'filter_dict': temp_filter_dict,
+                'exclude_dict': exclude_dict,
+                'order_by': ["id"], "variables": fields,
+                "show_deleted": show_deleted, 
+                "limit": chunk_size,
                 "add_pk_column": True}
             temp_dateframe = pd.DataFrame(self.request_post(
                 url=url_str, data=post_data, auth_header=auth_header))
 
-            # Break if results are empty
-            if len(temp_dateframe) == 0:
+            # Break if results are less than chunk size, so no more results
+            # are avaiable
+            if len(temp_dateframe) < chunk_size:
+                list_dataframes.append(temp_dateframe)
                 break
 
             max_pk = int(temp_dateframe["id"].max())
@@ -1385,35 +1374,21 @@ class PumpWoodMicroService():
         else:
             return pd.concat(list_dataframes)
 
-    def _flat_list_by_chunks_wrapper(self, arguments: dict):
-        try:
-            results = self.flat_list_by_chunks(**arguments)
-            print("-- flat_list_by_chunks_wrapper finished")
-            return results
-        except Exception as e:
-            raise Exception("Error on parallel flat: " + str(e))
-
-    def parallel_by_month_flat_list(self, model_class: str,
-                                    start_date: str, end_date: str,
-                                    filter_dict: dict = {},
-                                    exclude_dict: dict = {},
-                                    fields: list = None,
-                                    show_deleted: bool = False,
-                                    auth_header: dict = None,
-                                    chunk_size: int = 1000000,
-                                    n_parallel: int = 5):
+    def flat_list_by_chunks(self, model_class: str, filter_dict: dict = {},
+                            exclude_dict: dict = {}, fields: list = None,
+                            show_deleted: bool = False,
+                            auth_header: dict = None,
+                            chunk_size: int = 1000000,
+                            n_parallel: int = 4,
+                            create_composite_pk: bool = False,
+                            start_date: str = None,
+                            end_date: str = None):
         """
-        Fetch data using flat list in parallel by month.
-
-        Data End-Point are particionated by month, using parallel calls
-        using month as filter may reduce time of processing the data. It is
-        recomendated to use attribute_id in filter when quering
-        DatabaseVariable information due to particion.
+        Use the same end-point as pivot which does not unserialize results.
 
         Args:
-            model_class (str): Data model class.
-            start_date (str): Start date to query data.
-            end_data (str): End date to query data.
+            model_class (str): Model class to be pivoted.
+
         Kwargs:
             filter_dict (dict): Dictionary to to be used in objects.filter
                                 argument (Same as list end-point).
@@ -1424,47 +1399,158 @@ class PumpWoodMicroService():
             show_deleted (bool): If deleted data should be returned.
             auth_header(dict): Dictionary containing the auth header.
             chunk_size (int): Limit of data to fetch per call.
-            n_parallel (int): Number of parallel calls to backend.
+            n_parallel (int): Number of parallel process to perform.
+
+        Returns:
+            dict or list: Depends on format type used to convert
+                          pandas.DataFrame
+
+        Raises:
+            Dependends on backend implementation
+
+        Example:
+            No example yet.
         """
+        temp_filter_dict = copy.deepcopy(filter_dict)
+        fill_options = self.fill_options(
+            model_class=model_class, auth_header=auth_header)
+        primary_keys = fill_options["pk"]["column"]
+        partition = fill_options["pk"]["partition"] or []
+
         # Create a list of month and include start and end dates if not at
-        # the beging of a month
-        start_date = pd.to_datetime(start_date)
-        end_date = pd.to_datetime(end_date)
-        list_month_sequence = pd.date_range(
-            start=start_date, end=end_date, freq='MS').tolist()
-        month_sequence = pd.Series(
-            [start_date] + list_month_sequence + [end_date]
-        ).drop_duplicates().sort_values()
+        # the beginning of a month
+        month_sequence = None
+        if (start_date is not None) and (end_date is not None):
+            start_date = pd.to_datetime(start_date)
+            end_date = pd.to_datetime(end_date)
+            list_month_sequence = pd.date_range(
+                start=start_date, end=end_date, freq='MS').tolist()
+            month_sequence = pd.Series(
+                [start_date] + list_month_sequence + [end_date]
+            ).drop_duplicates().sort_values().tolist()
 
-        # Create a dataframe with month partition to query information
-        month_df = pd.DataFrame({'end': month_sequence})
-        month_df['start'] = month_df['end'].shift()
-        month_df.dropna(inplace=True)
-        list_dict = month_df.to_dict("records")
+            month_df = pd.DataFrame({'end': month_sequence})
+            month_df['start'] = month_df['end'].shift()
+            month_df.dropna(inplace=True)
+            month_sequence = month_df.to_dict("records")
 
-        # Create a list of arguments to parallel calls by month
-        pool_arguments = []
-        for x in list_dict:
-            # Add month particion on month parallel processing
-            temp_filter_dict = copy.deepcopy(filter_dict)
-            temp_filter_dict.update({
-                "time__gte": x["start"], "time__lt": x["end"]})
-            pool_arguments.append({
-                "model_class": model_class,
-                "filter_dict": temp_filter_dict,
-                "exclude_dict": exclude_dict,
-                "fields": fields,
-                "show_deleted": show_deleted,
-                "chunk_size": chunk_size,
-                "auth_header": auth_header})
+        elif (start_date is not None) or (end_date is not None):
+            msg = (
+                "To break query in chunks using start_date and end_date "
+                "both must be set.\n"
+                "start_date: {start_date}\n"
+                "end_date: {end_date}\n").format(
+                    start_date=start_date, end_date=end_date)
+            raise PumpWoodException(
+                message=msg, payload={
+                    "start_date": start_date,
+                    "end_date": end_date})
 
-        # Perform parallel calls to backend each chucked by chunk_size
-        with Pool(n_parallel) as p:
-            results = p.map(self._flat_list_by_chunks_wrapper, pool_arguments)
+        resp_df = None
+        if 1 < len(partition):
+            partition_col_1st = partition[0]
+            filter_dict_keys = list(temp_filter_dict.keys())
+            partition_filter = None
+            count_partition_col_1st_filters = 0
+            for col in filter_dict_keys:
+                if partition_col_1st + "__in" == col:
+                    partition_filter = temp_filter_dict[col]
+                    del temp_filter_dict[col]
+                    count_partition_col_1st_filters = \
+                        count_partition_col_1st_filters + 1
+                elif partition_col_1st == col:
+                    partition_filter = [temp_filter_dict[col]]
+                    del temp_filter_dict[col]
+                    count_partition_col_1st_filters = \
+                        count_partition_col_1st_filters + 1
+            
+            # Validating query for partitioned tables
+            if partition_filter is None:
+                msg = (
+                    "Table is partitioned with sub-partitions, running queries "
+                    "without at least first level partition will lead to long "
+                    "waiting times or hanging queries. Please use first "
+                    "partition level in filter_dict with equal or in "
+                    "operators. Table partitions: {}"
+                ).format(partition)
+                raise PumpWoodException(message=msg)
 
-        # Concat all results in a dataframe
-        print("# Concating all results")
-        return pd.concat(results)
+            if 1 < count_partition_col_1st_filters:
+                msg = (
+                    "Please give some help for the dev here, use just one "
+                    "filter_dict entry for first partition..."
+                ).format(partition)
+                raise PumpWoodException(message=msg)
+
+            # Parallelizing query using partition columns
+            pool_arguments = []
+            for filter_key in partition_filter:
+                request_filter_dict = copy.deepcopy(temp_filter_dict)
+                request_filter_dict[partition_col_1st] = filter_key
+                if month_sequence is None:
+                    pool_arguments.append({
+                        "model_class": model_class,
+                        "filter_dict": request_filter_dict,
+                        "exclude_dict": exclude_dict,
+                        "fields": fields,
+                        "show_deleted": show_deleted,
+                        "auth_header": auth_header,
+                        "chunk_size": chunk_size})
+                else:
+                    for i in range(len(month_sequence)):
+                        if i != len(month_sequence) - 1:
+                            request_filter_dict_t = copy.deepcopy(
+                                request_filter_dict)
+                            request_filter_dict_t["time__gte"] = \
+                                month_sequence[i]["start"]
+                            request_filter_dict_t["time__lt"] = \
+                                month_sequence[i]["end"]
+                            pool_arguments.append({
+                                "model_class": model_class,
+                                "filter_dict": request_filter_dict_t,
+                                "exclude_dict": exclude_dict,
+                                "fields": fields,
+                                "show_deleted": show_deleted,
+                                "auth_header": auth_header,
+                                "chunk_size": chunk_size})
+                        else:
+                            request_filter_dict_t = copy.deepcopy(
+                                request_filter_dict)
+                            request_filter_dict_t["time__gte"] = \
+                                month_sequence[i]["start"]
+                            request_filter_dict_t["time__lte"] = \
+                                month_sequence[i]["end"]
+                            pool_arguments.append({
+                                "model_class": model_class,
+                                "filter_dict": request_filter_dict_t,
+                                "exclude_dict": exclude_dict,
+                                "fields": fields,
+                                "show_deleted": show_deleted,
+                                "auth_header": auth_header,
+                                "chunk_size": chunk_size})
+
+            # Perform parallel calls to backend each chucked by chunk_size
+            print("## Starting parallel flat list: %s" % len(pool_arguments))
+            with Pool(n_parallel) as p:
+                results = p.map(
+                    self._flat_list_by_chunks_helper,
+                    pool_arguments)
+            resp_df = pd.concat(results)
+            print("\n## Finished parallel flat list: %s" % len(pool_arguments))
+        else:
+            results_key_data = self._flat_list_by_chunks_helper(
+                model_class=model_class, filter_dict=temp_filter_dict,
+                exclude_dict=exclude_dict, fields=fields,
+                show_deleted=show_deleted, auth_header=auth_header,
+                chunk_size=chunk_size)
+            resp_df = results_key_data
+        
+        if (1 < len(partition)) and create_composite_pk:
+            print("## Creating composite pk")
+            resp_df["pk"] = resp_df[primary_keys].apply(
+                CompositePkBase64Converter.dump,
+                primary_keys=primary_keys, axis=1)
+        return resp_df
 
     @staticmethod
     def _build_bulk_save_url(model_class: str):
@@ -1492,7 +1578,8 @@ class PumpWoodMicroService():
     def _request_get_wrapper(self, arguments: dict):
         try:
             results = self.request_get(**arguments)
-            print("- _request_get_wrapper finished")
+            sys.stdout.write(".")
+            sys.stdout.flush()
             return results
         except Exception as e:
             raise Exception("Error on parallel get: " + str(e))
@@ -1548,7 +1635,8 @@ class PumpWoodMicroService():
     def _request_post_wrapper(self, arguments: dict):
         try:
             result = self.request_post(**arguments)
-            print("- _request_post_wrapper finished")
+            sys.stdout.write(".")
+            sys.stdout.flush()
             return result
         except Exception as e:
             raise Exception("Error in parallel post: " + str(e))
@@ -1593,7 +1681,8 @@ class PumpWoodMicroService():
     def _request_delete_wrapper(self, arguments):
         try:
             result = self.request_delete(**arguments)
-            print("- _request_delete_wrapper finished")
+            sys.stdout.write(".")
+            sys.stdout.flush()
             return result
         except Exception as e:
             raise Exception("Error in parallel delete: " + str(e))
@@ -1701,8 +1790,7 @@ class PumpWoodMicroService():
                 raise Exception('len(model_class) != len(list_args)')
             urls_list = [self._build_list_url(m) for m in model_class]
 
-        print(
-            "## Starting parallel_list: %s" % len(urls_list))
+        print("## Starting parallel_list: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
@@ -1747,8 +1835,7 @@ class PumpWoodMicroService():
             urls_list = [
                 self._build_list_without_pag_url(m) for m in model_class]
 
-        print(
-            "## Starting parallel_list_without_pag: %s" % len(urls_list))
+        print("## Starting parallel_list_without_pag: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
@@ -1790,8 +1877,7 @@ class PumpWoodMicroService():
                                      pk=list_pk[i])
             for i in range(len(model_class))]
 
-        print(
-            "## Starting parallel_list_one: %s" % len(urls_list))
+        print("## Starting parallel_list_one: %s" % len(urls_list))
         return self.parallel_request_get(
             urls_list=urls_list, n_parallel=n_parallel,
             auth_header=auth_header)
@@ -1823,8 +1909,7 @@ class PumpWoodMicroService():
 
         urls_list = [
             self._build_save_url(obj['model_class']) for obj in list_obj_dict]
-        print(
-            "## Starting parallel_save: %s" % len(urls_list))
+        print("## Starting parallel_save: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_obj_dict,
             n_parallel=n_parallel, auth_header=auth_header)
@@ -1867,8 +1952,7 @@ class PumpWoodMicroService():
                                            pk=list_pk[i])
             for i in range(len(model_class))]
 
-        print(
-            "## Starting parallel_delete: %s" % len(urls_list))
+        print("## Starting parallel_delete: %s" % len(urls_list))
         return self.parallel_request_get(
             urls_list=urls_list, n_parallel=n_parallel,
             auth_header=auth_header)
@@ -1912,8 +1996,7 @@ class PumpWoodMicroService():
             urls_list = [
                 self._build_list_without_pag_url(m) for m in model_class]
 
-        print(
-            "## Starting parallel_delete_many: %s" % len(urls_list))
+        print("## Starting parallel_delete_many: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
@@ -1993,8 +2076,7 @@ class PumpWoodMicroService():
                 model_class=model_class[i], action=action[i], pk=pk[i])
             for i in range(parallel_length)]
 
-        print(
-            "## Starting parallel_execute_action: %s" % len(urls_list))
+        print("## Starting parallel_execute_action: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=parameters,
             n_parallel=n_parallel, auth_header=auth_header)
@@ -2027,8 +2109,7 @@ class PumpWoodMicroService():
         url = self._build_bulk_save_url(model_class)
         urls_list = [url]*len(chunks)
 
-        print(
-            "## Starting parallel_bulk_save: %s" % len(urls_list))
+        print("## Starting parallel_bulk_save: %s" % len(urls_list))
         self.paralell_request_post(
             urls_list=urls_list, data_list=chunks,
             n_parallel=n_parallel, auth_header=auth_header)
@@ -2073,8 +2154,7 @@ class PumpWoodMicroService():
             q["columns"] = columns
             q["format"] = format
 
-        print(
-            "## Starting parallel_pivot: %s" % len(urls_list))
+        print("## Starting parallel_pivot: %s" % len(urls_list))
         return self.paralell_request_post(
             urls_list=urls_list, data_list=list_args,
             n_parallel=n_parallel, auth_header=auth_header)
