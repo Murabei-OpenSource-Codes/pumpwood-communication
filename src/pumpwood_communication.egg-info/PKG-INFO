@@ -1,11 +1,12 @@
 Metadata-Version: 2.1
 Name: pumpwood-communication
-Version: 0.97
+Version: 0.98
 Summary: Package for inter Pumpwood loging and comunication
 Home-page: https://github.com/Murabei-OpenSource-Codes/pumpwood-communication
 Author: André Andrade Baceti
 Author-email: a.baceti@murabei.com
 License: BSD-3-Clause License
+Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
 Classifier: Operating System :: OS Independent
 Requires-Python: >=3.6
@@ -356,3 +357,5 @@ It is possible to use other functions, the documentation can be gatered using th
 - parallel_execute_action
 - parallel_bulk_save
 - parallel_pivot
+
+
