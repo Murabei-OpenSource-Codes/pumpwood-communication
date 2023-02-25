@@ -1658,9 +1658,8 @@ class PumpWoodMicroService():
             {'url': u, 'auth_header': auth_header} for u in urls_list]
 
         with Pool(n_parallel) as p:
-            print('Waiting for tasks to complete')
-            logging.basicConfig(level=logging.DEBUG)
             results = p.map(self._request_get_wrapper, pool_arguments)
+        print("|")
         return results
 
     def _request_post_wrapper(self, arguments: dict):
@@ -1706,7 +1705,7 @@ class PumpWoodMicroService():
 
         with Pool(n_parallel) as p:
             results = p.map(self._request_post_wrapper, pool_arguments)
-
+        print("|")
         return results
 
     def _request_delete_wrapper(self, arguments):
@@ -1742,7 +1741,10 @@ class PumpWoodMicroService():
             {'url': u, 'auth_header': auth_header} for u in urls_list]
 
         with Pool(n_parallel) as p:
-            return p.map(self._request_delete_wrapper, pool_arguments)
+            results = p.map(self._request_delete_wrapper, pool_arguments)
+        print("|")
+        return results
+
 
     ####################
     # Paralell functions

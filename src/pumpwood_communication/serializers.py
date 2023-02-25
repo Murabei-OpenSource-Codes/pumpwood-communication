@@ -103,13 +103,23 @@ class CompositePkBase64Converter:
             it to a dictionary from a base64 encoded json.
         """
         try:
-            return int(value)
-        except:
+            float_value = float(value)
+            if float_value.is_integer():
+                return int(float_value)
+            else:
+                msg = "Value is a float, but not integer: {}".format(
+                    float_value)
+                raise Exception(msg)
+        except Exception as e1:
             try:
                 return json.loads(base64.b64decode(value))
-            except:
+            except Exception as e2:
                 msg = (
                     "Primary is not an integer and could no be "
                     "decoded as a base64 encoded json dictionary")
-                raise PumpWoodException(message=msg, payload={"value": value})
+                raise PumpWoodException(
+                    message=msg, payload={
+                        "value": value,
+                        "exception_int": str(e1),
+                        "exception_base64": str(e2)})
             
