@@ -27,7 +27,6 @@ from pumpwood_communication.exceptions import (
     PumpWoodQueryException)
 from pumpwood_communication.serializers import (
     pumpJsonDump, CompositePkBase64Converter)
-from multiprocessing import set_start_method
 
 
 # Creating logger for MicroService calls
@@ -1446,7 +1445,7 @@ class PumpWoodMicroService():
         fill_options = self.fill_options(
             model_class=model_class, auth_header=auth_header)
         primary_keys = fill_options["pk"]["column"]
-        partition = fill_options["pk"]["partition"] or []
+        partition = fill_options["pk"].get("partition", [])
 
         # Create a list of month and include start and end dates if not at
         # the beginning of a month
@@ -1464,7 +1463,6 @@ class PumpWoodMicroService():
             month_df['start'] = month_df['end'].shift()
             month_df.dropna(inplace=True)
             month_sequence = month_df.to_dict("records")
-
         elif (start_date is not None) or (end_date is not None):
             msg = (
                 "To break query in chunks using start_date and end_date "
@@ -1569,11 +1567,14 @@ class PumpWoodMicroService():
             resp_df = pd.concat(results)
             print("\n## Finished parallel flat list: %s" % len(pool_arguments))
         else:
-            results_key_data = self._flat_list_by_chunks_helper(
-                model_class=model_class, filter_dict=temp_filter_dict,
-                exclude_dict=exclude_dict, fields=fields,
-                show_deleted=show_deleted, auth_header=auth_header,
-                chunk_size=chunk_size)
+            results_key_data = self._flat_list_by_chunks_helper({
+                "model_class": model_class,
+                "filter_dict": temp_filter_dict,
+                "exclude_dict": exclude_dict,
+                "fields": fields,
+                "show_deleted": show_deleted,
+                "auth_header": auth_header,
+                "chunk_size": chunk_size})
             resp_df = results_key_data
         
         if (1 < len(partition)) and create_composite_pk:
