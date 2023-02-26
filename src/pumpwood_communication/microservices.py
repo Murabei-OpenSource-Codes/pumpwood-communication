@@ -17,13 +17,14 @@ import numpy as np
 import datetime
 import copy
 from shapely import geometry
-from typing import Union, List
+from typing import Union, List, Any
 from multiprocessing import Pool
 from pandas import ExcelWriter
 from copy import deepcopy
 from pumpwood_communication.exceptions import (
     exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
-    PumpWoodObjectSavingException, PumpWoodOtherException)
+    PumpWoodObjectSavingException, PumpWoodOtherException,
+    PumpWoodQueryException)
 from pumpwood_communication.serializers import (
     pumpJsonDump, CompositePkBase64Converter)
 from multiprocessing import set_start_method
@@ -519,6 +520,36 @@ class PumpWoodMicroService():
         payload["exception_deep"] = exception_deep
         self.request_post(url=url, data=payload, auth_header=auth_header)
 
+    def get_pks_from_unique_field(self, model_class: str, field: str,
+                                  values: List[Any]) -> List[int]:
+        """
+        Get pk using unique fields values.
+
+        Use unique field values to retrieve pk of the objects.
+
+        Args:
+            model_class [str]: 
+            field [str]: 
+            values [List[Any]]: 
+        """
+        fill_options = self.fill_options(model_class=model_class)
+        field_details = fill_options[field]
+        is_unique_field = field_details.get("unique", False)
+        if not is_unique_field:
+            msg = "Field [{}] to get pk from is not unique".format(field)
+            raise PumpWoodQueryException(message=msg, payload={"field": field})
+        filter_dict = {field + "__in": values}
+        list_results = self.list_without_pag(
+            model_class=model_class, filter_dict=filter_dict,
+            fields=["pk", field])
+        pk_map = dict([[x[field], x["pk"]] for x in  list_results])
+
+        values_series = pd.Series(values)
+        return pd.DataFrame({
+            "pk": values_series.map(lambda x: pk_map.get(x)).values,
+            field: values_series
+        })
+        
     @staticmethod
     def _build_list_url(model_class: str):
         return "rest/%s/list/" % (model_class.lower(),)
@@ -1627,9 +1658,8 @@ class PumpWoodMicroService():
             {'url': u, 'auth_header': auth_header} for u in urls_list]
 
         with Pool(n_parallel) as p:
-            print('Waiting for tasks to complete')
-            logging.basicConfig(level=logging.DEBUG)
             results = p.map(self._request_get_wrapper, pool_arguments)
+        print("|")
         return results
 
     def _request_post_wrapper(self, arguments: dict):
@@ -1675,7 +1705,7 @@ class PumpWoodMicroService():
 
         with Pool(n_parallel) as p:
             results = p.map(self._request_post_wrapper, pool_arguments)
-
+        print("|")
         return results
 
     def _request_delete_wrapper(self, arguments):
@@ -1711,7 +1741,10 @@ class PumpWoodMicroService():
             {'url': u, 'auth_header': auth_header} for u in urls_list]
 
         with Pool(n_parallel) as p:
-            return p.map(self._request_delete_wrapper, pool_arguments)
+            results = p.map(self._request_delete_wrapper, pool_arguments)
+        print("|")
+        return results
+
 
     ####################
     # Paralell functions
