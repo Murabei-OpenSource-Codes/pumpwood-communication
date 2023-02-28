@@ -4,6 +4,7 @@ Module serializers.py.
 Miscellaneous to help with serializers in communication.
 """
 import base64
+import numbers
 import simplejson as json
 import numpy as np
 import pandas as pd
@@ -23,6 +24,9 @@ class PumpWoodJSONEncoder(JSONEncoder):
 
     def default(self, obj):
         """Serialize complex objects."""
+        # Return None if object is nan
+        if isinstance(obj, datetime):
+            return obj.isoformat()
         if isinstance(obj, datetime):
             return obj.isoformat()
         if isinstance(obj, Timestamp):
@@ -52,7 +56,7 @@ class PumpWoodJSONEncoder(JSONEncoder):
 def pumpJsonDump(x, sort_keys=True):
     """Dump a Json to python object."""
     return json.dumps(
-        x, cls=PumpWoodJSONEncoder, allow_nan=True,
+        x, cls=PumpWoodJSONEncoder, ignore_nan=True,
         sort_keys=sort_keys)
 
 
