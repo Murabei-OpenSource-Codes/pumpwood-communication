@@ -43,7 +43,7 @@ class PumpWoodJSONEncoder(JSONEncoder):
             obj.dtype == Timestamp
             return obj.tolist()
         if isinstance(obj, np.generic):
-            return np.asscalar(obj)
+            return obj.item()
         if isinstance(obj, BaseGeometry):
             return mapping(obj)
         if isinstance(obj, Choice):
@@ -90,7 +90,7 @@ class CompositePkBase64Converter:
             composite_pk_str = pumpJsonDump(composite_pk_dict)
             return base64.urlsafe_b64encode(
                 composite_pk_str.encode()).decode()
-    
+
     @staticmethod
     def load(value):
         """
@@ -126,4 +126,3 @@ class CompositePkBase64Converter:
                         "value": value,
                         "exception_int": str(e1),
                         "exception_base64": str(e2)})
-            
