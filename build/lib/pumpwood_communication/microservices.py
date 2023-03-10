@@ -21,6 +21,7 @@ from typing import Union, List, Any
 from multiprocessing import Pool
 from pandas import ExcelWriter
 from copy import deepcopy
+from werkzeug.utils import secure_filename
 from pumpwood_communication.exceptions import (
     exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
     PumpWoodObjectSavingException, PumpWoodOtherException,
@@ -527,9 +528,9 @@ class PumpWoodMicroService():
         Use unique field values to retrieve pk of the objects.
 
         Args:
-            model_class [str]: 
-            field [str]: 
-            values [List[Any]]: 
+            model_class [str]:
+            field [str]:
+            values [List[Any]]:
         """
         fill_options = self.fill_options(model_class=model_class)
         field_details = fill_options[field]
@@ -548,7 +549,7 @@ class PumpWoodMicroService():
             "pk": values_series.map(lambda x: pk_map.get(x)).values,
             field: values_series
         })
-        
+
     @staticmethod
     def _build_list_url(model_class: str):
         return "rest/%s/list/" % (model_class.lower(),)
@@ -1385,7 +1386,7 @@ class PumpWoodMicroService():
                 'filter_dict': temp_filter_dict,
                 'exclude_dict': exclude_dict,
                 'order_by': ["id"], "variables": fields,
-                "show_deleted": show_deleted, 
+                "show_deleted": show_deleted,
                 "limit": chunk_size,
                 "add_pk_column": True}
             temp_dateframe = pd.DataFrame(self.request_post(
@@ -1492,7 +1493,7 @@ class PumpWoodMicroService():
                     del temp_filter_dict[col]
                     count_partition_col_1st_filters = \
                         count_partition_col_1st_filters + 1
-            
+
             # Validating query for partitioned tables
             if partition_filter is None:
                 msg = (
@@ -1576,7 +1577,7 @@ class PumpWoodMicroService():
                 "auth_header": auth_header,
                 "chunk_size": chunk_size})
             resp_df = results_key_data
-        
+
         if (1 < len(partition)) and create_composite_pk:
             print("## Creating composite pk")
             resp_df["pk"] = resp_df[primary_keys].apply(
@@ -1653,7 +1654,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         pool_arguments = [
             {'url': u, 'auth_header': auth_header} for u in urls_list]
@@ -1773,7 +1774,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         if type(model_class) != list:
             model_class = [model_class]*len(list_pk)
@@ -1788,6 +1789,77 @@ class PumpWoodMicroService():
         return self.parallel_request_get(
             urls_list=urls_list, n_parallel=n_parallel,
             auth_header=auth_header)
+
+    def _request_retrieve_file_wrapper(self, args):
+        sys.stdout.write(".")
+        sys.stdout.flush()
+        try:
+            return self.retrieve_file(**args)
+        except Exception as e:
+            raise Exception("Error in parallel retrieve_file: " + str(e))
+
+    def parallel_retrieve_file(self, model_class: str,
+                               list_pk: List[int], file_field: str = None,
+                               save_path: str = "./", save_file: bool = True,
+                               if_exists: str = "fail",
+                               list_file_name: List[str] = None,
+                               auth_header: dict = None,
+                               n_parallel: int = None):
+        """
+        Make many [n_parallel] retrieve request.
+
+        Args:
+            model_class (str, List[str]): Model Class to retrieve.
+            list_pk (List[int]): List of the pks to retrieve.
+        Kwargs:
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 10 will be considered.
+            auth_header(dict): Dictionary containing the auth header.
+        Returns:
+            list: List of the retrieve request reponses.
+        Raises:
+            No particular raises
+        Example:
+            No example yet.
+
+        """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
+
+        if list_file_name is None:
+            list_file_name = pd.Series(list_pk).astype(str)
+        else:
+            if len(list_file_name) != len(list_pk):
+                raise PumpWoodException((
+                    "Lenght of list_file_name and list_pk are not equal:\n"
+                    "len(list_file_name)={list_file_name}; "
+                    "len(list_pk)={list_pk}").format(
+                        list_file_name=len(list_file_name),
+                        list_pk=len(list_pk)))
+
+        pool_arguments = []
+        for i in range(len(list_pk)):
+            pk = list_pk[i]
+            file_name = secure_filename(list_file_name[i])
+            pool_arguments.append({
+                "model_class": model_class, "pk": pk,
+                "file_field": file_field, "auth_header": auth_header,
+                "save_file": save_file, "file_name": file_name,
+                "save_path": save_path
+            })
+
+        try:
+            with Pool(n_parallel) as p:
+                results = p.map(
+                    self._request_retrieve_file_wrapper,
+                    pool_arguments)
+            print("|")
+        except Exception as e:
+            raise PumpWoodException(str(e))
+
+        return results
 
     def parallel_list(self, model_class: Union[str, List[str]],
                       list_args: List[dict], n_parallel: int = None,
@@ -1814,7 +1886,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         urls_list = None
         if type(model_class) == str:
@@ -1856,7 +1928,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         urls_list = None
         if type(model_class) == str:
@@ -1898,7 +1970,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         if type(model_class) != list:
             model_class = [model_class]*len(list_pk)
@@ -1939,7 +2011,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         urls_list = [
             self._build_save_url(obj['model_class']) for obj in list_obj_dict]
@@ -1973,7 +2045,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         if type(model_class) != list:
             model_class = [model_class]*len(list_pk)
@@ -2017,7 +2089,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         urls_list = None
         if type(model_class) == str:
@@ -2068,7 +2140,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         parallel_length = None
         if type(model_class) == list:
@@ -2133,7 +2205,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         if type(data_to_save) == list:
             data_to_save = pd.DataFrame(data_to_save)
@@ -2178,7 +2250,7 @@ class PumpWoodMicroService():
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
-                "PUMPWOOD_COMUNICATION__N_PARALLEL", 10))
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         url_temp = [self._build_pivot_url(model_class)]
         urls_list = url_temp*len(list_args)
