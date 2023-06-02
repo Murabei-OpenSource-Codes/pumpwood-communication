@@ -521,16 +521,22 @@ class PumpWoodMicroService():
         self.request_post(url=url, data=payload, auth_header=auth_header)
 
     def get_pks_from_unique_field(self, model_class: str, field: str,
-                                  values: List[Any]) -> List[int]:
+                                  values: List[Any]) -> pd.DataFrame:
         """
         Get pk using unique fields values.
 
         Use unique field values to retrieve pk of the objects.
 
         Args:
-            model_class [str]:
-            field [str]:
-            values [List[Any]]:
+            model_class [str]: Model class of the objects.
+            field [str]: Unique field to fetch pk.
+            values [List[Any]]: List of the unique fields used to fetch
+                primary keys.
+        Return [pd.DataFrame]:
+            Return a dataframe in same order as values with columns:
+                - pk: correspondent primary key of the unique value.
+                - [field]: Column with same name of field argument,
+                    correspondent to pk.
         """
         fill_options = self.fill_options(model_class=model_class)
         field_details = fill_options[field]
@@ -538,11 +544,11 @@ class PumpWoodMicroService():
         if not is_unique_field:
             msg = "Field [{}] to get pk from is not unique".format(field)
             raise PumpWoodQueryException(message=msg, payload={"field": field})
-        filter_dict = {field + "__in": values}
+        filter_dict = {field + "__in": list(set(values))}
         list_results = self.list_without_pag(
             model_class=model_class, filter_dict=filter_dict,
             fields=["pk", field])
-        pk_map = dict([[x[field], x["pk"]] for x in  list_results])
+        pk_map = dict([[x[field], x["pk"]] for x in list_results])
 
         values_series = pd.Series(values)
         return pd.DataFrame({
@@ -880,8 +886,10 @@ class PumpWoodMicroService():
           save_path (str): Path of the directory to save file.
           file_name (str): Name of the file, if None it will have same name as
                 saved in PumpWood.
-          if_exists {'fail', 'change_name', 'overwrite'}: Set what to do if
-            there is a file with same name.
+          if_exists {'fail', 'change_name', 'overwrite', 'skip'}: Set what to
+            do if there is a file with same name. Skip will not download file
+            if there is already with same os.path.join(save_path, file_name),
+            file_name must be set for skip argument.
         Returns:
           requset.response or str
         Raises:
@@ -890,24 +898,35 @@ class PumpWoodMicroService():
           No example yet.
 
         """
-        if if_exists not in ["fail", "change_name", "overwrite"]:
+        if if_exists not in ["fail", "change_name", "overwrite", "skip"]:
             raise PumpWoodException(
-                "if_exists must be in ['fail', 'change_name', 'overwrite']")
+                "if_exists must be in ['fail', 'change_name', 'overwrite', "
+                "'skip']")
+
+        if file_name is not None and if_exists == 'skip':
+            file_path = os.path.join(save_path, file_name)
+            is_file_already = os.path.isfile(file_path)
+            if is_file_already:
+                print("skiping file already exists: ", file_path)
+                return file_path
 
         url_str = self._build_retrieve_file_url(model_class=model_class, pk=pk)
         file_response = self.request_get(
             url=url_str, parameters={"file-field": file_field},
             auth_header=auth_header)
+        if not save_file:
+            return file_response
 
-        if save_file:
-            if not os.path.exists(save_path):
-                raise PumpWoodException(
-                    "Path to save retrieved file [{}] does not exist".format(
-                        save_path))
-            file_name = file_name or file_response["filename"]
-            file_path = os.path.join(save_path, file_name)
+        if not os.path.exists(save_path):
+            raise PumpWoodException(
+                "Path to save retrieved file [{}] does not exist".format(
+                    save_path))
 
-            if os.path.isfile(file_path) and if_exists == "change_name":
+        file_name = secure_filename(file_name or file_response["filename"])
+        file_path = os.path.join(save_path, file_name)
+        is_file_already = os.path.isfile(file_path)
+        if is_file_already:
+            if if_exists == "change_name":
                 filename, file_extension = os.path.splitext(file_path)
                 too_many_tries = True
                 for i in range(10):
@@ -923,16 +942,14 @@ class PumpWoodMicroService():
                         ("Too many tries to find a not used file name." +
                          " file_path[{}]".format(file_path)))
 
-            if os.path.isfile(file_path) and if_exists == "fail":
+            elif if_exists == "fail":
                 raise PumpWoodException(
                     ("if_exists set as 'fail' and there is a file with same" +
                      "name. file_path [{}]").format(file_path))
 
-            with open(file_path, "wb") as file:
-                file.write(file_response["content"])
-            return file_path
-        else:
-            return file_response
+        with open(file_path, "wb") as file:
+            file.write(file_response["content"])
+        return file_path
 
     @staticmethod
     def _build_retrieve_file_straming_url(model_class: str, pk: int):
@@ -1362,55 +1379,59 @@ class PumpWoodMicroService():
             url=url_str, data=post_data, auth_header=auth_header)
 
     def _flat_list_by_chunks_helper(self, args):
-        # Unpacking arguments
-        model_class = args["model_class"]
-        filter_dict = args["filter_dict"]
-        exclude_dict = args["exclude_dict"]
-        fields = args["fields"]
-        show_deleted = args["show_deleted"]
-        auth_header = args["auth_header"]
-        chunk_size = args["chunk_size"]
+        try:
+            # Unpacking arguments
+            model_class = args["model_class"]
+            filter_dict = args["filter_dict"]
+            exclude_dict = args["exclude_dict"]
+            fields = args["fields"]
+            show_deleted = args["show_deleted"]
+            auth_header = args["auth_header"]
+            chunk_size = args["chunk_size"]
 
-        temp_filter_dict = copy.deepcopy(filter_dict)
-        url_str = self._build_pivot_url(model_class)
-        max_pk = 0
+            temp_filter_dict = copy.deepcopy(filter_dict)
+            url_str = self._build_pivot_url(model_class)
+            max_pk = 0
 
-        # Fetch data until an empty result is returned
-        list_dataframes = []
-        while True:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-            temp_filter_dict["id__gt"] = max_pk
-            post_data = {
-                'format': 'list',
-                'filter_dict': temp_filter_dict,
-                'exclude_dict': exclude_dict,
-                'order_by': ["id"], "variables": fields,
-                "show_deleted": show_deleted,
-                "limit": chunk_size,
-                "add_pk_column": True}
-            temp_dateframe = pd.DataFrame(self.request_post(
-                url=url_str, data=post_data, auth_header=auth_header))
+            # Fetch data until an empty result is returned
+            list_dataframes = []
+            while True:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+                temp_filter_dict["id__gt"] = max_pk
+                post_data = {
+                    'format': 'list',
+                    'filter_dict': temp_filter_dict,
+                    'exclude_dict': exclude_dict,
+                    'order_by': ["id"], "variables": fields,
+                    "show_deleted": show_deleted,
+                    "limit": chunk_size,
+                    "add_pk_column": True}
+                temp_dateframe = pd.DataFrame(self.request_post(
+                    url=url_str, data=post_data, auth_header=auth_header))
 
-            # Break if results are less than chunk size, so no more results
-            # are avaiable
-            if len(temp_dateframe) < chunk_size:
+                # Break if results are less than chunk size, so no more results
+                # are avaiable
+                if len(temp_dateframe) < chunk_size:
+                    list_dataframes.append(temp_dateframe)
+                    break
+
+                max_pk = int(temp_dateframe["id"].max())
                 list_dataframes.append(temp_dateframe)
-                break
 
-            max_pk = int(temp_dateframe["id"].max())
-            list_dataframes.append(temp_dateframe)
-        if len(list_dataframes) == 0:
-            return pd.DataFrame()
-        else:
-            return pd.concat(list_dataframes)
+            if len(list_dataframes) == 0:
+                return pd.DataFrame()
+            else:
+                return pd.concat(list_dataframes)
+        except Exception as e:
+            raise Exception("Exception at flat_list_by_chunks:", str(e))
 
     def flat_list_by_chunks(self, model_class: str, filter_dict: dict = {},
                             exclude_dict: dict = {}, fields: list = None,
                             show_deleted: bool = False,
                             auth_header: dict = None,
                             chunk_size: int = 1000000,
-                            n_parallel: int = 4,
+                            n_parallel: int = None,
                             create_composite_pk: bool = False,
                             start_date: str = None,
                             end_date: str = None):
@@ -1442,6 +1463,10 @@ class PumpWoodMicroService():
         Example:
             No example yet.
         """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
+
         temp_filter_dict = copy.deepcopy(filter_dict)
         fill_options = self.fill_options(
             model_class=model_class, auth_header=auth_header)
@@ -1477,6 +1502,7 @@ class PumpWoodMicroService():
                     "end_date": end_date})
 
         resp_df = None
+        # If table have partition, run in parallel
         if 1 < len(partition):
             partition_col_1st = partition[0]
             filter_dict_keys = list(temp_filter_dict.keys())
@@ -1561,22 +1587,29 @@ class PumpWoodMicroService():
 
             # Perform parallel calls to backend each chucked by chunk_size
             print("## Starting parallel flat list: %s" % len(pool_arguments))
-            with Pool(n_parallel) as p:
-                results = p.map(
-                    self._flat_list_by_chunks_helper,
-                    pool_arguments)
-            resp_df = pd.concat(results)
+            try:
+                with Pool(n_parallel) as p:
+                    results = p.map(
+                        self._flat_list_by_chunks_helper,
+                        pool_arguments)
+                resp_df = pd.concat(results)
+            except Exception as e:
+                PumpWoodException(message=str(e))
             print("\n## Finished parallel flat list: %s" % len(pool_arguments))
+
         else:
-            results_key_data = self._flat_list_by_chunks_helper({
-                "model_class": model_class,
-                "filter_dict": temp_filter_dict,
-                "exclude_dict": exclude_dict,
-                "fields": fields,
-                "show_deleted": show_deleted,
-                "auth_header": auth_header,
-                "chunk_size": chunk_size})
-            resp_df = results_key_data
+            try:
+                results_key_data = self._flat_list_by_chunks_helper({
+                    "model_class": model_class,
+                    "filter_dict": temp_filter_dict,
+                    "exclude_dict": exclude_dict,
+                    "fields": fields,
+                    "show_deleted": show_deleted,
+                    "auth_header": auth_header,
+                    "chunk_size": chunk_size})
+                resp_df = results_key_data
+            except Exception as e:
+                PumpWoodException(message=str(e))
 
         if (1 < len(partition)) and create_composite_pk:
             print("## Creating composite pk")
@@ -1642,7 +1675,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the get request reponses.
@@ -1685,7 +1718,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the post request reponses.
@@ -1729,7 +1762,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the get request reponses.
@@ -1762,7 +1795,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1801,21 +1834,33 @@ class PumpWoodMicroService():
     def parallel_retrieve_file(self, model_class: str,
                                list_pk: List[int], file_field: str = None,
                                save_path: str = "./", save_file: bool = True,
-                               if_exists: str = "fail",
                                list_file_name: List[str] = None,
-                               auth_header: dict = None,
-                               n_parallel: int = None):
+                               if_exists: str = "fail",
+                               n_parallel: int = None,
+                               auth_header: dict = None):
         """
         Make many [n_parallel] retrieve request.
 
         Args:
             model_class (str, List[str]): Model Class to retrieve.
             list_pk (List[int]): List of the pks to retrieve.
+            file_field (str): Indicates the file field to download from.
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
+            save_path (str) = "./"
+            save_file (bool) = True: True save file locally, False return
+                file content as bites.
+            list_file_name (List[str]) = None: Set a file name for each file
+                download.
+            if_exists (str) = "fail": Set how treat when a file will be saved
+                and there is another at same path. "fail" will raise an error;
+                "overwrite" will overwrite the file with the new one; "skip"
+                when list_file_name is set, check before downloaded it file
+                already exists, if so skip the download.
             auth_header(dict): Dictionary containing the auth header.
+
         Returns:
             list: List of the retrieve request reponses.
         Raises:
@@ -1828,9 +1873,7 @@ class PumpWoodMicroService():
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
-        if list_file_name is None:
-            list_file_name = pd.Series(list_pk).astype(str)
-        else:
+        if list_file_name is not None:
             if len(list_file_name) != len(list_pk):
                 raise PumpWoodException((
                     "Lenght of list_file_name and list_pk are not equal:\n"
@@ -1842,13 +1885,15 @@ class PumpWoodMicroService():
         pool_arguments = []
         for i in range(len(list_pk)):
             pk = list_pk[i]
-            file_name = secure_filename(list_file_name[i])
+            file_name = None
+            if list_file_name is not None:
+                file_name = list_file_name[i]
+
             pool_arguments.append({
                 "model_class": model_class, "pk": pk,
                 "file_field": file_field, "auth_header": auth_header,
                 "save_file": save_file, "file_name": file_name,
-                "save_path": save_path
-            })
+                "save_path": save_path, "if_exists": if_exists})
 
         try:
             with Pool(n_parallel) as p:
@@ -1874,7 +1919,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1916,7 +1961,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1958,7 +2003,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -1999,7 +2044,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -2033,7 +2078,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -2077,7 +2122,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -2128,7 +2173,7 @@ class PumpWoodMicroService():
                 or a single dict to be used in all actions.
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the retrieve request reponses.
@@ -2238,7 +2283,7 @@ class PumpWoodMicroService():
         Kwargs:
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 10 will be considered.
+                not set then 4 will be considered.
             auth_header(dict): Dictionary containing the auth header.
         Returns:
             list: List of the pivot request reponses.
