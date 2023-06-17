@@ -195,9 +195,9 @@ class PumpWoodMicroService():
                 'Authorization': 'Token ' + login_data['token']}
             self.__user = login_data["user"]
 
-    def get_user_info(self) -> dict:
+    def get_user_info(self, auth_header: dict = None) -> dict:
         """
-        Get user info retrieved at login.
+        Get user info.
 
         Args:
             No Args:
@@ -205,7 +205,10 @@ class PumpWoodMicroService():
         Return [dict]:
             A serialized user object with information of the logged user.
         """
-        return deepcopy(self.__user)
+        user_info = self.request_get(
+            url="rest/registration/retrieveauthenticateduser/",
+            auth_header=auth_header)
+        return user_info
 
     def _check__auth_header(self, auth_header, multipart: bool = False):
         """
