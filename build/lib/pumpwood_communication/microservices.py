@@ -16,6 +16,7 @@ import geopandas as geopd
 import numpy as np
 import datetime
 import copy
+from urllib.parse import urljoin
 from shapely import geometry
 from typing import Union, List, Any
 from multiprocessing import Pool
@@ -350,26 +351,36 @@ class PumpWoodMicroService():
             No example
 
         """
+        response = None
         if files is None:
             request_header = self._check__auth_header(auth_header=auth_header)
-            post_url = self.server_url + url
+            post_url = urljoin(self.server_url, url)
             response = requests.post(
                 url=post_url, data=pumpJsonDump(data),
                 verify=self.verify_ssl, headers=request_header)
-
-            self.error_handler(response)
-            return PumpWoodMicroService.angular_json(response)
         else:
             request_header = self._check__auth_header(
                 auth_header=auth_header, multipart=True)
-            post_url = self.server_url + url
+            post_url = urljoin(self.server_url, url)
             temp_data = {}
             for key, item in data.items():
                 temp_data[key] = pumpJsonDump(data[key])
             response = requests.post(
                 url=post_url, data=temp_data, files=files,
                 verify=self.verify_ssl, headers=request_header)
-            self.error_handler(response)
+
+        # Handle errors and re-raise if Pumpwood Exceptions
+        self.error_handler(response)
+
+        # Check if reponse is a file
+        headers = response.headers
+        content_disposition = headers.get('content-disposition')
+        if content_disposition is not None:
+            file_name = re.findall('filename=(.+)', content_disposition)
+            return {
+                "__file_name__": file_name,
+                "__content__": response.content}
+        else:
             return PumpWoodMicroService.angular_json(response)
 
     def request_get(self, url, parameters: dict = None,
@@ -1250,7 +1261,7 @@ class PumpWoodMicroService():
         return url_str
 
     def execute_action(self, model_class: str, action: str, pk: int = None,
-                       parameters={}, files: list = None,
+                       parameters: dict = {}, files: list = None,
                        auth_header: dict = None):
         """
         Execute action.
@@ -1285,8 +1296,9 @@ class PumpWoodMicroService():
         """
         url_str = self._build_execute_action_url(
             model_class=model_class, action=action, pk=pk)
-        return self.request_post(url=url_str, data=parameters, files=files,
-                                 auth_header=auth_header)
+        return self.request_post(
+            url=url_str, data=parameters, files=files,
+            auth_header=auth_header)
 
     def search_options(self, model_class: str, auth_header: dict = None):
         """

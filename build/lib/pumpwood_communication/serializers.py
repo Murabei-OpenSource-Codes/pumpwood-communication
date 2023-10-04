@@ -62,6 +62,7 @@ def pumpJsonDump(x, sort_keys=True):
 
 class CompositePkBase64Converter:
     """Convert composite primary keys in base64 dictionary."""
+
     @staticmethod
     def dump(obj, primary_keys: list):
         """
