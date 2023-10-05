@@ -45,6 +45,11 @@ class PumpWoodJSONEncoder(JSONEncoder):
         if isinstance(obj, np.generic):
             return obj.item()
         if isinstance(obj, BaseGeometry):
+            if obj.is_empty:
+                return None
+            else:
+                return mapping(obj)
+        if isinstance(obj, BaseGeometry):
             return mapping(obj)
         if isinstance(obj, Choice):
             return obj.code

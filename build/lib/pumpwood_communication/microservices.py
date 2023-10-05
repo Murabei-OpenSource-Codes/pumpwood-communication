@@ -1092,8 +1092,9 @@ class PumpWoodMicroService():
                 'To save an object obj_dict must have model_class defined.')
 
         url_str = self._build_save_url(model_class)
-        return self.request_post(url=url_str, data=obj_dict, files=files,
-                                 auth_header=auth_header)
+        return self.request_post(
+            url=url_str, data=obj_dict, files=files,
+            auth_header=auth_header)
 
     @staticmethod
     def _build_save_streaming_file_url(model_class, pk):
