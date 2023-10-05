@@ -377,9 +377,14 @@ class PumpWoodMicroService():
         content_disposition = headers.get('content-disposition')
         if content_disposition is not None:
             file_name = re.findall('filename=(.+)', content_disposition)
-            return {
-                "__file_name__": file_name,
-                "__content__": response.content}
+            if len(file_name) == 1:
+                return {
+                    "__file_name__": file_name[0],
+                    "__content__": response.content}
+            else:
+                return {
+                    "__file_name__": None,
+                    "__content__": response.content}
         else:
             return PumpWoodMicroService.angular_json(response)
 
