@@ -91,9 +91,9 @@ class PumpWoodMicroService():
         self.__password = password
         self.server_url = self._ajust_server_url(server_url)
         self.verify_ssl = verify_ssl
-
         self.__base_header = {'Content-Type': 'application/json'}
         self.__auth_header = None
+        self.__token_expiry = None
         self.auth_suffix = auth_suffix
 
     def init(self, name: str, server_url: str, username: str,
@@ -145,6 +145,9 @@ class PumpWoodMicroService():
         Example:
             No example
         """
+        if request_result.text == '':
+            return None
+
         string_start = ")]}',\n"
         try:
             if request_result.text[:6] == string_start:
@@ -155,14 +158,47 @@ class PumpWoodMicroService():
             return {"error": "Can not decode to Json",
                     'msg': request_result.text}
 
-    def login(self, refresh: bool = False):
+    def time_to_expiry(self) -> pd.Timedelta:
+        """
+        Return time to token expiry.
+
+        Args:
+            No Args.
+        Kwargs:
+            No Kwargs.
+        Return:
+            Return time until token expiration.
+        """
+        if self.__token_expiry is None:
+            return None
+
+        now_datetime = pd.to_datetime(datetime.datetime.utcnow(), utc=True)
+        time_to_expiry = self.__token_expiry - now_datetime
+        return time_to_expiry
+
+    def is_credential_set(self) -> bool:
+        """
+        Check if username and password are set on object.
+
+        Args:
+            No Args.
+        Kwargs:
+            No Kwargs.
+        Return:
+            True if usename and password were set during object creation or
+            later with init function.
+        """
+        return not (self.__username is None or self.__password is None)
+
+    def login(self, force_refresh: bool = False) -> None:
         """
         Log microservice in using username and password provided.
 
         Args:
-            No Args
+            No Args.
         Kwargs:
-            No Kwargs
+            force_refresh [bool]: Force token refresh despise still valid
+                according to self.__token_expiry.
         Returns:
             No return
         Raises:
@@ -171,30 +207,109 @@ class PumpWoodMicroService():
             No example
 
         """
-        if self.__auth_header is None or refresh:
+        if not self.is_credential_set():
+            raise PumpWoodUnauthorized(
+                message="Microservice username or/and password not set")
+
+        # Check if expiry time is 1h from now
+        refresh_expiry = False
+        if self.__token_expiry is None:
+            refresh_expiry = True
+        else:
+            time_to_expiry = self.time_to_expiry()
+            if time_to_expiry < datetime.timedelta(hours=1):
+                refresh_expiry = True
+
+        if refresh_expiry or force_refresh:
             login_url = None
             if self.auth_suffix is None:
-                login_url = self.server_url + 'rest/registration/login/'
+                login_url = urljoin(
+                    self.server_url, 'rest/registration/login/')
             else:
                 temp_url = 'rest/{suffix}registration/login/'.format(
                     suffix=self.auth_suffix.lower())
-                login_url = self.server_url + temp_url
+                login_url = urljoin(self.server_url, temp_url)
 
             login_result = requests.post(
                 login_url,
-                data=json.dumps({
-                    'username': self.__username,
-                    'password': self.__password}),
-                headers=self.__base_header,
+                json={'username': self.__username,
+                      'password': self.__password},
                 verify=self.verify_ssl)
 
-            login_data = PumpWoodMicroService.angular_json(login_result)
-            if login_result.status_code != 200:
-                raise Exception(json.dumps(login_data))
+            login_data = {}
+            try:
+                login_data = PumpWoodMicroService.angular_json(login_result)
+                login_result.raise_for_status()
+            except Exception as e:
+                raise PumpWoodUnauthorized(
+                    message="Login not possible.\nError: " + str(e),
+                    payload=login_data)
 
             self.__auth_header = {
                 'Authorization': 'Token ' + login_data['token']}
             self.__user = login_data["user"]
+            self.__token_expiry = pd.to_datetime(login_data['expiry'])
+
+    def logout(self, auth_header: dict = None) -> bool:
+        """
+        Logout token.
+
+        Args:
+            No args.
+        Kwards:
+            auth_header [dict] Authentication header.
+        Return [bool]:
+            True if logout was ok.
+        """
+        resp = self.request_post(
+            url='rest/registration/logout/',
+            data={}, auth_header=auth_header)
+        return resp is None
+
+    def logout_all(self, auth_header: dict = None) -> bool:
+        """
+        Logout all tokens from user.
+
+        Args:
+            No args.
+        Kwards:
+            auth_header [dict] Authentication header.
+        Return [bool]:
+            True if logout all was ok.
+        """
+        resp = self.request_post(
+            url='rest/registration/logoutall/',
+            data={}, auth_header=auth_header)
+        return resp is None
+
+    def set_auth_header(self, auth_header: dict,
+                        token_expiry: pd.Timestamp) -> None:
+        """
+        Set auth_header and token_expiry date.
+
+        Args:
+            auth_header [dict]: Authentication header to be set.
+            token_expiry [pd.Timestamp]: Token expiry datetime to be set.
+        Return [None]:
+            No return.
+        """
+        self.__auth_header = auth_header
+        self.__token_expiry = pd.to_datetime(token_expiry, utc=True)
+
+    def get_auth_header(self) -> dict:
+        """
+        Retrieve auth_header and token_expiry from object.
+
+        Args:
+            No Args.
+        Kwargs:
+            No Kwargs.
+        Return:
+            Return authorization header and token_expiry datetime from object.
+        """
+        return {
+            "auth_header": self.__auth_header,
+            "token_expiry": self.__token_expiry}
 
     def get_user_info(self, auth_header: dict = None) -> dict:
         """
@@ -231,31 +346,32 @@ class PumpWoodMicroService():
             No example
 
         """
-        if self.__auth_header is None:
-            if auth_header is None:
-                msg_tmp = 'MicroService {name} not looged and auth_header ' + \
-                    'not provided'
-                raise PumpWoodUnauthorized(msg_tmp.format(name=self.name))
+        if auth_header is None:
+            # Login will refresh token if it is 1h to expire, it will also
+            # check if credentials are set.
+            self.login()
+            temp__auth_header = self.__auth_header.copy()
+            if multipart:
+                return temp__auth_header
             else:
-                temp__auth_header = auth_header.copy()
-                if multipart:
-                    return temp__auth_header
-                else:
-                    temp__auth_header.update(self.__base_header)
-                    return temp__auth_header
+                temp__auth_header.update(self.__base_header)
+                return temp__auth_header
         else:
-            if auth_header is not None:
-                msg_tmp = 'MicroService {name} already looged and ' + \
-                          'auth_header was provided'
+            if self.is_credential_set():
+                msg_tmp = (
+                    'MicroService {name} already looged and '
+                    'auth_header was provided')
                 raise PumpWoodUnauthorized(
                     msg_tmp.format(name=self.name))
+
+            # Set base header as JSON since unserialization is done using
+            # Pumpwood Communication serialization funciton
+            temp__auth_header = auth_header.copy()
+            if multipart:
+                return temp__auth_header
             else:
-                temp__auth_header = self.__auth_header.copy()
-                if multipart:
-                    return temp__auth_header
-                else:
-                    temp__auth_header.update(self.__base_header)
-                    return temp__auth_header
+                temp__auth_header.update(self.__base_header)
+                return temp__auth_header
 
     def error_handler(cls, response):
         """
@@ -287,7 +403,6 @@ class PumpWoodMicroService():
             # Request information
             url = response.url
             method = response.request.method
-
             if 'application/json' not in response_content_type.lower():
                 # Raise the exception as first in exception deep.
                 exception_dict = [{
@@ -319,17 +434,44 @@ class PumpWoodMicroService():
             # Propagate error
             exception_message = response_dict.get("message", "")
             exception_type = response_dict.get("type", None)
-
             if exception_type is not None:
                 raise exceptions_dict[exception_type](
                     message=exception_message,
                     status_code=response.status_code,
                     payload=payload)
             else:
+                is_invalid_token = cls.is_invalid_token_response(response)
                 response_dict["!exception_stack!"] = exception_stack
-                raise PumpWoodOtherException(
-                    message="Not mapped exception JSON",
-                    payload=response_dict)
+                if is_invalid_token:
+                    raise PumpWoodUnauthorized(
+                        message="Invalid token.",
+                        payload=response.json())
+                else:
+                    raise PumpWoodOtherException(
+                        message="Not mapped exception JSON",
+                        payload=response_dict)
+
+    @classmethod
+    def is_invalid_token_response(self,
+                                  response: requests.models.Response) -> bool:
+        """
+        Check if reponse has invalid token error.
+
+        Args:
+            response [requests.models.Response]: Request reponse to check for
+                invalid token.
+        Return [bool]:
+            Return True if response has an invalid token status.
+        """
+        if response.status_code == 401:
+            try:
+                response_data = response.json()
+                detail = response_data.get("detail", "")
+                if detail == "Invalid token.":
+                    return True
+            except Exception:
+                return False
+        return False
 
     def request_post(self, url: str, data: any, files: list = None,
                      auth_header: dict = None):
@@ -358,6 +500,18 @@ class PumpWoodMicroService():
             response = requests.post(
                 url=post_url, data=pumpJsonDump(data),
                 verify=self.verify_ssl, headers=request_header)
+
+            # Retry request if token is not valid forcing token renew
+            if self.is_invalid_token_response(response):
+                self.login(force_refresh=True)
+                request_header = self._check__auth_header(
+                    auth_header=auth_header)
+                response = requests.post(
+                    url=post_url, data=pumpJsonDump(data),
+                    verify=self.verify_ssl, headers=request_header)
+
+        # Request with files are done using multipart serializing all fields
+        # as json
         else:
             request_header = self._check__auth_header(
                 auth_header=auth_header, multipart=True)
@@ -368,6 +522,15 @@ class PumpWoodMicroService():
             response = requests.post(
                 url=post_url, data=temp_data, files=files,
                 verify=self.verify_ssl, headers=request_header)
+
+            # Retry request if token is not valid forcing token renew
+            if self.is_invalid_token_response(response):
+                self.login(force_refresh=True)
+                request_header = self._check__auth_header(
+                    auth_header=auth_header)
+                response = requests.post(
+                    url=post_url, data=temp_data, files=files,
+                    verify=self.verify_ssl, headers=request_header)
 
         # Handle errors and re-raise if Pumpwood Exceptions
         self.error_handler(response)
@@ -411,6 +574,16 @@ class PumpWoodMicroService():
         response = requests.get(
             get_url, verify=self.verify_ssl, headers=request_header,
             params=parameters)
+
+        # Retry request if token is not valid forcing token renew
+        if self.is_invalid_token_response(response):
+            self.login(force_refresh=True)
+            request_header = self._check__auth_header(auth_header=auth_header)
+            response = requests.get(
+                get_url, verify=self.verify_ssl, headers=request_header,
+                params=parameters)
+
+        # Re-raise Pumpwood exceptions
         self.error_handler(response=response)
 
         json_types = ["application/json", "application/json; charset=utf-8"]
@@ -449,6 +622,15 @@ class PumpWoodMicroService():
             post_url, verify=self.verify_ssl, headers=request_header,
             params=parameters)
 
+        # Retry request if token is not valid forcing token renew
+        if self.is_invalid_token_response(response):
+            self.login(force_refresh=True)
+            request_header = self._check__auth_header(auth_header=auth_header)
+            response = requests.delete(
+                post_url, verify=self.verify_ssl, headers=request_header,
+                params=parameters)
+
+        # Re-raise Pumpwood Exceptions
         self.error_handler(response)
         return PumpWoodMicroService.angular_json(response)
 
