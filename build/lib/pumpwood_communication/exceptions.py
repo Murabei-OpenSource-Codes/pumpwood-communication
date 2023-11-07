@@ -118,6 +118,12 @@ class PumpWoodNotImplementedError(PumpWoodException):
     pass
 
 
+class PumpWoodMicroserviceUnavailableError(PumpWoodException):
+    """Problem when trying to use a microservice that was not deployied."""
+
+    pass
+
+
 class PumpWoodOtherException(PumpWoodException):
     """Problem when saving data due to NotImplementedError."""
 
@@ -176,5 +182,7 @@ exceptions_dict = {
     "PumpWoodNotImplementedError": PumpWoodNotImplementedError,
     "PumpWoodOtherException": PumpWoodOtherException,
     "PumpWoodObjectDeleteException": PumpWoodObjectDeleteException,
-    "AirflowMicroServiceException": AirflowMicroServiceException
+    "AirflowMicroServiceException": AirflowMicroServiceException,
+    "PumpWoodMicroserviceUnavailableError":
+        PumpWoodMicroserviceUnavailableError
 }
