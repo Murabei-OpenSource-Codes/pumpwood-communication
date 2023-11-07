@@ -648,6 +648,22 @@ class PumpWoodMicroService():
             item.sort()
         return routes
 
+    def is_microservice_registered(self, microservice: str,
+                                   auth_header: dict = None) -> bool:
+        """
+        List routes that have been registed at Kong.
+
+        Args:
+            microservice [str]: Service associated with microservice
+                registered on Pumpwood Kong.
+        Kwargs:
+            No Kwargs.
+        Return:
+            Return true if microservice is registered.
+        """
+        routes = self.list_registered_routes(auth_header=auth_header)
+        return microservice in routes.keys()
+
     def list_registered_endpoints(self, auth_header: dict = None):
         """List routes that have been registed at Kong."""
         list_url = None
