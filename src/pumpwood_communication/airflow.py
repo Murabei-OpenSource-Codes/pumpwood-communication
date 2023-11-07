@@ -1,24 +1,24 @@
+"""MicroService class to comunicate with Airflow."""
 import math
 import string
 import random
 import datetime
 import pandas as pd
 import copy
+from typing import List
 from airflow_client import client
 from airflow_client.client.api import dag_api
 from airflow_client.client.api import dag_run_api
 from airflow_client.client.model.dag_run import DAGRun
 from airflow_client.client.api import monitoring_api
-from airflow_client.client.model.health_info import HealthInfo
 from pumpwood_communication.exceptions import AirflowMicroServiceException
 
 
 class AirflowMicroService():
     """Class to facilitate interaction with Airflow API."""
-    
+
     _airflow_config = None
     _api_client = None
-
 
     def __init__(self, server_url: str = None, username: str = None,
                  password: str = None) -> None:
@@ -37,12 +37,17 @@ class AirflowMicroService():
         if (server_url is not None) and (username is not None) and (
                 password is not None):
             self._airflow_config = client.Configuration(
-                host=server_url,
-                username=username,
+                host=server_url, username=username,
                 password=password)
             self._api_client = client.ApiClient(self._airflow_config)
             self.initiated = True
-            self.health_check()
+            try:
+                self.health_check()
+            except Exception:
+                msg = (
+                    "!! AirflowMicroService initiated, but health "
+                    "check failed !!")
+                print(msg)
         else:
             self.initiated = False
 
@@ -69,7 +74,13 @@ class AirflowMicroService():
                 password=password)
             self._api_client = client.ApiClient(self._airflow_config)
             self.initiated = True
-            self.health_check()
+            try:
+                self.health_check()
+            except Exception:
+                msg = (
+                    "!! AirflowMicroService initiated, but health "
+                    "check failed !!")
+                print(msg)
         else:
             msg = (
                 "AirflowMicroService object init must have server_url, "
@@ -123,13 +134,17 @@ class AirflowMicroService():
             raise AirflowMicroServiceException(msg, payload={"dag_id": dag_id})
         return dag_info
 
-    def list_dags(self, only_active: bool = True, tags: list = [],
+    def list_dags(self, only_active: bool = True, tags: List[str] = [],
                   max_results: int = math.inf):
         """
         List all dags on Airflow.
 
         Args:
-
+            No Args.
+        Kwargs:
+            only_active [bool]: List only active DAGs.
+            tags [List[str]]: Filter DASs using tags.
+            max_results [int]: Limit query results.
         """
         self.health_check()
 
@@ -149,7 +164,7 @@ class AirflowMicroService():
 
             list_all_dags.extend(dags)
             offset = len(list_all_dags)
-            
+
             # Check if fetched have passed max_results
             if max_results <= len(list_all_dags):
                 break
@@ -192,7 +207,7 @@ class AirflowMicroService():
                 dag_id)
             raise AirflowMicroServiceException(
                 message=msg, payload={"dag_id": dag_id})
-        
+
         # Running DAG
         if dag_run_id is None:
             now_str = datetime.datetime.now().isoformat()
@@ -201,7 +216,7 @@ class AirflowMicroService():
             dag_run_id = (
                 "{time}__{random_letters}").format(
                     time=now_str, random_letters=random_letters)
-        
+
         if dag_run_id_sufix is None:
             dag_run_id = dag_run_id + "__dag_id[{}]".format(dag_id)
         else:
@@ -213,7 +228,7 @@ class AirflowMicroService():
         dagrun_api_instance = dag_run_api.DAGRunApi(self._api_client)
         dagrun_result = dagrun_api_instance.post_dag_run(dag_id, dag_run_id)
         return dagrun_result.to_dict()
-    
+
     def list_dag_runs(self, dag_id: str,
                       limit: int = 100,
                       execution_date_gte: str = None,
@@ -231,8 +246,16 @@ class AirflowMicroService():
             dag_id [str]: Id of the dag to list dag runs.
         Kwargs:
             limit [int]: Limit the number of dag runs to be returned.
-        Return:
-
+            execution_date_gte [str]: Query parameters.
+            execution_date_lte [str]: Query parameters.
+            start_date_gte [str]: Query parameters.
+            start_date_lte [str]: Query parameters.
+            end_date_gte [str]: Query parameters.
+            end_date_lte [str]: Query parameters.
+            state [str]: Query parameters.
+            order_by [str]: Query parameters.
+        Return [list]:
+            Return DAG run associated with ETLJob DAG.
         """
         self.health_check()
 
@@ -287,15 +310,15 @@ class AirflowMicroService():
         while True:
             temp_get_dag_runs_args = copy.deepcopy(get_dag_runs_args)
             temp_get_dag_runs_args["offset"] = offset
-            results = api_instance.get_dag_runs(**temp_get_dag_runs_args)[
-                'dag_runs']
+            results = api_instance.get_dag_runs(
+                **temp_get_dag_runs_args)['dag_runs']
 
             if len(results) == 0:
                 break
-            
+
             all_results.extend(results)
             offset = len(all_results)
-            
+
             if limit <= len(all_results):
                 break
         return [x.to_dict() for x in all_results]
@@ -309,7 +332,8 @@ class AirflowMicroService():
             dag_run_id [str]: Identification of the DAG run.
         Kwargs:
             No Kwargs.
-
+        Return [dict]:
+            Serialized DAG run information.
         """
         self.health_check()
 
@@ -322,6 +346,6 @@ class AirflowMicroService():
                 "and dag_run_id[{dag_run_id}]. Error:\n{error}").format(
                     dag_id=dag_id, dag_run_id=dag_run_id, error=str(e))
             raise AirflowMicroServiceException(
-                message=msg ,payload={
+                message=msg, payload={
                     "dag_id": dag_id, "dag_run_id": dag_run_id})
             print("Exception when calling DAGRunApi->get_dag_run: %s\n" % e)
