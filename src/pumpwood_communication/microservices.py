@@ -221,7 +221,7 @@ class PumpWoodMicroService():
                 refresh_expiry = True
         debug = os.getenv("DEBUG", "FALSE")
         print("debug:", debug)
-        if (refresh_expiry or force_refresh) and (debug == "TRUE"):
+        if refresh_expiry or force_refresh or (debug == "TRUE"):
             login_url = None
             if self.auth_suffix is None:
                 login_url = urljoin(
