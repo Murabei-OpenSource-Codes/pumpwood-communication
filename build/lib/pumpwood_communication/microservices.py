@@ -219,8 +219,9 @@ class PumpWoodMicroService():
             time_to_expiry = self.time_to_expiry()
             if time_to_expiry < datetime.timedelta(hours=1):
                 refresh_expiry = True
-
-        if refresh_expiry or force_refresh:
+        debug = os.getenv("DEBUG", "FALSE")
+        print("debug:", debug)
+        if (refresh_expiry or force_refresh) and (debug == "TRUE"):
             login_url = None
             if self.auth_suffix is None:
                 login_url = urljoin(
@@ -502,7 +503,10 @@ class PumpWoodMicroService():
                 verify=self.verify_ssl, headers=request_header)
 
             # Retry request if token is not valid forcing token renew
-            if self.is_invalid_token_response(response):
+            retry_with_login = (
+                self.is_invalid_token_response(response) and
+                auth_header is None)
+            if retry_with_login:
                 self.login(force_refresh=True)
                 request_header = self._check__auth_header(
                     auth_header=auth_header)
@@ -523,8 +527,10 @@ class PumpWoodMicroService():
                 url=post_url, data=temp_data, files=files,
                 verify=self.verify_ssl, headers=request_header)
 
-            # Retry request if token is not valid forcing token renew
-            if self.is_invalid_token_response(response):
+            retry_with_login = (
+                self.is_invalid_token_response(response) and
+                auth_header is None)
+            if retry_with_login:
                 self.login(force_refresh=True)
                 request_header = self._check__auth_header(
                     auth_header=auth_header)
@@ -575,8 +581,10 @@ class PumpWoodMicroService():
             get_url, verify=self.verify_ssl, headers=request_header,
             params=parameters)
 
-        # Retry request if token is not valid forcing token renew
-        if self.is_invalid_token_response(response):
+        retry_with_login = (
+            self.is_invalid_token_response(response) and
+            auth_header is None)
+        if retry_with_login:
             self.login(force_refresh=True)
             request_header = self._check__auth_header(auth_header=auth_header)
             response = requests.get(
@@ -623,7 +631,10 @@ class PumpWoodMicroService():
             params=parameters)
 
         # Retry request if token is not valid forcing token renew
-        if self.is_invalid_token_response(response):
+        retry_with_login = (
+            self.is_invalid_token_response(response) and
+            auth_header is None)
+        if retry_with_login:
             self.login(force_refresh=True)
             request_header = self._check__auth_header(auth_header=auth_header)
             response = requests.delete(
