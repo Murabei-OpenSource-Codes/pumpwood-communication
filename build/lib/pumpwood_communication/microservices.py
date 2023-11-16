@@ -219,8 +219,9 @@ class PumpWoodMicroService():
             time_to_expiry = self.time_to_expiry()
             if time_to_expiry < datetime.timedelta(hours=1):
                 refresh_expiry = True
+
+        # When if debug always refresh token
         debug = os.getenv("DEBUG", "FALSE")
-        print("debug:", debug)
         if refresh_expiry or force_refresh or (debug == "TRUE"):
             login_url = None
             if self.auth_suffix is None:
