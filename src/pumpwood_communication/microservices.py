@@ -61,7 +61,8 @@ class PumpWoodMicroService():
 
     def __init__(self, name: str = None, server_url: str = None,
                  username: str = None, password: str = None,
-                 verify_ssl: bool = True, auth_suffix: str = None):
+                 verify_ssl: bool = True, auth_suffix: str = None,
+                 debug: bool = None):
         """
         Create new PumpWoodMicroService object.
 
@@ -95,9 +96,11 @@ class PumpWoodMicroService():
         self.__auth_header = None
         self.__token_expiry = None
         self.auth_suffix = auth_suffix
+        self.debug = debug
 
     def init(self, name: str, server_url: str, username: str,
-             password: str, verify_ssl: bool = True, auth_suffix: str = None):
+             password: str, verify_ssl: bool = True, auth_suffix: str = None,
+             debug: bool = None):
         """
         Start a microservice after creation.
 
@@ -128,6 +131,7 @@ class PumpWoodMicroService():
         self.server_url = self._ajust_server_url(server_url)
         self.verify_ssl = verify_ssl
         self.auth_suffix = auth_suffix
+        self.debug = debug
 
     @staticmethod
     def angular_json(request_result):
@@ -221,8 +225,13 @@ class PumpWoodMicroService():
                 refresh_expiry = True
 
         # When if debug always refresh token
-        debug = os.getenv("DEBUG", "FALSE")
-        if refresh_expiry or force_refresh or (debug == "TRUE"):
+        is_debug = None
+        if self.debug is None:
+            is_debug = os.getenv("DEBUG", "FALSE") == "TRUE"
+        else:
+            is_debug = self.debug
+
+        if refresh_expiry or force_refresh or is_debug:
             login_url = None
             if self.auth_suffix is None:
                 login_url = urljoin(
