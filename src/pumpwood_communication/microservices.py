@@ -521,9 +521,7 @@ class PumpWoodMicroService():
             request_header = self._check__auth_header(
                 auth_header=auth_header, multipart=True)
             post_url = urljoin(self.server_url, url)
-            temp_data = {}
-            for key, item in data.items():
-                temp_data[key] = pumpJsonDump(data[key])
+            temp_data = {'__json__': pumpJsonDump(data)}
             response = requests.post(
                 url=post_url, data=temp_data, files=files,
                 verify=self.verify_ssl, headers=request_header)
