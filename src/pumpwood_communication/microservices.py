@@ -475,13 +475,7 @@ class PumpWoodMicroService():
             Return True if response has an invalid token status.
         """
         if response.status_code == 401:
-            try:
-                response_data = response.json()
-                detail = response_data.get("detail", "")
-                if detail == "Invalid token.":
-                    return True
-            except Exception:
-                return False
+            return True
         return False
 
     def request_post(self, url: str, data: any, files: list = None,
