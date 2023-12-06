@@ -463,7 +463,7 @@ class PumpWoodMicroService():
                         payload=response_dict)
 
     @classmethod
-    def is_invalid_token_response(self,
+    def is_invalid_token_response(cls,
                                   response: requests.models.Response) -> bool:
         """
         Check if reponse has invalid token error.
@@ -578,7 +578,7 @@ class PumpWoodMicroService():
         """
         request_header = self._check__auth_header(auth_header)
 
-        get_url = self.server_url + url
+        get_url = urljoin(self.server_url, url)
         response = requests.get(
             get_url, verify=self.verify_ssl, headers=request_header,
             params=parameters)
