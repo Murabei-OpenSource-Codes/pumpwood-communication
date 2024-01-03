@@ -1715,11 +1715,11 @@ class PumpWoodMicroService():
                 start=start_date, end=end_date, freq='MS').tolist()
             month_sequence = pd.Series(
                 [start_date] + list_month_sequence + [end_date]
-            ).drop_duplicates().sort_values().tolist()
+            ).sort_values().tolist()
 
             month_df = pd.DataFrame({'end': month_sequence})
             month_df['start'] = month_df['end'].shift()
-            month_df.dropna(inplace=True)
+            month_df = month_df.dropna().drop_duplicates()
             month_sequence = month_df.to_dict("records")
         elif (start_date is not None) or (end_date is not None):
             msg = (
@@ -1733,8 +1733,10 @@ class PumpWoodMicroService():
                     "start_date": start_date,
                     "end_date": end_date})
 
-        resp_df = None
-        # If table have partition, run in parallel
+        resp_df = pd.DataFrame()
+        ##########################################################
+        # If table have more than one partition, run in parallel #
+        # the {partition}__in elements along with dates          #
         if 1 < len(partition):
             partition_col_1st = partition[0]
             filter_dict_keys = list(temp_filter_dict.keys())
@@ -1755,19 +1757,18 @@ class PumpWoodMicroService():
             # Validating query for partitioned tables
             if partition_filter is None:
                 msg = (
-                    "Table is partitioned with sub-partitions, running queries "
-                    "without at least first level partition will lead to long "
-                    "waiting times or hanging queries. Please use first "
-                    "partition level in filter_dict with equal or in "
-                    "operators. Table partitions: {}"
+                    "Table is partitioned with sub-partitions, running "
+                    "queries without at least first level partition will "
+                    "lead to long waiting times or hanging queries. Please "
+                    "use first partition level in filter_dict with equal "
+                    "or in operators. Table partitions: {}"
                 ).format(partition)
                 raise PumpWoodException(message=msg)
 
             if 1 < count_partition_col_1st_filters:
                 msg = (
                     "Please give some help for the dev here, use just one "
-                    "filter_dict entry for first partition..."
-                ).format(partition)
+                    "filter_dict entry for first partition...")
                 raise PumpWoodException(message=msg)
 
             # Parallelizing query using partition columns
@@ -1786,36 +1787,33 @@ class PumpWoodMicroService():
                         "chunk_size": chunk_size})
                 else:
                     for i in range(len(month_sequence)):
+                        request_filter_dict_t = copy.deepcopy(
+                            request_filter_dict)
+                        # If is not the last interval, query using open
+                        # right interval so subsequence querys does
+                        # not overlap
                         if i != len(month_sequence) - 1:
-                            request_filter_dict_t = copy.deepcopy(
-                                request_filter_dict)
                             request_filter_dict_t["time__gte"] = \
                                 month_sequence[i]["start"]
                             request_filter_dict_t["time__lt"] = \
                                 month_sequence[i]["end"]
-                            pool_arguments.append({
-                                "model_class": model_class,
-                                "filter_dict": request_filter_dict_t,
-                                "exclude_dict": exclude_dict,
-                                "fields": fields,
-                                "show_deleted": show_deleted,
-                                "auth_header": auth_header,
-                                "chunk_size": chunk_size})
+
+                        # At the last interaval use closed right interval so
+                        # last element is also included in the interval
                         else:
-                            request_filter_dict_t = copy.deepcopy(
-                                request_filter_dict)
                             request_filter_dict_t["time__gte"] = \
                                 month_sequence[i]["start"]
                             request_filter_dict_t["time__lte"] = \
                                 month_sequence[i]["end"]
-                            pool_arguments.append({
-                                "model_class": model_class,
-                                "filter_dict": request_filter_dict_t,
-                                "exclude_dict": exclude_dict,
-                                "fields": fields,
-                                "show_deleted": show_deleted,
-                                "auth_header": auth_header,
-                                "chunk_size": chunk_size})
+
+                        pool_arguments.append({
+                            "model_class": model_class,
+                            "filter_dict": request_filter_dict_t,
+                            "exclude_dict": exclude_dict,
+                            "fields": fields,
+                            "show_deleted": show_deleted,
+                            "auth_header": auth_header,
+                            "chunk_size": chunk_size})
 
             # Perform parallel calls to backend each chucked by chunk_size
             print("## Starting parallel flat list: %s" % len(pool_arguments))
@@ -1829,6 +1827,8 @@ class PumpWoodMicroService():
                 PumpWoodException(message=str(e))
             print("\n## Finished parallel flat list: %s" % len(pool_arguments))
 
+        ############################################
+        # If table have partition, run in parallel #
         else:
             try:
                 results_key_data = self._flat_list_by_chunks_helper({
