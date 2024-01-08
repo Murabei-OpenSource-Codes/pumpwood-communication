@@ -97,6 +97,7 @@ class PumpWoodMicroService():
         self.__token_expiry = None
         self.auth_suffix = auth_suffix
         self.debug = debug
+        self.is_mfa_login = False
 
     def init(self, name: str, server_url: str, username: str,
              password: str, verify_ssl: bool = True, auth_suffix: str = None,
@@ -242,9 +243,9 @@ class PumpWoodMicroService():
                 login_url = urljoin(self.server_url, temp_url)
 
             login_result = requests.post(
-                login_url,
-                json={'username': self.__username,
-                      'password': self.__password},
+                login_url, json={
+                    'username': self.__username,
+                    'password': self.__password},
                 verify=self.verify_ssl)
 
             login_data = {}
@@ -256,10 +257,37 @@ class PumpWoodMicroService():
                     message="Login not possible.\nError: " + str(e),
                     payload=login_data)
 
+            if 'mfa_token' in login_data.keys():
+                login_data = self.confirm_mfa_code(mfa_login_data=login_data)
+
             self.__auth_header = {
                 'Authorization': 'Token ' + login_data['token']}
             self.__user = login_data["user"]
             self.__token_expiry = pd.to_datetime(login_data['expiry'])
+
+    def confirm_mfa_code(self, mfa_login_data: dict) -> dict:
+        """
+        Ask user to confirm MFA code to login.
+
+        Args:
+            mfa_login_data [dict]: Result from login request with 'mfa_token'
+                as key.
+        Return [dict]:
+            Return login returned with MFA confimation.
+        Raise:
+            Raise error if reponse is not valid.
+        """
+        code = input("## Please enter MFA code: ")
+        url = urljoin(
+            self.server_url, 'rest/registration/mfa-validate-code/')
+        mfa_response = requests.post(url, headers={
+            "X-PUMPWOOD-MFA-Autorization": mfa_login_data['mfa_token']},
+            json={"mfa_code": code})
+        self.error_handler(mfa_response)
+
+        # Set is_mfa_login true to indicate that login required MFA
+        self.is_mfa_login = True
+        return PumpWoodMicroService.angular_json(mfa_response)
 
     def logout(self, auth_header: dict = None) -> bool:
         """
