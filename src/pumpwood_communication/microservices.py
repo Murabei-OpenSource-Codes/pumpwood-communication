@@ -507,7 +507,7 @@ class PumpWoodMicroService():
         return False
 
     def request_post(self, url: str, data: any, files: list = None,
-                     auth_header: dict = None):
+                     parameters: dict = None, auth_header: dict = None):
         """
         Make a POST a request to url with data as Json payload.
 
@@ -515,6 +515,7 @@ class PumpWoodMicroService():
             url (str): Url to make the request.
             data (any); Data to be used as Json payload.
         Kwargs:
+            parameters [dict]: URL query parameters.
             files(list of tuples): A list of tuples with
                                    (file name, [file1, file2, ...]).
             auth_header(dict): Auth data to overhide microservice's.
@@ -532,7 +533,8 @@ class PumpWoodMicroService():
             post_url = urljoin(self.server_url, url)
             response = requests.post(
                 url=post_url, data=pumpJsonDump(data),
-                verify=self.verify_ssl, headers=request_header)
+                verify=self.verify_ssl, headers=request_header,
+                params=parameters)
 
             # Retry request if token is not valid forcing token renew
             retry_with_login = (
@@ -555,7 +557,8 @@ class PumpWoodMicroService():
             temp_data = {'__json__': pumpJsonDump(data)}
             response = requests.post(
                 url=post_url, data=temp_data, files=files,
-                verify=self.verify_ssl, headers=request_header)
+                params=parameters, verify=self.verify_ssl,
+                headers=request_header)
 
             retry_with_login = (
                 self.is_invalid_token_response(response) and
@@ -1547,7 +1550,7 @@ class PumpWoodMicroService():
 
     def search_options(self, model_class: str, auth_header: dict = None):
         """
-        Return search options.
+        ## DEPRECTED ## Return search options.
 
         Returns options to search, like forenging keys and choice fields.
         Args:
@@ -1568,7 +1571,7 @@ class PumpWoodMicroService():
     def fill_options(self, model_class, parcial_obj_dict: dict = {},
                      field: str = None, auth_header: dict = None):
         """
-        Return options for object fields.
+        ## DEPRECTED ## Return options for object fields.
 
         This function send partial object data and return options to finish
         object fillment.
@@ -1592,6 +1595,82 @@ class PumpWoodMicroService():
             url_str = url_str + field
         return self.request_post(url=url_str, data=parcial_obj_dict,
                                  auth_header=auth_header)
+
+    def list_view_options(self, model_class: str, auth_header: dict = None):
+        """
+        Return search options.
+
+        Returns options to search, like forenging keys and choice fields.
+        Args:
+            model_class (str): Model class to check search parameters
+        Kwargs:
+            auth_header(dict): Dictionary containing the auth header.
+        Returns:
+            dict: Dictionary with search parameters
+        Raises:
+            Dependends on backend implementation
+        Example:
+            No example yet.
+
+        """
+        url_str = "rest/%s/list-options/" % (model_class.lower(), )
+        return self.request_get(url=url_str, auth_header=auth_header)
+
+    def retrieve_view_options(self, model_class: str,
+                              auth_header: dict = None):
+        """
+        Return options for object fields.
+
+        This function send partial object data and return options to finish
+        object fillment.
+
+        Args:
+          model_class (str): Model class to check filment options.
+        Kwargs:
+          parcial_obj_dict (dict): Partial object data
+          field (str): Get an specific field information
+          auth_header(dict): Dictionary containing the auth header.
+        Returns:
+          dict: Dictionary with possible data.
+        Raises:
+          Dependends on backend implementation
+        Example:
+          No example yet.
+
+        """
+        url_str = "rest/%s/retrive-options/" % (model_class.lower(), )
+        return self.request_get(url=url_str, auth_header=auth_header)
+
+    def fill_options_validation(self, model_class: str,
+                                parcial_obj_dict: dict = {},
+                                field: str = None,
+                                user_type: str = 'api',
+                                auth_header: dict = None):
+        """
+        Return options for object fields.
+
+        This function send partial object data and return options to finish
+        object fillment.
+
+        Args:
+          model_class (str): Model class to check filment options.
+        Kwargs:
+          parcial_obj_dict (dict): Partial object data
+          field (str): Get an specific field information
+          auth_header(dict): Dictionary containing the auth header.
+        Returns:
+          dict: Dictionary with possible data.
+        Raises:
+          Dependends on backend implementation
+        Example:
+          No example yet.
+
+        """
+        url_str = "rest/%s/retrive-options/" % (model_class.lower(), )
+        return self.request_post(
+            url=url_str, data=parcial_obj_dict, parameters={
+                "field": field, "user_type": user_type},
+            auth_header=auth_header)
 
     @staticmethod
     def _build_pivot_url(model_class):

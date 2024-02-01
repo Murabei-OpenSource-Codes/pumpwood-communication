@@ -130,6 +130,18 @@ class PumpWoodMFAError(PumpWoodException):
     pass
 
 
+class PumpWoodServerIncorrectConfig(PumpWoodException):
+    """
+    Error associated with Pumpwood incorrect configuration.
+
+    Example:
+        List fields that are not on model fields.
+        Field set fields that are not on model fields.
+    """
+
+    status_code = 500
+
+
 class PumpWoodOtherException(PumpWoodException):
     """Problem when saving data due to NotImplementedError."""
 
@@ -190,5 +202,6 @@ exceptions_dict = {
     "PumpWoodObjectDeleteException": PumpWoodObjectDeleteException,
     "AirflowMicroServiceException": AirflowMicroServiceException,
     "PumpWoodMicroserviceUnavailableError":
-        PumpWoodMicroserviceUnavailableError
+        PumpWoodMicroserviceUnavailableError,
+    "PumpWoodServerIncorrectConfig": PumpWoodServerIncorrectConfig,
 }
