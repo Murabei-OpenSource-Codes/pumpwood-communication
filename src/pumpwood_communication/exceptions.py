@@ -27,7 +27,7 @@ class PumpWoodException(Exception):
 
     def __init__(self, message: str, payload: dict = {}, status_code=None):
         Exception.__init__(self)
-        self.message = message
+        self.message = message.format(**payload)
         if status_code is not None:
             self.status_code = status_code
         self.payload = payload

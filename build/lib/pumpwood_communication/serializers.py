@@ -17,6 +17,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.geometry import mapping
 from sqlalchemy_utils.types.choice import Choice
 from pumpwood_communication.exceptions import PumpWoodException
+from lazy_string import LazyString
 
 
 class PumpWoodJSONEncoder(JSONEncoder):
@@ -53,6 +54,8 @@ class PumpWoodJSONEncoder(JSONEncoder):
             return mapping(obj)
         if isinstance(obj, Choice):
             return obj.code
+        if isinstance(obj, LazyString):
+            return str(obj)
         else:
             raise TypeError(
                 "Unserializable object {} of type {}".format(obj, type(obj)))
