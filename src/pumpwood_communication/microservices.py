@@ -1654,17 +1654,23 @@ class PumpWoodMicroService():
 
         Args:
           model_class (str): Model class to check filment options.
+
         Kwargs:
           parcial_obj_dict (dict): Partial object data
           field (str): Get an specific field information
+          user_type (str) ['gui', 'api']: Set which type of user is calling
+            the end-point. Gui user_type retrict some variable to be
+            read-only.
           auth_header(dict): Dictionary containing the auth header.
+
         Returns:
           dict: Dictionary with possible data.
+
         Raises:
           Dependends on backend implementation
+
         Example:
           No example yet.
-
         """
         url_str = "rest/%s/retrive-options/" % (model_class.lower(), )
         return self.request_post(
