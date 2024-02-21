@@ -27,7 +27,18 @@ class PumpWoodException(Exception):
 
     def __init__(self, message: str, payload: dict = {}, status_code=None):
         Exception.__init__(self)
-        self.message = message.format(**payload)
+        # If there is a payload on message try to format using its components
+        # this will help in the future to translate error messages
+        if payload:
+            try:
+                self.message = message.format(**payload)
+            except Exception as e:
+                # Use exception to treat errors when formating messages
+                self.message = message
+                payload["__error_formating_msg__"] = str(e)
+        else:
+            self.message = message
+
         if status_code is not None:
             self.status_code = status_code
         self.payload = payload
