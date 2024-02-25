@@ -13,3 +13,5 @@ src/pumpwood_communication.egg-info/SOURCES.txt
 src/pumpwood_communication.egg-info/dependency_links.txt
 src/pumpwood_communication.egg-info/requires.txt
 src/pumpwood_communication.egg-info/top_level.txt
+src/pumpwood_communication/aux/__init__.py
+src/pumpwood_communication/aux/flat_list_by_chunks.py
