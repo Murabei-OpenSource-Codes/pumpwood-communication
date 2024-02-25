@@ -1753,7 +1753,6 @@ class PumpWoodMicroService():
                     "show_deleted": show_deleted,
                     "limit": chunk_size,
                     "add_pk_column": True}
-                print("post_data:", post_data)
                 temp_dateframe = pd.DataFrame(self.request_post(
                     url=url_str, data=post_data, auth_header=auth_header))
 
