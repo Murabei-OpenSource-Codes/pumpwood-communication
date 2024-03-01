@@ -29,7 +29,7 @@ from pumpwood_communication.exceptions import (
     PumpWoodQueryException)
 from pumpwood_communication.serializers import (
     pumpJsonDump, CompositePkBase64Converter)
-
+from pumpwood_communication.misc import unpack_dict_columns
 
 # Creating logger for MicroService calls
 Log_Format = "%(levelname)s %(asctime)s - %(message)s"
@@ -768,21 +768,44 @@ class PumpWoodMicroService():
                 - [field]: Column with same name of field argument,
                     correspondent to pk.
         """
-        fill_options = self.fill_options(model_class=model_class)
-        field_details = fill_options[field]
-        is_unique_field = field_details.get("unique", False)
-        if not is_unique_field:
-            msg = "Field [{}] to get pk from is not unique".format(field)
-            raise PumpWoodQueryException(message=msg, payload={"field": field})
+        is_dimension_tag = 'dimensions->' in field
+        if not is_dimension_tag:
+            fill_options = self.fill_options(model_class=model_class)
+            field_details = fill_options.get(field)
+            if field_details is None:
+                msg = (
+                    "Field is not a dimension tag and not found on model "
+                    "fields. Field [{field}]")
+                raise PumpWoodQueryException(
+                    message=msg, payload={"field": field})
+
+            is_unique_field = field_details.get("unique", False)
+            if not is_unique_field:
+                msg = "Field [{}] to get pk from is not unique"
+                raise PumpWoodQueryException(
+                    message=msg, payload={"field": field})
+
         filter_dict = {field + "__in": list(set(values))}
-        list_results = self.list_without_pag(
-            model_class=model_class, filter_dict=filter_dict,
-            fields=["pk", field])
-        pk_map = dict([[x[field], x["pk"]] for x in list_results])
+        pk_map = None
+        if not is_dimension_tag:
+            list_results = pd.DataFrame(self.list_without_pag(
+                model_class=model_class, filter_dict=filter_dict,
+                fields=["pk", field]), columns=["pk", field])
+            pk_map = list_results.set_index(field)["pk"]
+
+        # If is dimension tag, fetch dimension and unpack it
+        else:
+            dimension_tag = field.split("->")[1]
+            list_results = pd.DataFrame(self.list_without_pag(
+                model_class=model_class, filter_dict=filter_dict,
+                fields=["pk", "dimensions"]))
+            pk_map = list_results\
+                .pipe(unpack_dict_columns, columns=["dimensions"])\
+                .set_index(dimension_tag)["pk"]
 
         values_series = pd.Series(values)
         return pd.DataFrame({
-            "pk": values_series.map(lambda x: pk_map.get(x)).values,
+            "pk": values_series.map(pk_map).values,
             field: values_series
         })
 
