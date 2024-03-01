@@ -124,6 +124,12 @@ class PumpWoodMicroserviceUnavailableError(PumpWoodException):
     pass
 
 
+class PumpWoodMFAError(PumpWoodException):
+    """Problem when using MFA."""
+
+    pass
+
+
 class PumpWoodOtherException(PumpWoodException):
     """Problem when saving data due to NotImplementedError."""
 
