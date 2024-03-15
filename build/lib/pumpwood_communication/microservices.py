@@ -1099,7 +1099,7 @@ class PumpWoodMicroService():
 
     def list_one(self, model_class: str, pk: int, auth_header: dict = None):
         """
-        Retrive an object using list serializer (simple).
+        retrieve an object using list serializer (simple).
 
         Function to get object serialized by retrieve end-point with list
         serializer.
@@ -1641,7 +1641,7 @@ class PumpWoodMicroService():
         return self.request_get(
             url=url_str, auth_header=auth_header)
 
-    def retrive_options(self, model_class: str, auth_header: dict = None):
+    def retrieve_options(self, model_class: str, auth_header: dict = None):
         """
         Return options to render retrieve views.
 
@@ -1656,7 +1656,7 @@ class PumpWoodMicroService():
         Example:
           No example yet.
         """
-        url_str = "rest/{basename}/retrive-options/".format(
+        url_str = "rest/{basename}/retrieve-options/".format(
             basename=model_class.lower())
         return self.request_get(
             url=url_str, auth_header=auth_header)
@@ -1683,7 +1683,7 @@ class PumpWoodMicroService():
         Example:
           No example yet.
         """
-        url_str = "rest/{basename}/retrive-options/".format(
+        url_str = "rest/{basename}/retrieve-options/".format(
             basename=model_class.lower())
         params = {"user_type": user_type}
         if field is not None:
