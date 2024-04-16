@@ -829,9 +829,11 @@ class PumpWoodMicroService():
             list_results = pd.DataFrame(self.list_without_pag(
                 model_class=model_class, filter_dict=filter_dict,
                 fields=["pk", "dimensions"]))
-            pk_map = list_results\
-                .pipe(unpack_dict_columns, columns=["dimensions"])\
-                .set_index(dimension_tag)["pk"]
+            pk_map = {}
+            if len(list_results) != 0:
+                pk_map = list_results\
+                    .pipe(unpack_dict_columns, columns=["dimensions"])\
+                    .set_index(dimension_tag)["pk"]
 
         values_series = pd.Series(values)
         return pd.DataFrame({
