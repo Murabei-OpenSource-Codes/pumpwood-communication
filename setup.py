@@ -1,10 +1,10 @@
 """setup."""
 import os
 import setuptools
-try:  # for pip >= 10
-    from pip._internal.req import parse_requirements
-except ImportError:  # for pip <= 9.0.3
-    from pip.req import parse_requirements
+# try:  # for pip >= 10
+#     from pip._internal.req import parse_requirements
+# except ImportError:  # for pip <= 9.0.3
+#     from pip.req import parse_requirements
 
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
@@ -12,11 +12,11 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
 
 requirements_path = os.path.join(
     os.path.dirname(__file__), 'requirements.txt')
-install_reqs = parse_requirements(requirements_path, session=False)
-try:
-    requirements = [str(ir.req) for ir in install_reqs]
-except Exception:
-    requirements = [str(ir.requirement) for ir in install_reqs]
+# install_reqs = parse_requirements(requirements_path, session=False)
+# try:
+#     requirements = [str(ir.req) for ir in install_reqs]
+# except Exception:
+#     requirements = [str(ir.requirement) for ir in install_reqs]
 
 
 # allow setup.py to be run from any path
@@ -24,7 +24,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setuptools.setup(
     name='pumpwood-communication',
-    version='1.24',
+    version='1.25',
     include_package_data=True,
     license='BSD-3-Clause License',
     description='Package for inter Pumpwood loging and comunication',
@@ -38,7 +38,19 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     package_dir={"": "src"},
-    install_requires=requirements,
+    install_requires=[
+        "requests",
+        "simplejson",
+        "pandas",
+        "Shapely>=1.7.0",
+        "geopandas>=0.8.1",
+        "SQLAlchemy-Utils==0.37.8",
+        "SQLAlchemy==1.3.19",
+        "GeoAlchemy2==0.9.3",
+        "apache-airflow-client==2.3.0",
+        "requests>=2.28.2",
+        "Werkzeug>=1.0.1",
+    ],
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.6",
 )
