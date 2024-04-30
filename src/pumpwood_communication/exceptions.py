@@ -33,7 +33,10 @@ class PumpWoodException(Exception):
         self.payload = payload
 
     def to_dict(self):
-        message_fmt = self.message.format(**self.payload)
+        try:
+            message_fmt = self.message.format(**self.payload)
+        except Exception:
+            message_fmt = self.message + "\n** format error **"
         rv = {
             "payload": self.payload,
             "type": self.__class__.__name__,
