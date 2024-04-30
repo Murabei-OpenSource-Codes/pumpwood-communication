@@ -24,7 +24,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setuptools.setup(
     name='pumpwood-communication',
-    version='1.25',
+    version='1.26',
     include_package_data=True,
     license='BSD-3-Clause License',
     description='Package for inter Pumpwood loging and comunication',
