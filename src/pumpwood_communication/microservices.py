@@ -1099,9 +1099,10 @@ class PumpWoodMicroService():
     def _build_list_one_url(model_class, pk):
         return "rest/%s/list-one/%s/" % (model_class.lower(), pk)
 
-    def list_one(self, model_class: str, pk: int, auth_header: dict = None):
+    def list_one(self, model_class: str, pk: int, fields: list = None,
+                 default_fields: bool = True, auth_header: dict = None):
         """
-        retrieve an object using list serializer (simple).
+        Retrieve an object using list serializer (simple).
 
         Function to get object serialized by retrieve end-point with list
         serializer.
@@ -1117,10 +1118,12 @@ class PumpWoodMicroService():
           No especific raises.
         Example:
           No example yet.
-
         """
         url_str = self._build_list_one_url(model_class, pk)
-        return self.request_get(url=url_str, auth_header=auth_header)
+        return self.request_get(
+            url=url_str, parameters={
+                "fields": fields, "default_fields": default_fields},
+            auth_header=auth_header)
 
     @staticmethod
     def _build_retrieve_url(model_class: str, pk: int):
