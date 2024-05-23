@@ -1103,7 +1103,7 @@ class PumpWoodMicroService():
                  default_fields: bool = True, foreign_key_fields: bool = False,
                  related_fields: bool = False, auth_header: dict = None):
         """
-        retrieve an object using list serializer (simple).
+        Retrieve an object using list serializer (simple).
 
         Function to get object serialized by retrieve end-point with list
         serializer.
@@ -1119,7 +1119,6 @@ class PumpWoodMicroService():
           No especific raises.
         Example:
           No example yet.
-
         """
         url_str = self._build_list_one_url(model_class, pk)
         return self.request_get(
