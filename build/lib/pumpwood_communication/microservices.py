@@ -1097,9 +1097,11 @@ class PumpWoodMicroService():
 
     @staticmethod
     def _build_list_one_url(model_class, pk):
-        return "rest/%s/list-one/%s/" % (model_class.lower(), pk)
+        return "rest/%s/retrieve/%s/" % (model_class.lower(), pk)
 
-    def list_one(self, model_class: str, pk: int, auth_header: dict = None):
+    def list_one(self, model_class: str, pk: int, fields: list = None,
+                 default_fields: bool = True, foreign_key_fields: bool = False,
+                 related_fields: bool = False, auth_header: dict = None):
         """
         retrieve an object using list serializer (simple).
 
@@ -1120,13 +1122,22 @@ class PumpWoodMicroService():
 
         """
         url_str = self._build_list_one_url(model_class, pk)
-        return self.request_get(url=url_str, auth_header=auth_header)
+        return self.request_get(
+            url=url_str,
+            parameters={
+                "fields": fields, "default-fields": default_fields,
+                "foreign-key-fields": foreign_key_fields,
+                "related-fields": related_fields,
+            }, auth_header=auth_header)
 
     @staticmethod
     def _build_retrieve_url(model_class: str, pk: int):
         return "rest/%s/retrieve/%s/" % (model_class.lower(), pk)
 
-    def retrieve(self, model_class: str, pk: int, auth_header: dict = None):
+    def retrieve(self, model_class: str, pk: int,
+                 foreign_key_fields: bool = False,
+                 related_fields: bool = False,
+                 auth_header: dict = None):
         """
         Retrieve an object from PumpWood.
 
@@ -1147,7 +1158,12 @@ class PumpWoodMicroService():
 
         """
         url_str = self._build_retrieve_url(model_class=model_class, pk=pk)
-        return self.request_get(url=url_str, auth_header=auth_header)
+        return self.request_get(
+            url=url_str,
+            parameters={
+                "foreign-key-fields": foreign_key_fields,
+                "related-fields": related_fields,
+            }, auth_header=auth_header)
 
     @staticmethod
     def _build_retrieve_file_url(model_class: str, pk: int):
