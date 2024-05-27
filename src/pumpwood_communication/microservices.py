@@ -849,6 +849,7 @@ class PumpWoodMicroService():
              exclude_dict: dict = {}, order_by: list = [],
              auth_header: dict = None, fields: list = None,
              default_fields: bool = False, limit: int = None,
+             foreign_key_fields: bool = False,
              **kwargs) -> list:
         """
         List objects with pagination.
@@ -873,6 +874,7 @@ class PumpWoodMicroService():
           default_fields [bool]: Return the fields specified at
               self.list_fields.
           limit [int]: Set the limit of elements of the returned query.
+          foreign_key_fields [bool]: Return forenging key objects.
 
         Returns:
           list: Contaiing objects serialized by list Serializer.
@@ -888,7 +890,7 @@ class PumpWoodMicroService():
         post_data = {
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
             'order_by': order_by, 'default_fields': default_fields,
-            'limit': limit}
+            'limit': limit, 'foreign_key_fields': foreign_key_fields}
         if fields is not None:
             post_data["fields"] = fields
         return self.request_post(
@@ -961,7 +963,8 @@ class PumpWoodMicroService():
                          exclude_dict: dict = {}, order_by: list = [],
                          auth_header: dict = None, return_type: str = 'list',
                          convert_geometry: bool = True, fields: list = None,
-                         default_fields: bool = False, **kwargs):
+                         default_fields: bool = False,
+                         foreign_key_fields: bool = False, **kwargs):
         """
         List object without pagination.
 
@@ -986,6 +989,7 @@ class PumpWoodMicroService():
             end-point.
           default_fields [bool]: Return the fields specified at
               self.list_fields.
+          foreign_key_fields [bool]: Return forenging key objects.
         Returns:
           list: Contaiing objects serialized by list Serializer.
 
@@ -999,7 +1003,8 @@ class PumpWoodMicroService():
         url_str = self._build_list_without_pag_url(model_class)
         post_data = {
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
-            'order_by': order_by, 'default_fields': default_fields}
+            'order_by': order_by, 'default_fields': default_fields,
+            'foreign_key_fields': foreign_key_fields}
 
         if fields is not None:
             post_data["fields"] = fields
@@ -1135,7 +1140,7 @@ class PumpWoodMicroService():
 
     def retrieve(self, model_class: str, pk: int,
                  foreign_key_fields: bool = False,
-                 related_fields: bool = False,
+                 related_fields: bool = False, fields: list = None,
                  auth_header: dict = None):
         """
         Retrieve an object from PumpWood.
@@ -1147,6 +1152,9 @@ class PumpWoodMicroService():
           model_class (str): Model class of the end-point
           pk (int): Object pk
         Kwargs:
+          foreign_key_fields [bool]: Return forenging key objects.
+          related_fields [bool]: Return related fields information.
+          fields [list]:
           auth_header(dict): Dictionary containing the auth header.
         Returns:
           list: Contaiing objects serialized by retrieve Serializer.
@@ -1160,8 +1168,9 @@ class PumpWoodMicroService():
         return self.request_get(
             url=url_str,
             parameters={
-                "foreign-key-fields": foreign_key_fields,
-                "related-fields": related_fields,
+                "fields": fields,
+                "foreign_key_fields": foreign_key_fields,
+                "related_fields": related_fields,
             }, auth_header=auth_header)
 
     @staticmethod
