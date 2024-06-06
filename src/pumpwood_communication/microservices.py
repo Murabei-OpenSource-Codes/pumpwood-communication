@@ -622,7 +622,7 @@ class PumpWoodMicroService():
 
         # If parameters are not none convert them to json before
         # sending information on query string, 'True' is 'true' on javascript
-        # for exemple
+        # for example
         if parameters is not None:
             parameters = copy.deepcopy(parameters)
             for key in parameters.keys():
