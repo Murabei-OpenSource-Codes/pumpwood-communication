@@ -533,7 +533,9 @@ class PumpWoodMicroService():
         if parameters is not None:
             parameters = copy.deepcopy(parameters)
             for key in parameters.keys():
-                parameters[key] = pumpJsonDump(parameters[key])
+                # Do not convert str to json, it put extra "" araound string
+                if type(parameters[key]) is not str:
+                    parameters[key] = pumpJsonDump(parameters[key])
 
         response = None
         if files is None:
@@ -565,7 +567,7 @@ class PumpWoodMicroService():
             post_url = urljoin(self.server_url, url)
             temp_data = {'__json__': pumpJsonDump(data)}
             response = requests.post(
-                url=post_url, data=temp_data, files=files, params=params,
+                url=post_url, data=temp_data, files=files, params=parameters,
                 verify=self.verify_ssl, headers=request_header)
 
             retry_with_login = (
@@ -576,8 +578,9 @@ class PumpWoodMicroService():
                 request_header = self._check__auth_header(
                     auth_header=auth_header)
                 response = requests.post(
-                    url=post_url, data=temp_data, files=files, params=params,
-                    verify=self.verify_ssl, headers=request_header)
+                    url=post_url, data=temp_data, files=files,
+                    params=parameters, verify=self.verify_ssl,
+                    headers=request_header)
 
         # Handle errors and re-raise if Pumpwood Exceptions
         self.error_handler(response)
@@ -623,7 +626,9 @@ class PumpWoodMicroService():
         if parameters is not None:
             parameters = copy.deepcopy(parameters)
             for key in parameters.keys():
-                parameters[key] = pumpJsonDump(parameters[key])
+                # Do not convert str to json, it put extra "" araound string
+                if type(parameters[key]) is not str:
+                    parameters[key] = pumpJsonDump(parameters[key])
 
         get_url = urljoin(self.server_url, url)
         response = requests.get(
@@ -1732,7 +1737,7 @@ class PumpWoodMicroService():
             params["field"] = field
         return self.request_post(
             url=url_str, auth_header=auth_header, data=parcial_obj_dict,
-            paraemters=params)
+            parameters=params)
 
     @staticmethod
     def _build_pivot_url(model_class):
