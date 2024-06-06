@@ -507,7 +507,7 @@ class PumpWoodMicroService():
         return False
 
     def request_post(self, url: str, data: any, files: list = None,
-                     auth_header: dict = None, params: dict = {}):
+                     auth_header: dict = None, parameters: dict = {}):
         """
         Make a POST a request to url with data as Json payload.
 
@@ -527,13 +527,22 @@ class PumpWoodMicroService():
             No example
 
         """
+        # If parameters are not none convert them to json before
+        # sending information on query string, 'True' is 'true' on javascript
+        # for exemple
+        if parameters is not None:
+            parameters = copy.deepcopy(parameters)
+            for key in parameters.keys():
+                parameters[key] = pumpJsonDump(parameters[key])
+
         response = None
         if files is None:
             request_header = self._check__auth_header(auth_header=auth_header)
             post_url = urljoin(self.server_url, url)
             response = requests.post(
                 url=post_url, data=pumpJsonDump(data),
-                params=params, verify=self.verify_ssl, headers=request_header)
+                params=parameters, verify=self.verify_ssl,
+                headers=request_header)
 
             # Retry request if token is not valid forcing token renew
             retry_with_login = (
@@ -545,7 +554,7 @@ class PumpWoodMicroService():
                     auth_header=auth_header)
                 response = requests.post(
                     url=post_url, data=pumpJsonDump(data),
-                    params=params, verify=self.verify_ssl,
+                    params=parameters, verify=self.verify_ssl,
                     headers=request_header)
 
         # Request with files are done using multipart serializing all fields
@@ -589,7 +598,7 @@ class PumpWoodMicroService():
         else:
             return PumpWoodMicroService.angular_json(response)
 
-    def request_get(self, url, parameters: dict = None,
+    def request_get(self, url, parameters: dict = {},
                     auth_header: dict = None):
         """
         Make a GET a request to url with data as Json payload.
@@ -607,6 +616,14 @@ class PumpWoodMicroService():
             No example
         """
         request_header = self._check__auth_header(auth_header)
+
+        # If parameters are not none convert them to json before
+        # sending information on query string, 'True' is 'true' on javascript
+        # for exemple
+        if parameters is not None:
+            parameters = copy.deepcopy(parameters)
+            for key in parameters.keys():
+                parameters[key] = pumpJsonDump(parameters[key])
 
         get_url = urljoin(self.server_url, url)
         response = requests.get(
@@ -1127,11 +1144,10 @@ class PumpWoodMicroService():
         """
         url_str = self._build_list_one_url(model_class, pk)
         return self.request_get(
-            url=url_str,
-            parameters={
-                "fields": fields, "default-fields": default_fields,
-                "foreign-key-fields": foreign_key_fields,
-                "related-fields": related_fields,
+            url=url_str, parameters={
+                "fields": fields, "default_fields": default_fields,
+                "foreign_key_fields": foreign_key_fields,
+                "related_fields": related_fields,
             }, auth_header=auth_header)
 
     @staticmethod
@@ -1716,7 +1732,7 @@ class PumpWoodMicroService():
             params["field"] = field
         return self.request_post(
             url=url_str, auth_header=auth_header, data=parcial_obj_dict,
-            params=params)
+            paraemters=params)
 
     @staticmethod
     def _build_pivot_url(model_class):
