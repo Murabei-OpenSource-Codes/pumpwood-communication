@@ -350,6 +350,23 @@ class PumpWoodMicroService():
             "auth_header": self.__auth_header,
             "token_expiry": self.__token_expiry}
 
+    def check_if_logged(self, auth_header: dict) -> bool:
+        """
+        Check if user is logged.
+
+        Args:
+            auth_header (dict): AuthHeader to substitute the
+                microservice original
+        Return [bool]:
+            Return True if auth_header is looged and False if not
+        """
+        try:
+            check = self.request_get(
+                url="rest/registration/check/", auth_header=auth_header)
+        except PumpWoodUnauthorized:
+            return False
+        return check
+
     def get_user_info(self, auth_header: dict = None) -> dict:
         """
         Get user info.
@@ -622,7 +639,7 @@ class PumpWoodMicroService():
 
         # If parameters are not none convert them to json before
         # sending information on query string, 'True' is 'true' on javascript
-        # for exemple
+        # for example
         if parameters is not None:
             parameters = copy.deepcopy(parameters)
             for key in parameters.keys():
