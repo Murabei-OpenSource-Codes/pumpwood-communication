@@ -1,8 +1,8 @@
 """Create hash from a dictionary."""
 import os
 import hashlib
-from .serializers import pumpJsonDump
 from typing import List
+from pumpwood_communication.serializers import pumpJsonDump
 
 
 def create_hash_from_dict(index_dict: dict, salt: str = "",

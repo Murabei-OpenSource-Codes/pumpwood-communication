@@ -345,4 +345,4 @@ It is possible to use other functions, the documentation can be gatered using th
 
 
 # Link to documentation
-[HTLM documentation](docs/pumpwood_communication/index.html)
+[documentation](docs/index.md)

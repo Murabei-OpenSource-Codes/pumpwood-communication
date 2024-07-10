@@ -899,8 +899,6 @@ class PumpWoodMicroService():
 
         Args:
           model_class (str): Model class of the end-point
-
-        Kwargs:
           filter_dict (dict): Filter dict to be used at the query
             (objects.filter arguments).
           exclude_dict (dict):  Exclude dict to be used at the query
