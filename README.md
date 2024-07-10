@@ -345,5 +345,4 @@ It is possible to use other functions, the documentation can be gatered using th
 
 
 # Link to documentation
-[Markdown documentation](docs/pumpwood_communication/index.md)
-[HTLM documentation](site/pumpwood_communication/index.html)
+[HTLM documentation](docs/pumpwood_communication/index.html)
