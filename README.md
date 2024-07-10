@@ -3,7 +3,7 @@ This packages facilitates the communication with end-points with Pumpwood patter
 developed by Murabei Data Science and is under BSD-3-Clause license.
 
 <p align="center" width="60%">
-  <img src="doc/sitelogo-horizontal.png" /> <br>
+  <img src="static_doc/sitelogo-horizontal.png" /> <br>
 
   <a href="https://en.wikipedia.org/wiki/Cecropia">
     Pumpwood is a native brasilian tree
@@ -342,3 +342,8 @@ It is possible to use other functions, the documentation can be gatered using th
 - parallel_execute_action
 - parallel_bulk_save
 - parallel_pivot
+
+
+# Link to documentation
+[Markdown documentation](docs/pumpwood_communication/index.md)
+[HTLM documentation](site/pumpwood_communication/index.html)
