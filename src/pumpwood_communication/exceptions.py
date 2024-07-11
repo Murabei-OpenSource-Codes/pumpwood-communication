@@ -7,7 +7,25 @@ and will not result in default 500 errors
 
 
 class PumpWoodException(Exception):
-    status_code = 400
+    """
+    Special exception used in Pumpowod Systems.
+
+    It permits treatment of raises on applications serializing response
+    using to_dict function and return status code as `status_code`
+    attribute value.
+    """
+
+    status_code: int = 400
+    """PumpWoodException will return status 400 on Pumpwood backend."""
+
+    message: str
+    """Message associated with raise."""
+
+    payload: dict
+    """
+    Dictionary payload that will be returned by to_dict funcion and format
+    message string.
+    """
 
     def __repr__(self):
         template = "{class_name}[status_code={status_code}]: " + \
@@ -26,13 +44,34 @@ class PumpWoodException(Exception):
             payload=self.payload,)
 
     def __init__(self, message: str, payload: dict = {}, status_code=None):
+        """
+        __init__.
+
+        Args:
+            message: Message that will be formated using payload
+                information using `{key}` to replace information.
+            payload: Payload data passed as a dictionary, it will be returned
+                in payload at `to_dict` funcion and used to format message.
+            status_code: Change the default status code of the exception.
+        """
         Exception.__init__(self)
         self.message = message
         if status_code is not None:
             self.status_code = status_code
         self.payload = payload
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        """
+        Serialize Exception object to return as reponse of Pumpwood backends.
+
+        Returns:
+            Return a dictionary with keys:
+            - **payload [dict]:** Payload associated with raise.
+            - **type [str]:** Return name of the class of the Exception.
+            - **message_not_fmt [str]:** Return msg without replacemnt of the
+                msg with payload information.
+            - **message [str]:** Return msg formated with payload information.
+        """
         try:
             message_fmt = self.message.format(**self.payload)
         except Exception:
@@ -136,7 +175,7 @@ class PumpWoodMFAError(PumpWoodException):
 
 
 class PumpWoodOtherException(PumpWoodException):
-    """Problem when saving data due to NotImplementedError."""
+    """Other untreated error on server."""
 
     status_code = 500
 
@@ -197,3 +236,7 @@ exceptions_dict = {
     "PumpWoodMicroserviceUnavailableError":
         PumpWoodMicroserviceUnavailableError
 }
+"""
+Dictionary used by backends/microservice to treat Pumpwood exceptions and
+re-raise them exception.
+"""

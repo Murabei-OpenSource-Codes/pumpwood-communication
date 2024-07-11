@@ -26,11 +26,13 @@ class AirflowMicroService():
         Create new AirflowMicroService object.
 
         Args:
-            No args. Object can be created and arguments set after.
-        Kwargs:
-            server_url (str): url of the server that will be connected.
-            username (str): Username that will be logged on.
-            password (str): Variable to be converted to JSON and posted along
+            server_url:
+                URL of the server that will be connected.
+            username:
+                Username that will be logged on.
+            password:
+                Variable to be converted to JSON and posted along.
+
         Returns:
             AirflowMicroService: New AirflowMicroService object
         """
@@ -56,11 +58,12 @@ class AirflowMicroService():
         Init AirflowMicroService object.
 
         Args:
-            server_url (str): url of the server that will be connected.
-            username (str): Username that will be logged on.
-            password (str): Variable to be converted to JSON and posted along
-        Kwargs:
-            No Kwargs
+            server_url:
+                url of the server that will be connected.
+            username:
+                Username that will be logged on.
+            password:
+                Variable to be converted to JSON and posted along
         Returns:
             No return
         Raises:
@@ -87,17 +90,13 @@ class AirflowMicroService():
                 "username and password not None.")
             raise AirflowMicroServiceException(message=msg)
 
-    def health_check(self):
+    def health_check(self) -> None:
         """
         Test connection to Airflow API.
 
         Args:
             No args.
-        Kwargs:
-            No kwargs.
-        Return:
-            No return
-        Raise:
+        Raises:
             AirflowMicroServiceException: If it is not possible to list one
                 dag using the API and return its error.
         """
@@ -118,11 +117,11 @@ class AirflowMicroService():
         Get Dag information using its dag_id.
 
         Args:
-            dag_id [str]: ID of the DAG to get information.
-        Kwargs:
-            No kwargs.
-        Return [dict]:
+            dag_id:
+                ID of the DAG to get information.
 
+        Returns [dict]:
+            Return a dictionary with dag information.
         """
         self.health_check()
 
@@ -140,11 +139,12 @@ class AirflowMicroService():
         List all dags on Airflow.
 
         Args:
-            No Args.
-        Kwargs:
-            only_active [bool]: List only active DAGs.
-            tags [List[str]]: Filter DASs using tags.
-            max_results [int]: Limit query results.
+            only_active:
+                List only active DAGs.
+            tags:
+                Filter DASs using tags.
+            max_results:
+                Limit query results.
         """
         self.health_check()
 
@@ -178,14 +178,18 @@ class AirflowMicroService():
         Run an Airflow DAG passing arguments as arguments.
 
         Args:
-            dag_id [str]: Dag id that will called.
-        Kwargs:
-            arguments [dict]: Dictionary with arguments to be passed to dag
-                run on Airflow as conf.
-            paused_raise_error [bool]: Raise error if DAG is paused or inactive
-                at the moment it is asked to run.
+            dag_id:
+                Dag id that will called.
+            arguments:
+                Dictionary with arguments to be passed to dag run on Airflow
+                as conf.
+            paused_raise_error:
+                Raise error if DAG is paused or inactive at the moment it is
+                asked to run.
+
         Return [dict]:
             Return dictionary with dag run information.
+
         Raise:
             AirflowMicroServiceException: If DAG not found.
             AirflowMicroServiceException: If DAG is inactive.
@@ -243,17 +247,26 @@ class AirflowMicroService():
         List dag runs ordered inverted to creation time.
 
         Args:
-            dag_id [str]: Id of the dag to list dag runs.
-        Kwargs:
-            limit [int]: Limit the number of dag runs to be returned.
-            execution_date_gte [str]: Query parameters.
-            execution_date_lte [str]: Query parameters.
-            start_date_gte [str]: Query parameters.
-            start_date_lte [str]: Query parameters.
-            end_date_gte [str]: Query parameters.
-            end_date_lte [str]: Query parameters.
-            state [str]: Query parameters.
-            order_by [str]: Query parameters.
+            dag_id:
+                Id of the dag to list dag runs.
+            limit:
+                Limit the number of dag runs to be returned.
+            execution_date_gte:
+                Query parameters.
+            execution_date_lte:
+                Query parameters.
+            start_date_gte:
+                Query parameters.
+            start_date_lte:
+                Query parameters.
+            end_date_gte:
+                Query parameters.
+            end_date_lte:
+                Query parameters.
+            state:
+                Query parameters.
+            order_by:
+                Query parameters.
         Return [list]:
             Return DAG run associated with ETLJob DAG.
         """
@@ -267,37 +280,37 @@ class AirflowMicroService():
         }
 
         if execution_date_gte is not None:
-            if type(execution_date_gte) == str:
+            if type(execution_date_gte) is str:
                 execution_date_gte = pd.to_datetime(
                     execution_date_gte).to_pydatetime()
             get_dag_runs_args["execution_date_gte"] = execution_date_gte
 
         if execution_date_lte is not None:
-            if type(execution_date_lte) == str:
+            if type(execution_date_lte) is str:
                 execution_date_lte = pd.to_datetime(
                     execution_date_lte).to_pydatetime()
             get_dag_runs_args["execution_date_lte"] = execution_date_lte
 
         if start_date_gte is not None:
-            if type(start_date_gte) == str:
+            if type(start_date_gte) is str:
                 start_date_gte = pd.to_datetime(
                     start_date_gte).to_pydatetime()
             get_dag_runs_args["start_date_gte"] = start_date_gte
 
         if start_date_lte is not None:
-            if type(start_date_lte) == str:
+            if type(start_date_lte) is str:
                 start_date_lte = pd.to_datetime(
                     start_date_lte).to_pydatetime()
             get_dag_runs_args["start_date_lte"] = start_date_lte
 
         if end_date_gte is not None:
-            if type(end_date_gte) == str:
+            if type(end_date_gte) is str:
                 end_date_gte = pd.to_datetime(
                     end_date_gte).to_pydatetime()
             get_dag_runs_args["end_date_gte"] = end_date_gte
 
         if end_date_lte is not None:
-            if type(end_date_lte) == str:
+            if type(end_date_lte) is str:
                 end_date_lte = pd.to_datetime(
                     end_date_lte).to_pydatetime()
             get_dag_runs_args["end_date_lte"] = end_date_lte
@@ -328,8 +341,10 @@ class AirflowMicroService():
         Get DAG run information.
 
         Args:
-            dag_id [str]: Identification of the DAG.
-            dag_run_id [str]: Identification of the DAG run.
+            dag_id:
+                Identification of the DAG.
+            dag_run_id:
+                Identification of the DAG run.
         Kwargs:
             No Kwargs.
         Return [dict]:
