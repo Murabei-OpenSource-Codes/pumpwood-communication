@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pumpwood-communication
-Version: 1.31.3
+Version: 1.33
 Summary: Package for inter Pumpwood loging and comunication
 Home-page: https://github.com/Murabei-OpenSource-Codes/pumpwood-communication
 Author: André Andrade Baceti
@@ -28,7 +28,7 @@ This packages facilitates the communication with end-points with Pumpwood patter
 developed by Murabei Data Science and is under BSD-3-Clause license.
 
 <p align="center" width="60%">
-  <img src="doc/sitelogo-horizontal.png" /> <br>
+  <img src="static_doc/sitelogo-horizontal.png" /> <br>
 
   <a href="https://en.wikipedia.org/wiki/Cecropia">
     Pumpwood is a native brasilian tree
@@ -367,3 +367,7 @@ It is possible to use other functions, the documentation can be gatered using th
 - parallel_execute_action
 - parallel_bulk_save
 - parallel_pivot
+
+
+# Link to documentation
+[documentation](docs/index.md)
