@@ -1,13 +1,9 @@
-"""
-Module serializers.py.
-
-Miscellaneous to help with serializers in communication.
-"""
+"""Miscellaneous to help with serializers in communication."""
 import base64
-import numbers
 import simplejson as json
 import numpy as np
 import pandas as pd
+from typing import List, Union
 from simplejson import JSONEncoder
 from datetime import datetime
 from datetime import date
@@ -20,13 +16,16 @@ from pumpwood_communication.exceptions import PumpWoodException
 
 
 class PumpWoodJSONEncoder(JSONEncoder):
-    """PumpWood default serializer."""
+    """
+    PumpWood default serializer.
+
+    Treat not simple python types to facilitate at serialization of
+    pandas, numpy, data, datetime and other data types.
+    """
 
     def default(self, obj):
         """Serialize complex objects."""
         # Return None if object is nan
-        if isinstance(obj, datetime):
-            return obj.isoformat()
         if isinstance(obj, datetime):
             return obj.isoformat()
         if isinstance(obj, Timestamp):
@@ -53,13 +52,24 @@ class PumpWoodJSONEncoder(JSONEncoder):
             return mapping(obj)
         if isinstance(obj, Choice):
             return obj.code
+        if isinstance(obj, set):
+            return list(obj)
         else:
             raise TypeError(
                 "Unserializable object {} of type {}".format(obj, type(obj)))
 
 
-def pumpJsonDump(x, sort_keys=True):
-    """Dump a Json to python object."""
+def pumpJsonDump(x: any, sort_keys: bool = True):
+    """
+    Dump a Json to python object.
+
+    Args:
+        x:
+            Object to be serialized using PumpWoodJSONEncoder encoder.
+        sort_keys:
+            If json serialized data should have its keys sorted. This option
+            makes serialization return of data reproductable.
+    """
     return json.dumps(
         x, cls=PumpWoodJSONEncoder, ignore_nan=True,
         sort_keys=sort_keys)
@@ -69,7 +79,7 @@ class CompositePkBase64Converter:
     """Convert composite primary keys in base64 dictionary."""
 
     @staticmethod
-    def dump(obj, primary_keys: list):
+    def dump(obj, primary_keys: List[str]) -> Union[str, int]:
         """
         Convert primary keys and composite to a single value.
 
@@ -78,14 +88,14 @@ class CompositePkBase64Converter:
         is returned.
 
         Args:
-            obj: SQLAlchemy object.
-            primary_keys [list]: List of primary keys of the object.
-        Kwargs:
-            No Kwargs.
-        Return [int | str]:
+            obj:
+                SQLAlchemy object.
+            primary_keys:
+                List of primary keys of the object.
+        Return:
             If the primary key is unique, return the value of the primary
-                key, if is have more than one column as primary key, return
-                a dictionary of the primary keys encoded as base64 url safe.
+            key, if is have more than one column as primary key, return
+            a dictionary of the primary keys encoded as base64 url safe.
         """
         if len(primary_keys) == 1:
             return getattr(obj, primary_keys[0])
@@ -98,7 +108,7 @@ class CompositePkBase64Converter:
                 composite_pk_str.encode()).decode()
 
     @staticmethod
-    def load(value):
+    def load(value: Union[str, int]) -> Union[int, dict]:
         """
         Convert encoded primary keys to values.
 
@@ -106,27 +116,30 @@ class CompositePkBase64Converter:
         decoding json base64 to a dictionary.
 
         Args:
-            value [int | str]: Primary key value as an integer or as a base64
+            value:
+                Primary key value as an integer or as a base64
                 encoded json dictionary.
-        Return [int | dict]:
+        Return:
             Return the primary key as integer if possible, or try to decoded
             it to a dictionary from a base64 encoded json.
         """
+        # Try to convert value to integer
         try:
             float_value = float(value)
             if float_value.is_integer():
                 return int(float_value)
             else:
-                msg = "Value is a float, but not integer: {}".format(
-                    float_value)
-                raise Exception(msg)
+                msg = "[{value}] value is a float, but not integer."
+                raise PumpWoodException(msg, payload={"value": value})
+
+        # If not possible, try to decode a base64 JSON dictonary
         except Exception as e1:
             try:
                 return json.loads(base64.b64decode(value))
             except Exception as e2:
                 msg = (
-                    "Primary is not an integer and could no be "
-                    "decoded as a base64 encoded json dictionary")
+                    "[{value}] value is not an integer and could no be "
+                    "decoded as a base64 encoded json dictionary. Value=")
                 raise PumpWoodException(
                     message=msg, payload={
                         "value": value,

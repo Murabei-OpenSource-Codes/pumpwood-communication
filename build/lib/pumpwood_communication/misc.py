@@ -1,18 +1,21 @@
 """Miscelaneus function to help in development."""
 import pandas as pd
+from typing import List
 
 
-def unpack_dict_columns(df: pd.DataFrame, columns: list) -> pd.DataFrame:
+def unpack_dict_columns(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
     """
-    Unpack dictonary columns at a dataframe.
+    Unpack dictinary columns at a dataframe.
 
     Return a copy of the dataframe with 'columns' unpacked and removed
     from result.
 
     Args:
-        df [pd.DataFrame]: Dataframe to unpack the columns.
-        columns [list]: List of columns to unpack in columns.
-    Return [pd.DataFrame]:
+        df:
+            Dataframe to unpack the columns.
+        columns:
+            List of columns to unpack in columns.
+    Return:
         Return a dataframe with dict columns unpacked.
     """
     list_unpacked_results = []
