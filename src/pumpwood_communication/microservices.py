@@ -26,7 +26,7 @@ from werkzeug.utils import secure_filename
 from pumpwood_communication.exceptions import (
     exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
     PumpWoodObjectSavingException, PumpWoodOtherException,
-    PumpWoodQueryException)
+    PumpWoodQueryException, PumpWoodNotImplementedError)
 from pumpwood_communication.serializers import (
     pumpJsonDump, CompositePkBase64Converter)
 from pumpwood_communication.misc import unpack_dict_columns
@@ -2194,8 +2194,7 @@ class PumpWoodMicroService():
             url=url_str, data=parcial_obj_dict,
             auth_header=auth_header)
 
-    # To be continued here !!!
-    def list_options(self, model_class: str, auth_header: dict):
+    def list_options(self, model_class: str, auth_header: dict) -> dict:
         """
         Return options to render list views.
 
@@ -2203,35 +2202,51 @@ class PumpWoodMicroService():
         object fillment.
 
         Args:
-          model_class (str): Model class to check filment options.
-        Kwargs:
-          auth_header(dict): Dictionary containing the auth header.
+            model_class:
+                Model class to check search parameters.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-          dict: Dictionary with possible data.
+            Dictionary with keys:
+            - **default_list_fields:** Default list field defined on the
+                application backend.
+            - **field_descriptions:** Description of the fields associated
+                with the model class.
         Raises:
-          Dependends on backend implementation.
-        Example:
-          No example yet.
+          No particular raise.
         """
         url_str = "rest/{basename}/list-options/".format(
             basename=model_class.lower())
         return self.request_get(
             url=url_str, auth_header=auth_header)
 
-    def retrieve_options(self, model_class: str, auth_header: dict = None):
+    def retrieve_options(self, model_class: str,
+                         auth_header: dict = None) -> dict:
         """
         Return options to render retrieve views.
 
+        Return information of the field sets that can be used to create
+        frontend site. It also return a `verbose_field` which can be used
+        to create the tittle of the page substituing the values with
+        information of the object.
+
         Args:
-          model_class (str): Model class to check filment options.
-        Kwargs:
-          auth_header(dict): Dictionary containing the auth header.
+          model_class:
+              Model class to check search parameters.
+          auth_header:
+              Auth header to substitute the microservice original
+              at the request (user impersonation).
         Returns:
-          dict: Dictionary with possible data.
+            Return a dictinary with keys:
+            - **verbose_field:** String sugesting how the tittle of the
+                retrieve might be created. It will use Python format
+                information ex.: `'{pk} | {description}'`.
+            - **fieldset:** An dictinary with organization of data,
+                setting field sets that could be grouped toguether in
+                tabs.
         Raises:
-          Dependends on backend implementation.
-        Example:
-          No example yet.
+            No particular raises.
         """
         url_str = "rest/{basename}/retrieve-options/".format(
             basename=model_class.lower())
@@ -2240,7 +2255,7 @@ class PumpWoodMicroService():
 
     def fill_validation(self, model_class: str, parcial_obj_dict: dict = {},
                         field: str = None, auth_header: dict = None,
-                        user_type: str = 'api'):
+                        user_type: str = 'api') -> dict:
         """
         Return options for object fields.
 
@@ -2248,17 +2263,29 @@ class PumpWoodMicroService():
         object fillment.
 
         Args:
-          model_class (str): Model class to check filment options.
-        Kwargs:
-          parcial_obj_dict (dict): Partial object data
-          field (str): Get an specific field information
-          auth_header(dict): Dictionary containing the auth header.
+            model_class:
+                Model class to check search parameters.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
+            parcial_obj_dict:
+                Partial object data to be validated by the backend.
+            field:
+                Set an especific field to be validated if implemented.
+            user_type:
+                Set the type of user is requesting fill validation. It is
+                possible to set `api` and `gui`. Gui user_type will return
+                fields listed in gui_readonly as read-only fields to
+                facilitate navegation.
         Returns:
-          dict: Dictionary with possible data.
+            Return a dictinary with keys:
+            - **field_descriptions:** Same of fill_options, but setting as
+                read_only=True fields listed on gui_readonly if
+                user_type='gui'.
+            - **gui_readonly:** Return a list of fields that will be
+                considered as read-only if user_type='gui' is requested.
         Raises:
-          Dependends on backend implementation
-        Example:
-          No example yet.
+            No particular raises.
         """
         url_str = "rest/{basename}/retrieve-options/".format(
             basename=model_class.lower())
@@ -2276,34 +2303,62 @@ class PumpWoodMicroService():
     def pivot(self, model_class: str, columns: list = [], format: str = 'list',
               filter_dict: dict = {}, exclude_dict: dict = {},
               order_by: list = [], variables: list = None,
-              show_deleted=False, auth_header: dict = None):
+              show_deleted=False, auth_header: dict = None) -> any:
         """
         Pivot object data acording to columns specified.
 
+        Pivoting per-se is not usually used, beeing the name of the function
+        a legacy. Normality data transformation is done at the client level.
+
         Args:
-            model_class (str): Model class to be pivoted.
-        Kwargs:
-            columns (str): Fields to be used as columns.
-            format (str): Format to be used to convert pandas.DataFrame to
-                          dictionary, must be in ['dict','list','series',
-                          'split', 'records','index'].
-            filter_dict (dict): Dictionary to to be used in objects.filter
-                                argument (Same as list end-point).
-            exclude_dict (dict): Dictionary to to be used in objects.exclude
-                                 argument (Same as list end-point).
-            order_by (list): Dictionary to to be used in objects.order_by
-                             argument (Same as list end-point).
-            variables (list[str]) = None: List of the variables to be returned,
-                if None, the default variables will be returned.
-            show_deleted (bool): If deleted data should be returned.
-            auth_header(dict): Dictionary containing the auth header.
+            model_class:
+                Model class to check search parameters.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
+            columns:
+                List of fields to be used as columns when pivoting the data.
+            format:
+                Format to be used to convert pandas.DataFrame to
+                dictionary, must be in ['dict','list','series',
+                'split', 'records','index'].
+            filter_dict:
+                Same as list function.
+            exclude_dict:
+                Same as list function.
+            order_by:
+                 Same as list function.
+            variables:
+                List of the fields to be returned, if None, the default
+                variables will be returned. Same as fields on list functions.
+            show_deleted:
+                Fields with deleted column will have objects with deleted=True
+                omited from results. show_deleted=True will return this
+                information.
         Returns:
-            dict or list: Depends on format type used to convert
-                          pandas.DataFrame
+            Return a list or a dictinary depending on the format set on
+            format parameter.
         Raises:
-            Dependends on backend implementation
-        Example:
-            No example yet.
+            PumpWoodException:
+                'Columns must be a list of elements.'. Indicates that the list
+                argument was not a list.
+            PumpWoodException:
+                'Column chosen as pivot is not at model variables'. Indicates
+                that columns that were set to pivot are not present on model
+                variables.
+            PumpWoodException:
+                "Format must be in ['dict','list','series','split',
+                'records','index']". Indicates that format set as paramenter
+                is not implemented.
+            PumpWoodException:
+                "Can not add pk column and pivot information". If
+                add_pk_column is True (results will have the pk column), it is
+                not possible to pivot the information (pk is an unique value
+                for each object, there is no reason to pivot it).
+            PumpWoodException:
+                "'value' column not at melted data, it is not possible
+                to pivot dataframe.". Indicates that data does not have a value
+                column, it must have it to populate pivoted table.
         """
         url_str = self._build_pivot_url(model_class)
         post_data = {
@@ -2370,34 +2425,48 @@ class PumpWoodMicroService():
                             n_parallel: int = None,
                             create_composite_pk: bool = False,
                             start_date: str = None,
-                            end_date: str = None):
+                            end_date: str = None) -> pd.DataFrame:
         """
-        Use the same end-point as pivot which does not unserialize results.
+        Incrementally fetch data from pivot end-point.
+
+        Fetch data from pivot end-point paginating by id of chunk_size lenght.
+
+        If table is partitioned it will split the query acording to partition
+        to facilitate query at the database.
+
+        If start_date and end_date are set, also breaks the query by month
+        retrieving each month data in parallel.
 
         Args:
-            model_class (str): Model class to be pivoted.
-
-        Kwargs:
-            filter_dict (dict): Dictionary to to be used in objects.filter
-                                argument (Same as list end-point).
-            exclude_dict (dict): Dictionary to to be used in objects.exclude
-                                 argument (Same as list end-point).
-            fields (list[str]) = None: List of the variables to be returned,
+            model_class:
+                Model class to be pivoted.
+            filter_dict:
+                Dictionary to to be used in objects.filter argument
+                (Same as list end-point).
+            exclude_dict:
+                Dictionary to to be used in objects.exclude argument
+                (Same as list end-point).
+            fields:
+                List of the variables to be returned,
                 if None, the default variables will be returned.
-            show_deleted (bool): If deleted data should be returned.
-            auth_header(dict): Dictionary containing the auth header.
-            chunk_size (int): Limit of data to fetch per call.
-            n_parallel (int): Number of parallel process to perform.
-
+            show_deleted:
+                If deleted data should be returned.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
+            chunk_size:
+                Limit of data to fetch per call.
+            n_parallel:
+                Number of parallel process to perform.
+            create_composite_pk:
+                If true and table has a composite pk, it will create pk
+                value based on the hash on the json serialized dictionary
+                of the components of the primary key.
         Returns:
-            dict or list: Depends on format type used to convert
-                          pandas.DataFrame
+            Returns a dataframe with all information fetched.
 
         Raises:
-            Dependends on backend implementation
-
-        Example:
-            No example yet.
+            No particular raise.
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
@@ -2438,6 +2507,7 @@ class PumpWoodMicroService():
                     "end_date": end_date})
 
         resp_df = pd.DataFrame()
+
         ##########################################################
         # If table have more than one partition, run in parallel #
         # the {partition}__in elements along with dates          #
@@ -2559,24 +2629,64 @@ class PumpWoodMicroService():
         return "rest/%s/bulk-save/" % (model_class.lower(),)
 
     def bulk_save(self, model_class: str, data_to_save: list,
-                  auth_header: dict = None):
+                  auth_header: dict = None) -> dict:
         """
-        Save a list of objects.
+        Save a list of objects with one request.
+
+        It is used with a unique call save many objects at the same time. It
+        is necessary that the end-point is able to receive bulk save requests
+        and all objects been of the same model class.
 
         Args:
-            model_class(str): Data model class.
-            data_to_save(list): A list of objects to be saved.
-        Kwargs:
-            auth_header(dict): A dictionary with authorization headers.
+            model_class:
+                Data model class.
+            data_to_save:
+                A list of objects to be saved.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            dict['saved_count']: Number of saved objects.
+            A dictinary with `saved_count` as key indicating the number of
+            objects that were saved in database.
+        Raises:
+            PumpWoodException:
+                'Expected columns and data columns do not match: Expected
+                columns: {expected} Data columns: {data_cols}'. Indicates
+                that the expected fields of the object were not met at the
+                objects passed to save.
+            PumpWoodException:
+                Other sqlalchemy and psycopg2 errors not associated with
+                IntegrityError.
+            PumpWoodException:
+                'Bulk save not avaiable.'. Indicates that Bulk save end-point
+                was not configured for this model_class.
+            PumpWoodIntegrityError:
+                Raise integrity errors from sqlalchemy and psycopg2. Usually
+                associated with uniqueness of some column.
         """
         url_str = self._build_bulk_save_url(model_class=model_class)
-        return self.request_post(url=url_str, data=data_to_save,
-                                 auth_header=auth_header)
+        return self.request_post(
+            url=url_str, data=data_to_save,
+            auth_header=auth_header)
 
     ########################
     # Paralell aux functions
+    @staticmethod
+    def flatten_parallel(parallel_result: list):
+        """
+        Concat all parallel return to one list.
+
+        Args:
+            parallel_result:
+                A list of lists to be flated (concatenate
+                all lists into one).
+        Returns:
+            A list with all sub list itens.
+        """
+        return [
+            item for sublist in parallel_result
+            for item in sublist]
+
     def _request_get_wrapper(self, arguments: dict):
         try:
             results = self.request_get(**arguments)
@@ -2586,48 +2696,75 @@ class PumpWoodMicroService():
         except Exception as e:
             raise Exception("Error on parallel get: " + str(e))
 
-    @staticmethod
-    def flatten_parallel(parallel_result: list):
-        """
-        Concat all parallel return to one list.
-
-        Args:
-            parallel_result (list): A list of lists to be flated (concatenate
-                all lists into one).
-        Returns:
-            A list with all sub list itens.
-        """
-        return [
-            item for sublist in parallel_result
-            for item in sublist]
-
     def parallel_request_get(self, urls_list: list, n_parallel: int = None,
-                             auth_header: dict = None):
+                             parameters: Union[List[dict], dict] = None,
+                             auth_header: dict = None) -> List[any]:
         """
-        Make many [n_parallel] get request.
+        Make [n_parallel] parallel get requests.
 
         Args:
-            urls_list (list): List of urls to make get requests.
-        Kwargs:
-            n_parallel (int): Number of simultaneus get requests, if not set
+            urls_list:
+                List of urls to make get requests.
+            parameters:
+                A list of dictionary or a dictionary that will be replicated
+                len(urls_list) and passed to parallel request as url
+                parameter. If not set, empty dictionary will be passed to all
+                request as default.
+            n_parallel:
+                Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the get request reponses.
+            Return a list with all get request reponses. The results are
+            on the same order of argument list.
         Raises:
-            No particular raises
-        Example:
-            No example yet.
-
+            PumpWoodException:
+                'lenght of urls_list[{}] is different of parameters[{}]'.
+                Indicates that the function arguments `urls_list` and
+                `parameters` (when passed as a list of dictionaries)
+                does not have de same lenght.
+            PumpWoodNotImplementedError:
+                'paraemters type[{}] is not implemented'. Indicates that
+                `parameters` passed as function argument is not a list of dict
+                or a dictinary, so not implemented.
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
-        pool_arguments = [
-            {'url': u, 'auth_header': auth_header} for u in urls_list]
+        # Create url parameters if not set as parameter with
+        # empty dictinaries
+        n_urls = len(urls_list)
+        parameters_list = None
+        if parameters is None:
+            parameters = [{}]*n_urls
+        elif type(parameters) is dict:
+            parameters = [{parameters}]*n_urls
+        elif type(parameters) is list:
+            if len(parameters) == n_urls:
+                parameters_list = parameters
+            else:
+                msg = (
+                    'lenght of urls_list[{}] is different of ' +
+                    'parameters[{}]').format(
+                        n_urls, len(parameters))
+                raise PumpWoodException(msg)
+        else:
+            msg = 'paraemters type[{}] is not implemented'.format(
+                str(type(parameters)))
+            raise PumpWoodNotImplementedError(msg)
 
+        # Create Pool arguments to run in parallel
+        pool_arguments = []
+        for i in range(len(urls_list)):
+            pool_arguments.append({
+                'url': urls_list[i], 'auth_header': auth_header,
+                'parameters': parameters_list[i]})
+
+        # Run requests in parallel
         with Pool(n_parallel) as p:
             results = p.map(self._request_get_wrapper, pool_arguments)
         print("|")
@@ -2642,37 +2779,78 @@ class PumpWoodMicroService():
         except Exception as e:
             raise Exception("Error in parallel post: " + str(e))
 
-    def paralell_request_post(self, urls_list: list, data_list: list,
+    def paralell_request_post(self, urls_list: List[str],
+                              data_list: List[dict],
+                              parameters: Union[List[dict], dict] = None,
                               n_parallel: int = None,
-                              auth_header: dict = None):
+                              auth_header: dict = None) -> List[any]:
         """
-        Make many [n_parallel] post request.
+        Make [n_parallel] parallel post request.
 
         Args:
-            urls_list (list<str>): List of urls to make get requests.
-            data_list (list<any>): List of data to be used as post payloads.
-        Kwargs:
-            n_parallel (int): Number of simultaneus get requests, if not set
+            urls_list:
+                List of urls to make get requests.
+            data_list:
+                List of data to be used as post payloads.
+            parameters:
+                URL paramenters to make the post requests.
+            n_parallel:
+                Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the post request reponses.
+            List of the post request reponses.
         Raises:
             No particular raises
         Example:
             No example yet.
 
         """
-        if len(urls_list) != len(data_list):
-            raise Exception(
-                'len(urls_list) must be equal to len(data_list)')
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
+        # Create url parameters if not set as parameter with
+        # empty dictinaries
+        n_urls = len(urls_list)
+        parameters_list = None
+        if parameters is None:
+            parameters = [{}]*n_urls
+        elif type(parameters) is dict:
+            parameters = [{parameters}]*n_urls
+        elif type(parameters) is list:
+            if len(parameters) == n_urls:
+                parameters_list = parameters
+            else:
+                msg = (
+                    'lenght of urls_list[{}] is different of ' +
+                    'parameters[{}]').format(
+                        n_urls, len(parameters))
+                raise PumpWoodException(msg)
+        else:
+            msg = 'paraemters type[{}] is not implemented'.format(
+                str(type(parameters)))
+            raise PumpWoodNotImplementedError(msg)
+
+        # Validate if len of url is the same of data_list
+        if len(urls_list) != len(data_list):
+            msg = (
+                'len(urls_list)[{}] must be equal ' +
+                'to len(data_list)[{}]').format(
+                    len(urls_list), len(data_list))
+            raise PumpWoodException(msg)
+
+        # Create the arguments for parallel requests
         pool_arguments = []
         for i in range(len(urls_list)):
-            pool_arguments.append(
-                {'url': urls_list[i], 'data': data_list[i],
-                 'auth_header': auth_header})
+            pool_arguments.append({
+                'url': urls_list[i],
+                'data': data_list[i],
+                'parameters': parameters_list[i],
+                'auth_header': auth_header})
 
         with Pool(n_parallel) as p:
             results = p.map(self._request_post_wrapper, pool_arguments)
@@ -2688,52 +2866,26 @@ class PumpWoodMicroService():
         except Exception as e:
             raise Exception("Error in parallel delete: " + str(e))
 
-    def paralell_request_delete(self, urls_list: list, n_parallel: int = None,
+    def paralell_request_delete(self, urls_list: List[str],
+                                parameters: Union[List[dict], dict] = None,
+                                n_parallel: int = None,
                                 auth_header: dict = None):
         """
-        Make many [n_parallel] delete request.
+        Make [n_parallel] parallel delete request.
 
         Args:
-            urls_list (list): List of urls to make get requests.
-        Kwargs:
+            urls_list:
+                List of urls to make get requests.
+            parameters:
+                URL paramenters to make the post requests.
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
             list: List of the get request reponses.
-        Raises:
-            No particular raises
-        Example:
-            No example yet.
-
-        """
-        pool_arguments = [
-            {'url': u, 'auth_header': auth_header} for u in urls_list]
-
-        with Pool(n_parallel) as p:
-            results = p.map(self._request_delete_wrapper, pool_arguments)
-        print("|")
-        return results
-
-    ####################
-    # Paralell functions
-    def parallel_retrieve(self, model_class: Union[str, List[str]],
-                          list_pk: List[int], n_parallel: int = None,
-                          auth_header: dict = None):
-        """
-        Make many [n_parallel] retrieve request.
-
-        Args:
-            model_class (str, List[str]): Model Class to retrieve.
-            list_pk (List[int]): List of the pks to retrieve.
-        Kwargs:
-            n_parallel (int): Number of simultaneus get requests, if not set
-                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
-        Returns:
-            list: List of the retrieve request reponses.
         Raises:
             No particular raises
         Example:
@@ -2744,18 +2896,111 @@ class PumpWoodMicroService():
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
-        if type(model_class) != list:
-            model_class = [model_class]*len(list_pk)
+        # Create url parameters if not set as parameter with
+        # empty dictinaries
+        n_urls = len(urls_list)
+        parameters_list = None
+        if parameters is None:
+            parameters = [{}]*n_urls
+        elif type(parameters) is dict:
+            parameters = [{parameters}]*n_urls
+        elif type(parameters) is list:
+            if len(parameters) == n_urls:
+                parameters_list = parameters
+            else:
+                msg = (
+                    'lenght of urls_list[{}] is different of ' +
+                    'parameters[{}]').format(
+                        n_urls, len(parameters))
+                raise PumpWoodException(msg)
+        else:
+            msg = 'paraemters type[{}] is not implemented'.format(
+                str(type(parameters)))
+            raise PumpWoodNotImplementedError(msg)
 
-        if len(model_class) != len(list_pk):
-            raise Exception('len(model_class) != len(list_pk)')
+        # Create Pool arguments to run in parallel
+        pool_arguments = []
+        for i in range(len(urls_list)):
+            pool_arguments.append({
+                'url': urls_list[i], 'auth_header': auth_header,
+                'parameters': parameters_list[i]})
+
+        with Pool(n_parallel) as p:
+            results = p.map(self._request_delete_wrapper, pool_arguments)
+        print("|")
+        return results
+
+    ######################
+    # Paralell functions #
+    def parallel_retrieve(self, model_class: Union[str, List[str]],
+                          list_pk: List[int], default_fields: bool = False,
+                          foreign_key_fields: bool = False,
+                          related_fields: bool = False,
+                          fields: list = None, n_parallel: int = None,
+                          auth_header: dict = None):
+        """
+        Make [n_parallel] parallel retrieve request.
+
+        Args:
+            model_class:
+                Model Class to retrieve.
+            list_pk:
+                List of the pks to retrieve.
+            fields:
+                Set the fields to be returned by the list end-point.
+            default_fields:
+                Boolean, if true and fields arguments None will return the
+                default fields set for list by the backend.
+            foreign_key_fields:
+                Return forenging key objects. It will return the fk
+                corresponding object. Ex: `created_by_id` reference to
+                a user `model_class` the correspondent to User will be
+                returned at `created_by`.
+            related_fields:
+                Return related fields objects. Related field objects are
+                objects that have a forenging key associated with this
+                model_class, results will be returned as a list of
+                dictionaries usually in a field with `_set` at end.
+                Returning related_fields consume backend resorces, use
+                carefully.
+            n_parallel (int): Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 4 will be considered.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
+        Returns:
+            List of the retrieve request data.
+        Raises:
+            PumpWoodException:
+                'len(model_class)[{}] != len(list_pk)[{}]'. Indicates that
+                the lenght of the arguments model_class and list_pk are
+                incompatible.
+        """
+        if n_parallel is None:
+            n_parallel = int(os.getenv(
+                "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
+
+        if type(model_class) is str:
+            model_class = [model_class]*len(list_pk)
+        elif type(model_class) is list:
+            if len(model_class) != len(list_pk):
+                msg = (
+                    'len(model_class)[{}] != len(list_pk)[{}]').format(
+                        len(model_class), len(list_pk))
+                raise PumpWoodException(msg)
 
         urls_list = [
-            self._build_retrieve_url(model_class=model_class[i],
-                                     pk=list_pk[i])
+            self._build_retrieve_url(
+                model_class=model_class[i], pk=list_pk[i])
             for i in range(len(model_class))]
+
         return self.parallel_request_get(
             urls_list=urls_list, n_parallel=n_parallel,
+            parameters={
+                "fields": fields, "default_fields": default_fields,
+                "foreign_key_fields": foreign_key_fields,
+                "related_fields": related_fields},
             auth_header=auth_header)
 
     def _request_retrieve_file_wrapper(self, args):
@@ -2777,32 +3022,39 @@ class PumpWoodMicroService():
         Make many [n_parallel] retrieve request.
 
         Args:
-            model_class (str, List[str]): Model Class to retrieve.
-            list_pk (List[int]): List of the pks to retrieve.
-            file_field (str): Indicates the file field to download from.
-        Kwargs:
-            n_parallel (int): Number of simultaneus get requests, if not set
+            model_class:
+                Model Class to retrieve.
+            list_pk:
+                List of the pks to retrieve.
+            file_field:
+                Indicates the file field to download from.
+            n_parallel:
+                Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            save_path (str) = "./"
-            save_file (bool) = True: True save file locally, False return
-                file content as bites.
-            list_file_name (List[str]) = None: Set a file name for each file
-                download.
-            if_exists (str) = "fail": Set how treat when a file will be saved
+            save_path:
+                Path to be used to save files.
+            save_file:
+                True save file locally, False return file content as bites.
+            list_file_name:
+                Set a file name for each file download.
+            if_exists:
+                Set how treat when a file will be saved
                 and there is another at same path. "fail" will raise an error;
                 "overwrite" will overwrite the file with the new one; "skip"
                 when list_file_name is set, check before downloaded it file
                 already exists, if so skip the download.
-            auth_header(dict): Dictionary containing the auth header.
-
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the retrieve request reponses.
+            List of the retrieve file request data.
         Raises:
-            No particular raises
-        Example:
-            No example yet.
-
+            PumpWoodException:
+                'Lenght of list_file_name and list_pk are not equal:
+                len(list_file_name)={list_file_name}; len(list_pk)={list_pk}'.
+                Indicates that len(list_file_name) and len(list_pk) function
+                arguments are not equal.
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
@@ -2811,8 +3063,8 @@ class PumpWoodMicroService():
         if list_file_name is not None:
             if len(list_file_name) != len(list_pk):
                 raise PumpWoodException((
-                    "Lenght of list_file_name and list_pk are not equal:\n"
-                    "len(list_file_name)={list_file_name}; "
+                    "Lenght of list_file_name and list_pk are not equal:\n" +
+                    "len(list_file_name)={list_file_name}; " +
                     "len(list_pk)={list_pk}").format(
                         list_file_name=len(list_file_name),
                         list_pk=len(list_pk)))
@@ -2823,7 +3075,6 @@ class PumpWoodMicroService():
             file_name = None
             if list_file_name is not None:
                 file_name = list_file_name[i]
-
             pool_arguments.append({
                 "model_class": model_class, "pk": pk,
                 "file_field": file_field, "auth_header": auth_header,
@@ -2843,37 +3094,44 @@ class PumpWoodMicroService():
 
     def parallel_list(self, model_class: Union[str, List[str]],
                       list_args: List[dict], n_parallel: int = None,
-                      auth_header: dict = None):
+                      auth_header: dict = None, fields: list = None,
+                      default_fields: bool = False, limit: int = None,
+                      foreign_key_fields: bool = False) -> List[dict]:
         """
-        Make many [n_parallel] list request.
+        Make [n_parallel] parallel list request.
 
         Args:
-            model_class (str): Model Class to retrieve.
-            list_args_list (list): A list of list request args (filter_dict,
-                                   exclude_dict, order_by).
-        Kwargs:
+            model_class:
+                Model Class to retrieve.
+            list_args_list:
+                A list of list request args (filter_dict,
+                exclude_dict, order_by, fields, default_fields, limit,
+                foreign_key_fields).
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the retrieve request reponses.
+            Flatten List of the list request reponses.
         Raises:
-            No particular raises
-        Example:
-            No example yet.
-
+            PumpWoodException:
+                'len(model_class)[{}] != len(list_args)[{}]'. Indicates that
+                lenght of model_class and list_args arguments are not equal.
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         urls_list = None
-        if type(model_class) == str:
+        if type(model_class) is str:
             urls_list = [self._build_list_url(model_class)]*len(list_args)
         else:
             if len(model_class) != len(list_args):
-                raise Exception('len(model_class) != len(list_args)')
+                msg = 'len(model_class)[{}] != len(list_args)[{}]'.format(
+                    len(model_class), len(list_args))
+                raise PumpWoodException(msg)
             urls_list = [self._build_list_url(m) for m in model_class]
 
         print("## Starting parallel_list: %s" % len(urls_list))
@@ -2886,38 +3144,41 @@ class PumpWoodMicroService():
                                   n_parallel: int = None,
                                   auth_header: dict = None):
         """
-        Make many [n_parallel] list_without_pag request.
+        Make [n_parallel] parallel list_without_pag request.
 
         Args:
-            model_class (str): Model Class to retrieve.
-            list_args (list): A list of list request args
-                                               (filter_dict,exclude_dict,
-                                               order_by).
-        Kwargs:
+            model_class:
+                Model Class to retrieve.
+            list_args_list:
+                A list of list request args (filter_dict,
+                exclude_dict, order_by, fields, default_fields, limit,
+                foreign_key_fields).
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the retrieve request reponses.
+            Flatten List of the list request reponses.
         Raises:
-            No particular raises
-        Example:
-            No example yet.
-
+            PumpWoodException:
+                'len(model_class)[{}] != len(list_args)[{}]'. Indicates that
+                lenght of model_class and list_args arguments are not equal.
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         urls_list = None
-        if type(model_class) == str:
+        if type(model_class) is str:
             url_temp = [self._build_list_without_pag_url(model_class)]
             urls_list = url_temp*len(list_args)
         else:
             if len(model_class) != len(list_args):
-                raise Exception(
-                    'len(model_class) != len(list_args)')
+                msg = 'len(model_class)[{}] != len(list_args)[{}]'.format(
+                    len(model_class), len(list_args))
+                raise PumpWoodException(msg)
             urls_list = [
                 self._build_list_without_pag_url(m) for m in model_class]
 
@@ -2930,33 +3191,38 @@ class PumpWoodMicroService():
                           list_pk: List[int], n_parallel: int = None,
                           auth_header: dict = None):
         """
-        Make many [n_parallel] list_one request.
+        Make [n_parallel] parallel list_one request.
+
+        DEPRECTED user retrieve call with default_fields=True.
 
         Args:
-            model_class (str or list<str>): Model Class to retrieve.
-            list_pk (list): List of the pks to retrieve.
-        Kwargs:
-            n_parallel (int): Number of simultaneus get requests, if not set
+            model_class:
+                Model Class to list one.
+            list_pk:
+                List of the pks to list one.
+            n_parallel:
+                Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the retrieve request reponses.
+            List of the list_one request data.
         Raises:
-            No particular raises
-        Example:
-            No example yet.
-
+            PumpWoodException:
+                'len(model_class) != len(list_pk)'. Indicates that lenght
+                of model_class and list_pk arguments are not equal.
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
-        if type(model_class) != list:
+        if type(model_class) is list:
             model_class = [model_class]*len(list_pk)
 
-        if len(model_class) != len(list_pk):
-            raise Exception('len(model_class) != len(list_pk)')
+        if len(model_class) is len(list_pk):
+            raise PumpWoodException('len(model_class) != len(list_pk)')
 
         urls_list = [
             self._build_list_one_url(model_class=model_class[i],
@@ -2969,25 +3235,26 @@ class PumpWoodMicroService():
             auth_header=auth_header)
 
     def parallel_save(self, list_obj_dict: List[dict],
-                      n_parallel: int = None, auth_header: dict = None):
+                      n_parallel: int = None,
+                      auth_header: dict = None) -> List[dict]:
         """
-        Make many [n_parallel] save requests.
+        Make [n_parallel] parallel save requests.
 
         Args:
-            list_obj_dict (list<dict>): List of dictionaries containing
-                PumpWood objects (must have at least 'model_class' key)
-        Kwargs:
-            n_parallel (int): Number of simultaneus get requests, if not set
+            list_obj_dict:
+                List of dictionaries containing PumpWood objects
+                (must have at least 'model_class' key).
+            n_parallel:
+                Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the retrieve request reponses.
+            List of the save request data.
         Raises:
             No particular raises
-        Example:
-            No example yet.
-
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
@@ -3007,31 +3274,35 @@ class PumpWoodMicroService():
         Make many [n_parallel] delete requests.
 
         Args:
-            model_class (str): Model Class to retrieve.
-            list_obj_dict (list<dict>): List of dictionaries containing
-                PumpWood objects (must have at least 'model_class' key)
-        Kwargs:
-            n_parallel (int): Number of simultaneus get requests, if not set
+            model_class:
+                Model Class to list one.
+            list_pk:
+                List of the pks to list one.
+            n_parallel:
+                Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the retrieve request reponses.
+            List of the delete request data.
         Raises:
-            No particular raises
-        Example:
-            No example yet.
-
+            PumpWoodException:
+                'len(model_class)[{}] != len(list_args)[{}]'. Indicates
+                that length of model_class and list_args arguments are not
+                equal.
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
-        if type(model_class) != list:
+        if type(model_class) is list:
             model_class = [model_class]*len(list_pk)
-
         if len(model_class) != len(list_pk):
-            raise Exception('len(model_class) != len(list_pk)')
+            msg = 'len(model_class)[{}] != len(list_args)[{}]'.format(
+                len(model_class), len(list_pk))
+            raise PumpWoodException(msg)
 
         urls_list = [
             self._build_delete_request_url(model_class=model_class[i],
@@ -3045,24 +3316,29 @@ class PumpWoodMicroService():
 
     def parallel_delete_many(self, model_class: Union[str, List[str]],
                              list_args: List[dict], n_parallel: int = None,
-                             auth_header: dict = None):
+                             auth_header: dict = None) -> List[dict]:
         """
-        Make many [n_parallel] list_without_pag request.
+        Make [n_parallel] parallel delete_many request.
 
         Args:
-            model_class (str): Model Class to retrieve.
-            list_args (list): A list of list request args
-                                               (filter_dict,exclude_dict,
-                                               order_by).
-        Kwargs:
-            n_parallel (int): Number of simultaneus get requests, if not set
+            model_class (str):
+                Model Class to delete many.
+            list_args (list):
+                A list of list request args (filter_dict, exclude_dict).
+            n_parallel:
+                Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the retrieve request reponses.
+            List of the delete many request reponses.
         Raises:
-            No particular raises
+            PumpWoodException:
+                'len(model_class)[{}] != len(list_args)[{}]'. Indicates
+                that length of model_class and list_args arguments
+                are not equal.
         Example:
             No example yet.
 
@@ -3072,13 +3348,14 @@ class PumpWoodMicroService():
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         urls_list = None
-        if type(model_class) == str:
+        if type(model_class) is str:
             url_temp = [self._build_delete_many_request_url(model_class)]
             urls_list = url_temp*len(list_args)
         else:
             if len(model_class) != len(list_args):
-                raise Exception(
-                    'len(model_class) != len(list_args)')
+                msg = 'len(model_class)[{}] != len(list_args)[{}]'.format(
+                    len(model_class), len(list_args))
+                raise PumpWoodException(msg)
             urls_list = [
                 self._build_list_without_pag_url(m) for m in model_class]
 
@@ -3092,28 +3369,36 @@ class PumpWoodMicroService():
                                 action: Union[str, List[str]],
                                 parameters: Union[dict, List[dict]] = {},
                                 n_parallel: int = None,
-                                auth_header: dict = None):
+                                auth_header: dict = None) -> List[dict]:
         """
-        Make many [n_parallel] execute_action requests.
+        Make [n_parallel] parallel execute_action requests.
 
         Args:
-            model_class (str, list(str)): Model Class to perform action over,
+            model_class:
+                Model Class to perform action over,
                 or a list of model class o make diferent actions.
-            pk (int, list[int]): A list of the pks to perform action or a
+            pk:
+                A list of the pks to perform action or a
                 single pk to perform action with different paraemters.
-            action (str, list[str]): A list of actions to perform or a single
+            action:
+                A list of actions to perform or a single
                 action to perform over all pks and parameters.
-        Kwargs:
-            parameters (dict, list[dict]): Parameters used to perform actions
+            parameters:
+                Parameters used to perform actions
                 or a single dict to be used in all actions.
-            n_parallel (int): Number of simultaneus get requests, if not set
+            n_parallel:
+                Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the retrieve request reponses.
+            List of the execute_action request data.
         Raises:
-            No particular raises
+            PumpWoodException:
+                'parallel_length != len([argument])'. Indicates that function
+                arguments does not have all the same lenght.
         Example:
             No example yet.
 
@@ -3123,39 +3408,50 @@ class PumpWoodMicroService():
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         parallel_length = None
-        if type(model_class) == list:
+        if type(model_class) is list:
             if parallel_length is not None:
                 if parallel_length != len(model_class):
-                    raise Exception('parallel_length != len(model_class)')
+                    raise PumpWoodException(
+                        'parallel_length != len(model_class)')
             else:
                 parallel_length = len(model_class)
-        if type(pk) == list:
+
+        if type(pk) is list:
             if parallel_length is not None:
                 if parallel_length != len(pk):
-                    raise Exception('parallel_length != len(pk)')
+                    raise PumpWoodException(
+                        'parallel_length != len(pk)')
             else:
                 parallel_length = len(pk)
-        if type(action) == list:
+
+        if type(action) is list:
             if parallel_length is not None:
                 if parallel_length != len(action):
-                    raise Exception('parallel_length != len(action)')
+                    raise PumpWoodException(
+                        'parallel_length != len(action)')
             else:
                 parallel_length = len(action)
-        if type(parameters) == list:
+
+        if type(parameters) is list:
             if parallel_length is not None:
                 if parallel_length != len(parameters):
-                    raise Exception('parallel_length != len(parameters)')
+                    raise PumpWoodException(
+                        'parallel_length != len(parameters)')
             else:
                 parallel_length = len(parameters)
 
-        model_class = model_class if type(model_class) == list \
-            else [model_class]*parallel_length
-        pk = pk if type(pk) == list \
-            else [pk]*parallel_length
-        action = action if type(action) == list \
-            else [action]*parallel_length
-        parameters = parameters if type(parameters) == list \
-            else [parameters]*parallel_length
+        model_class = (
+            model_class if type(model_class) is list
+            else [model_class]*parallel_length)
+        pk = (
+            pk if type(pk) is list
+            else [pk]*parallel_length)
+        action = (
+            action if type(action) is list
+            else [action]*parallel_length)
+        parameters = (
+            parameters if type(parameters) is list
+            else [parameters]*parallel_length)
 
         urls_list = [
             self._build_execute_action_url(
@@ -3167,31 +3463,38 @@ class PumpWoodMicroService():
             urls_list=urls_list, data_list=parameters,
             n_parallel=n_parallel, auth_header=auth_header)
 
-    def parallel_bulk_save(self, model_class, data_to_save,
+    def parallel_bulk_save(self, model_class: str,
+                           data_to_save: Union[pd.DataFrame, List[dict]],
                            n_parallel: int = None, chunksize: int = 1000,
                            auth_header: dict = None):
         """
-        Break data_to_save in many parallel requests.
+        Break data_to_save in many parallel bulk_save requests.
 
         Args:
-            model_class: Model class of the data that will be saved.
-            data_to_save(list or pandas.DataFrame): Data that will be saved
-        Kwards:
-            n_parallel(int)=10: Number of parallel jobs to be used.
-            chunksize(int)=1000: Length of each parallel post chunk.
-            auth_header(dict)=None: Dictionary containing the auth header.
+            model_class:
+                Model class of the data that will be saved.
+            data_to_save:
+                Data that will be saved
+            chunksize:
+                Length of each parallel bulk save chunk.
+            n_parallel:
+                Number of simultaneus get requests, if not set
+                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
+                not set then 4 will be considered.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the responses of bulk_save.
+            List of the responses of bulk_save.
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
-        if type(data_to_save) == list:
+        if type(data_to_save) is list:
             data_to_save = pd.DataFrame(data_to_save)
 
-        chunks = break_in_chunks(df_to_break=data_to_save,
-                                 chunksize=chunksize)
+        chunks = break_in_chunks(df_to_break=data_to_save, chunksize=chunksize)
         url = self._build_bulk_save_url(model_class)
         urls_list = [url]*len(chunks)
 
@@ -3202,26 +3505,31 @@ class PumpWoodMicroService():
 
     def parallel_pivot(self, model_class: str, list_args: List[dict],
                        columns: List[str], format: str, n_parallel: int = None,
-                       variables: list = None, show_deleted=False,
-                       auth_header: dict = None):
+                       variables: list = None, show_deleted: bool = False,
+                       auth_header: dict = None) -> List[dict]:
         """
-        Make many [n_parallel] pivot request.
+        Make [n_parallel] parallel pivot request.
 
         Args:
-            model_class (str): Model Class to retrieve.
-            list_args (list): A list of list request args
-                                               (filter_dict,exclude_dict,
-                                               order_by).
-            columns (List[str]): List of columns at the pivoted table.
-            format (str): Format of returned table. See pandas.DataFrame
+            model_class:
+                Model Class to retrieve.
+            list_args:
+                A list of list request args (filter_dict,exclude_dict,
+                order_by).
+            columns:
+                List of columns at the pivoted table.
+            format:
+                Format of returned table. See pandas.DataFrame
                 to_dict args.
-        Kwargs:
-            n_parallel (int): Number of simultaneus get requests, if not set
+            n_parallel:
+                Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header(dict): Dictionary containing the auth header.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
         Returns:
-            list: List of the pivot request reponses.
+            List of the pivot request reponses.
         Raises:
             No particular raises
         Example:
@@ -3247,7 +3555,7 @@ class PumpWoodMicroService():
 
     def get_queue_matrix(self, queue_pk: int, auth_header: dict = None,
                          save_as_excel: str = None):
-        """Download model queue estimation matrix."""
+        """Download model queue estimation matrix. In development..."""
         file_content = self.retrieve_file(
             model_class="ModelQueue", pk=queue_pk,
             file_field="model_matrix_file", auth_header=auth_header,
