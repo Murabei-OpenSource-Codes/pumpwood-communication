@@ -68,6 +68,7 @@ class PumpWoodMicroService():
     It also implements parallel functions that split requests in parallel
     process to reduce processing time.
     """
+
     name: str
     """Name of the MicroService object, can be used for debug proposes."""
     server_url: str
@@ -2418,7 +2419,7 @@ class PumpWoodMicroService():
             raise Exception("Exception at flat_list_by_chunks:", str(e))
 
     def flat_list_by_chunks(self, model_class: str, filter_dict: dict = {},
-                            exclude_dict: dict = {}, fields: list = None,
+                            exclude_dict: dict = {}, fields: List[str] = None,
                             show_deleted: bool = False,
                             auth_header: dict = None,
                             chunk_size: int = 1000000,
