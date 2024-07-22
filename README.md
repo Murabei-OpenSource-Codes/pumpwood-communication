@@ -10,6 +10,9 @@ developed by Murabei Data Science and is under BSD-3-Clause license.
   </a> which has a symbiotic relation with ants (Murabei)
 </p>
 
+## Documentation page
+Check documentation page [here])(https://murabei-opensource-codes.github.io/pumpwood-communication/pumpwood_communication.html).
+
 ## Quick start
 The main class in package is PumpWoodMicroService and it abstract
 all end-point communication using functions. It is possible to
@@ -342,7 +345,3 @@ It is possible to use other functions, the documentation can be gatered using th
 - parallel_execute_action
 - parallel_bulk_save
 - parallel_pivot
-
-
-# Link to documentation
-[documentation](docs/index.md)
