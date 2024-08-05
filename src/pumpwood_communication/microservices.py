@@ -2819,9 +2819,9 @@ class PumpWoodMicroService():
         n_urls = len(urls_list)
         parameters_list = None
         if parameters is None:
-            parameters = [{}]*n_urls
+            parameters_list = [{}]*n_urls
         elif type(parameters) is dict:
-            parameters = [{parameters}]*n_urls
+            parameters_list = [{parameters}]*n_urls
         elif type(parameters) is list:
             if len(parameters) == n_urls:
                 parameters_list = parameters

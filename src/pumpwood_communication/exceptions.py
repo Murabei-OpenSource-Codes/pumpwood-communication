@@ -28,20 +28,26 @@ class PumpWoodException(Exception):
     """
 
     def __repr__(self):
+        """@private."""
+        message_fmt = self.format_message()
         template = "{class_name}[status_code={status_code}]: " + \
-            "{message}\nerror payload={payload}"
+            "{message_fmt}\nerror payload={payload}"
         return template.format(
             class_name=self.__class__.__name__,
-            status_code=self.status_code, message=self.message,
-            payload=self.payload,)
+            status_code=self.status_code,
+            message_fmt=message_fmt,
+            payload=self.payload)
 
     def __str__(self):
+        """@private."""
+        message_fmt = self.format_message()
         template = "{class_name}[status_code={status_code}]: " + \
-            "{message}\nerror payload={payload}"
+            "{message_fmt}\nerror payload={payload}"
         return template.format(
             class_name=self.__class__.__name__,
-            status_code=self.status_code, message=self.message,
-            payload=self.payload,)
+            status_code=self.status_code,
+            message_fmt=message_fmt,
+            payload=self.payload)
 
     def __init__(self, message: str, payload: dict = {}, status_code=None):
         """
@@ -60,6 +66,21 @@ class PumpWoodException(Exception):
             self.status_code = status_code
         self.payload = payload
 
+    def format_message(self) -> str:
+        """
+        Format exception message using payload data.
+
+        Substitute placeholders at exception message with payload.
+
+        Returns:
+            Return a string of message with placeholders substituted with
+            payload data.
+        """
+        try:
+            return self.message.format(**self.payload)
+        except Exception:
+            return self.message + "\n** format error **"
+
     def to_dict(self) -> dict:
         """
         Serialize Exception object to return as reponse of Pumpwood backends.
@@ -72,10 +93,7 @@ class PumpWoodException(Exception):
                 msg with payload information.
             - **message [str]:** Return msg formated with payload information.
         """
-        try:
-            message_fmt = self.message.format(**self.payload)
-        except Exception:
-            message_fmt = self.message + "\n** format error **"
+        message_fmt = self.format_message()
         rv = {
             "payload": self.payload,
             "type": self.__class__.__name__,
