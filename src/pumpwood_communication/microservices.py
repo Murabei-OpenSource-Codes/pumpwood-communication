@@ -2439,27 +2439,29 @@ class PumpWoodMicroService():
         retrieving each month data in parallel.
 
         Args:
-            model_class:
+            model_class [str]:
                 Model class to be pivoted.
-            filter_dict:
+            filter_dict [dict]:
                 Dictionary to to be used in objects.filter argument
                 (Same as list end-point).
-            exclude_dict:
+            exclude_dict [dict]:
                 Dictionary to to be used in objects.exclude argument
                 (Same as list end-point).
-            fields:
+            fields [List[str] | None]:
                 List of the variables to be returned,
                 if None, the default variables will be returned.
-            show_deleted:
+                If fields is set, dataframe will return that columns
+                even if data is empty.
+            show_deleted [bool]:
                 If deleted data should be returned.
-            auth_header:
+            auth_header [dict]:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
-            chunk_size:
+            chunk_size [int]:
                 Limit of data to fetch per call.
-            n_parallel:
+            n_parallel [int]:
                 Number of parallel process to perform.
-            create_composite_pk:
+            create_composite_pk [bool]:
                 If true and table has a composite pk, it will create pk
                 value based on the hash on the json serialized dictionary
                 of the components of the primary key.
@@ -2623,6 +2625,10 @@ class PumpWoodMicroService():
             resp_df["pk"] = resp_df[primary_keys].apply(
                 CompositePkBase64Converter.dump,
                 primary_keys=primary_keys, axis=1)
+
+        # Ajust columns to return the columns set at fields
+        if fields is not None:
+            resp_df = pd.DataFrame(resp_df, columns=fields)
         return resp_df
 
     @staticmethod
