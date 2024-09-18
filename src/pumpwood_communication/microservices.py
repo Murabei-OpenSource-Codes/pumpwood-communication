@@ -1190,7 +1190,7 @@ class PumpWoodMicroService():
 
         Raises:
           No especific raises.
-        """
+        """ # NOQA
         url_str = self._build_list_url(model_class)
         post_data = {
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
