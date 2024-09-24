@@ -1190,7 +1190,7 @@ class PumpWoodMicroService():
 
         Raises:
           No especific raises.
-        """
+        """ # NOQA
         url_str = self._build_list_url(model_class)
         post_data = {
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
@@ -2625,6 +2625,8 @@ class PumpWoodMicroService():
             resp_df["pk"] = resp_df[primary_keys].apply(
                 CompositePkBase64Converter.dump,
                 primary_keys=primary_keys, axis=1)
+            if fields is not None:
+                fields = ['pk'] + fields
 
         # Ajust columns to return the columns set at fields
         if fields is not None:
