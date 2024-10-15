@@ -1962,7 +1962,7 @@ class PumpWoodMicroService():
         url_str = self._build_remove_file_field(model_class, pk)
         return self.request_delete(
             url=url_str, auth_header=auth_header,
-            parameters={"file_field": file_field})
+            parameters={"file-field": file_field})
 
     @staticmethod
     def _build_delete_many_request_url(model_class):
