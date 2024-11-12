@@ -45,7 +45,7 @@ setuptools.setup(
         "Shapely>=1.7.0",
         "geopandas>=0.8.1",
         "SQLAlchemy-Utils==0.37.8",
-        "SQLAlchemy==1.3.19",
+        "SQLAlchemy>=1.3.19",
         "GeoAlchemy2==0.9.3",
         "apache-airflow-client==2.3.0",
         "requests>=2.28.2",
