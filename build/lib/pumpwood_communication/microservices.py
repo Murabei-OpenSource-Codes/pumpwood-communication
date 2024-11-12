@@ -222,7 +222,8 @@ class PumpWoodMicroService():
         if self.__token_expiry is None:
             return None
 
-        now_datetime = pd.to_datetime(datetime.datetime.utcnow(), utc=True)
+        now_datetime = pd.to_datetime(
+            datetime.datetime.now(datetime.UTC), utc=True)
         time_to_expiry = self.__token_expiry - now_datetime
         return time_to_expiry
 
@@ -497,7 +498,7 @@ class PumpWoodMicroService():
 
         """
         if not response.ok:
-            utcnow = datetime.datetime.utcnow()
+            utcnow = datetime.datetime.now(datetime.UTC)
             response_content_type = response.headers['content-type']
 
             # Request information
