@@ -1,5 +1,4 @@
-"""
-Module microservice.py.
+"""Module microservice.py.
 
 Class and functions to help communication between PumpWood like systems.
 """
@@ -31,7 +30,13 @@ from pumpwood_communication.serializers import (
     pumpJsonDump, CompositePkBase64Converter)
 from pumpwood_communication.misc import unpack_dict_columns
 
-# Creating logger for MicroService calls
+
+# Importing abstract classes for Micro Service
+from pumpwood_communication.microservice_abc.simple import (
+    ABCSimpleBatchMicroservice)
+
+
+# Creating logger for Micro Service calls
 _Log_Format = "%(levelname)s %(asctime)s - %(message)s"
 logging.basicConfig()
 logging.basicConfig(stream=sys.stdout, format=_Log_Format)
@@ -41,8 +46,7 @@ _microservice_logger.setLevel(logging.INFO)
 
 def break_in_chunks(df_to_break: pd.DataFrame,
                     chunksize: int = 1000) -> List[pd.DataFrame]:
-    """
-    Break a dataframe in chunks of chunksize.
+    """Break a dataframe in chunks of chunksize.
 
     Args:
         df_to_break: Dataframe to be break in chunks of `chunksize` size.
@@ -58,9 +62,8 @@ def break_in_chunks(df_to_break: pd.DataFrame,
     return to_return
 
 
-class PumpWoodMicroService():
-    """
-    Class to define an inter-pumpwood MicroService.
+class PumpWoodMicroService(ABCSimpleBatchMicroservice):
+    """Class to define an inter-pumpwood MicroService.
 
     Create an object ot help communication with Pumpwood based backends. It
     manage login and token refresh if necessary.
@@ -75,8 +78,6 @@ class PumpWoodMicroService():
     """URL of the Pumpwood server."""
     verify_ssl: bool
     """If SSL certificates will be checked on HTTPs requests."""
-    auth_suffix: str
-    """**DEPRECTED** this attribute will not be used in the future."""
     debug: bool
     """
     If microservice service is set as debug, if debug=TRUE all request will
@@ -94,10 +95,9 @@ class PumpWoodMicroService():
 
     def __init__(self, name: str = None, server_url: str = None,
                  username: str = None, password: str = None,
-                 verify_ssl: bool = True, auth_suffix: str = None,
-                 debug: bool = None):
-        """
-        Create new PumpWoodMicroService object.
+                 verify_ssl: bool = True, debug: bool = None,
+                 default_timeout: int = 300, **kwargs,):
+        """Create new PumpWoodMicroService object.
 
         Creates a new microservice object. If just name is passed, object must
         be initiate after with init() method.
@@ -115,6 +115,13 @@ class PumpWoodMicroService():
                 with the request.
             verify_ssl:
                 Set if microservice will verify SSL certificate.
+            debug:
+                If microservice will be used as debug mode. This will obrigate
+                auth token refresh for each call.
+            default_timeout:
+                Default timeout for Pumpwood calls.
+            **kwargs:
+                Other parameters used for compatibility between versions.
 
         Returns:
             PumpWoodMicroService: New PumpWoodMicroService object
@@ -132,15 +139,15 @@ class PumpWoodMicroService():
         self.__base_header = {'Content-Type': 'application/json'}
         self.__auth_header = None
         self.__token_expiry = None
-        self.auth_suffix = auth_suffix
         self.debug = debug
         self._is_mfa_login = False
+        self.default_timeout = default_timeout
 
-    def init(self, name: str, server_url: str, username: str,
-             password: str, verify_ssl: bool = True, auth_suffix: str = None,
-             debug: bool = None):
-        """
-        Lazzy initialization of the MicroService of object.
+    def init(self, name: str = None, server_url: str = None,
+             username: str = None, password: str = None,
+             verify_ssl: bool = True, debug: bool = None,
+             default_timeout: int = 300, **kwargs,):
+        """Lazzy initialization of the MicroService of object.
 
         This function might be usefull to use the object as a singleton at
         the backends. Using this function it is possible to instanciate an
@@ -152,16 +159,20 @@ class PumpWoodMicroService():
                 are raised.
             server_url:
                 URL of the server that will be connected.
-            user_name:
+            username:
                 Username that will be logged on.
             password:
                 Variable to be converted to JSON and posted along
                 with the request.
             verify_ssl:
-                Set if microservice will verify ssl certificate
-            auth_suffix:
-                Add a suffix to auth end-point in case of authentication
-                end-point have any suffix.
+                Set if microservice will verify SSL certificate.
+            debug:
+                If microservice will be used as debug mode. This will obrigate
+                auth token refresh for each call.
+            default_timeout:
+                Default timeout for Pumpwood calls.
+            **kwargs:
+                Other parameters used for compatibility between versions.
 
         Returns:
             No return
@@ -175,20 +186,20 @@ class PumpWoodMicroService():
         self.__password = password
         self.server_url = self._ajust_server_url(server_url)
         self.verify_ssl = verify_ssl
-        self.auth_suffix = auth_suffix
+        self.default_timeout = default_timeout
         self.debug = debug
 
     @staticmethod
     def angular_json(request_result):
-        r"""
-        Convert text to Json removing any XSSI at the beging of JSON.
+        r"""Convert text to Json removing any XSSI at the beging of JSON.
 
         Some backends add `)]}',\n` at the beginning of the JSON data to
         prevent injection of functions. This function remove this characters
         if present.
 
         Args:
-            request_result: JSON Request to be converted
+            request_result:
+                JSON Request to be converted
 
         Returns:
             No return
@@ -210,8 +221,7 @@ class PumpWoodMicroService():
                     'msg': request_result.text}
 
     def time_to_expiry(self) -> pd.Timedelta:
-        """
-        Return time to token expiry.
+        """Return time to token expiry.
 
         Args:
             No Args.
@@ -228,8 +238,7 @@ class PumpWoodMicroService():
         return time_to_expiry
 
     def is_credential_set(self) -> bool:
-        """
-        Check if username and password are set on object.
+        """Check if username and password are set on object.
 
         Args:
             No Args.
@@ -241,13 +250,13 @@ class PumpWoodMicroService():
         return not (self.__username is None or self.__password is None)
 
     def login(self, force_refresh: bool = False) -> None:
-        """
-        Log microservice in using username and password provided.
+        """Log microservice in using username and password provided.
 
         Args:
-            force_refresh:
+            force_refresh (bool):
                 Force token refresh despise still valid
                 according to self.__token_expiry.
+
         Returns:
             No return
 
@@ -275,20 +284,13 @@ class PumpWoodMicroService():
             is_debug = self.debug
 
         if refresh_expiry or force_refresh or is_debug:
-            login_url = None
-            if self.auth_suffix is None:
-                login_url = urljoin(
-                    self.server_url, 'rest/registration/login/')
-            else:
-                temp_url = 'rest/{suffix}registration/login/'.format(
-                    suffix=self.auth_suffix.lower())
-                login_url = urljoin(self.server_url, temp_url)
-
+            login_url = urljoin(
+                self.server_url, 'rest/registration/login/')
             login_result = requests.post(
                 login_url, json={
                     'username': self.__username,
                     'password': self.__password},
-                verify=self.verify_ssl)
+                verify=self.verify_ssl, timeout=self.default_timeout)
 
             login_data = {}
             try:
@@ -308,8 +310,7 @@ class PumpWoodMicroService():
             self.__token_expiry = pd.to_datetime(login_data['expiry'])
 
     def confirm_mfa_code(self, mfa_login_data: dict) -> dict:
-        """
-        Ask user to confirm MFA code to login.
+        """Ask user to confirm MFA code to login.
 
         Open an input interface at terminal for user to validate MFA token.
 
@@ -317,8 +318,10 @@ class PumpWoodMicroService():
             mfa_login_data:
                 Result from login request with 'mfa_token'
                 as key.
+
         Returns:
             Return login returned with MFA confimation.
+
         Raise:
             Raise error if reponse is not valid using error_handler.
         """
@@ -327,7 +330,7 @@ class PumpWoodMicroService():
             self.server_url, 'rest/registration/mfa-validate-code/')
         mfa_response = requests.post(url, headers={
             "X-PUMPWOOD-MFA-Autorization": mfa_login_data['mfa_token']},
-            json={"mfa_code": code})
+            json={"mfa_code": code}, timeout=self.default_timeout)
         self.error_handler(mfa_response)
 
         # Set _is_mfa_login true to indicate that login required MFA
@@ -335,11 +338,12 @@ class PumpWoodMicroService():
         return PumpWoodMicroService.angular_json(mfa_response)
 
     def logout(self, auth_header: dict = None) -> bool:
-        """
-        Logout token.
+        """Logout token.
 
         Args:
-            auth_header Authentication header.
+            auth_header:
+                Authentication header.
+
         Returns:
             True if logout was ok.
         """
@@ -349,11 +353,12 @@ class PumpWoodMicroService():
         return resp is None
 
     def logout_all(self, auth_header: dict = None) -> bool:
-        """
-        Logout all tokens from user.
+        """Logout all tokens from user.
 
         Args:
-            auth_header [dict] Authentication header.
+            auth_header (dict):
+                Authentication header.
+
         Returns:
             True if logout all was ok.
         """
@@ -364,14 +369,14 @@ class PumpWoodMicroService():
 
     def set_auth_header(self, auth_header: dict,
                         token_expiry: pd.Timestamp) -> None:
-        """
-        Set auth_header and token_expiry date.
+        """Set auth_header and token_expiry date.
 
         Args:
             auth_header:
                 Authentication header to be set.
             token_expiry:
                 Token expiry datetime to be set.
+
         Returns:
             No return.
         """
@@ -379,11 +384,11 @@ class PumpWoodMicroService():
         self.__token_expiry = pd.to_datetime(token_expiry, utc=True)
 
     def get_auth_header(self) -> dict:
-        """
-        Retrieve auth_header and token_expiry from object.
+        """Retrieve auth_header and token_expiry from object.
 
         Args:
             No Args.
+
         Returns:
             Return authorization header and token_expiry datetime from object.
         """
@@ -392,13 +397,13 @@ class PumpWoodMicroService():
             "token_expiry": self.__token_expiry}
 
     def check_if_logged(self, auth_header: dict) -> bool:
-        """
-        Check if user is logged.
+        """Check if user is logged.
 
         Args:
             auth_header:
                 AuthHeader to substitute the microservice original at
                 request.
+
         Returns:
             Return True if auth_header is looged and False if not
         """
@@ -410,31 +415,34 @@ class PumpWoodMicroService():
         return check
 
     def get_user_info(self, auth_header: dict = None) -> dict:
-        """
-        Get user info.
+        """Get user info.
 
         Args:
             auth_header:
                 AuthHeader to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             A serialized user object with information of the logged user.
         """
         user_info = self.request_get(
             url="rest/registration/retrieveauthenticateduser/",
-            auth_header=auth_header)
+            auth_header=auth_header, timeout=self.default_timeout)
         return user_info
 
     def _check__auth_header(self, auth_header, multipart: bool = False):
-        """
-        Check if auth_header is set or auth_header if provided.
+        """Check if auth_header is set or auth_header if provided.
 
         Args:
             auth_header:
                 AuthHeader to substitute the microservice original
                 at the request (user impersonation).
+            multipart:
+                Set if call should be made as a multipart instead of JSON.
+
         Returns:
-            dict: Return a header dict to be used in requests.
+            Return a header dict to be used in requests.
+
         Raises:
             PumpWoodUnauthorized:
                 If microservice is not logged and a auth_header method
@@ -470,9 +478,9 @@ class PumpWoodMicroService():
                 temp__auth_header.update(self.__base_header)
                 return temp__auth_header
 
+    @classmethod
     def error_handler(cls, response):
-        """
-        Handle request error.
+        """Handle request error.
 
         Check if is a Json and propagate the error with
         same type if possible. If not Json raises the content.
@@ -482,8 +490,10 @@ class PumpWoodMicroService():
                 response to be handled, it is a PumpWoodException
                 return it will raise the same exception at microservice
                 object.
+
         Returns:
             No return.
+
         Raises:
             PumpWoodOtherException:
                 If content-type is not application/json.
@@ -493,9 +503,9 @@ class PumpWoodMicroService():
             Other PumpWoodException sub-types:
                 If content-type is application/json if type is present and
                 recognisable.
+
         Example:
             No example
-
         """
         if not response.ok:
             utcnow = datetime.datetime.now(datetime.UTC)
@@ -518,7 +528,7 @@ class PumpWoodMicroService():
             # Build error stack
             response_dict = PumpWoodMicroService.angular_json(response)
 
-            # Removing previus error stack
+            # Removing previous error stack
             payload = deepcopy(response_dict.get("payload", {}))
             exception_stack = deepcopy(payload.pop("!exception_stack!", []))
 
@@ -534,11 +544,11 @@ class PumpWoodMicroService():
 
             ###################
             # Propagate error #
-            # get exception using 'type' key at reponse data and get the
+            # get exception using 'type' key at response data and get the
             # exception from exceptions_dict at exceptions
             exception_message = response_dict.get("message", "")
             exception_type = response_dict.get("type", None)
-            TempPumpwoodException = exceptions_dict.get(exception_type)
+            TempPumpwoodException = exceptions_dict.get(exception_type) # NOQA
             if TempPumpwoodException is not None:
                 raise TempPumpwoodException(
                     message=exception_message,
@@ -564,12 +574,12 @@ class PumpWoodMicroService():
     @classmethod
     def is_invalid_token_response(cls,
                                   response: requests.models.Response) -> bool:
-        """
-        Check if reponse has invalid token error.
+        """Check if reponse has invalid token error.
 
         Args:
             response:
                 Request reponse to check for invalid token.
+
         Returns:
             Return True if response has an invalid token status.
         """
@@ -579,8 +589,7 @@ class PumpWoodMicroService():
 
     def request_post(self, url: str, data: any, files: list = None,
                      auth_header: dict = None, parameters: dict = {}) -> any:
-        """
-        Make a POST a request to url with data as Json payload.
+        """Make a POST a request to url with data as JSON payload.
 
         Args:
             url:
@@ -596,6 +605,7 @@ class PumpWoodMicroService():
             auth_header:
                 AuthHeader to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Return the post response data.
 
@@ -603,8 +613,8 @@ class PumpWoodMicroService():
             PumpWoodException sub-types:
                 Response is passed to error_handler.
         """
-        # If parameters are not none convert them to json before
-        # sending information on query string, 'True' is 'true' on javascript
+        # If parameters are not none convert them to JSON before
+        # sending information on query string, 'True' is 'true' on Javascript
         # for exemple
         if parameters is not None:
             parameters = copy.deepcopy(parameters)
@@ -620,7 +630,7 @@ class PumpWoodMicroService():
             response = requests.post(
                 url=post_url, data=pumpJsonDump(data),
                 params=parameters, verify=self.verify_ssl,
-                headers=request_header)
+                headers=request_header, timeout=self.default_timeout)
 
             # Retry request if token is not valid forcing token renew
             retry_with_login = (
@@ -633,10 +643,10 @@ class PumpWoodMicroService():
                 response = requests.post(
                     url=post_url, data=pumpJsonDump(data),
                     params=parameters, verify=self.verify_ssl,
-                    headers=request_header)
+                    headers=request_header, timeout=self.default_timeout)
 
         # Request with files are done using multipart serializing all fields
-        # as json
+        # as JSON
         else:
             request_header = self._check__auth_header(
                 auth_header=auth_header, multipart=True)
@@ -644,7 +654,8 @@ class PumpWoodMicroService():
             temp_data = {'__json__': pumpJsonDump(data)}
             response = requests.post(
                 url=post_url, data=temp_data, files=files, params=parameters,
-                verify=self.verify_ssl, headers=request_header)
+                verify=self.verify_ssl, headers=request_header,
+                timeout=self.default_timeout)
 
             retry_with_login = (
                 self.is_invalid_token_response(response) and
@@ -656,12 +667,12 @@ class PumpWoodMicroService():
                 response = requests.post(
                     url=post_url, data=temp_data, files=files,
                     params=parameters, verify=self.verify_ssl,
-                    headers=request_header)
+                    headers=request_header, timeout=self.default_timeout)
 
         # Handle errors and re-raise if Pumpwood Exceptions
         self.error_handler(response)
 
-        # Check if reponse is a file
+        # Check if response is a file
         headers = response.headers
         content_disposition = headers.get('content-disposition')
         if content_disposition is not None:
@@ -679,8 +690,7 @@ class PumpWoodMicroService():
 
     def request_get(self, url, parameters: dict = {},
                     auth_header: dict = None):
-        """
-        Make a GET a request to url with data as JSON payload.
+        """Make a GET a request to url with data as JSON payload.
 
         Add the auth_header acording to login information and refresh token
         if auth_header=None and object token is expired.
@@ -693,8 +703,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Return the post reponse data.
+
         Raises:
             PumpWoodException sub-types:
                 Raise exception if reponse is not 2XX and if 'type' key on
@@ -718,7 +730,7 @@ class PumpWoodMicroService():
         get_url = urljoin(self.server_url, url)
         response = requests.get(
             get_url, verify=self.verify_ssl, headers=request_header,
-            params=parameters)
+            params=parameters, timeout=self.default_timeout)
 
         retry_with_login = (
             self.is_invalid_token_response(response) and
@@ -728,7 +740,7 @@ class PumpWoodMicroService():
             request_header = self._check__auth_header(auth_header=auth_header)
             response = requests.get(
                 get_url, verify=self.verify_ssl, headers=request_header,
-                params=parameters)
+                params=parameters, timeout=self.default_timeout)
 
         # Re-raise Pumpwood exceptions
         self.error_handler(response=response)
@@ -747,8 +759,7 @@ class PumpWoodMicroService():
 
     def request_delete(self, url, parameters: dict = None,
                        auth_header: dict = None):
-        """
-        Make a DELETE a request to url with data as Json payload.
+        """Make a DELETE a request to url with data as Json payload.
 
         Args:
             url:
@@ -758,8 +769,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Return the delete reponse payload.
+
         Raises:
             PumpWoodException sub-types:
                 Raise exception if reponse is not 2XX and if 'type' key on
@@ -773,7 +786,7 @@ class PumpWoodMicroService():
         post_url = self.server_url + url
         response = requests.delete(
             post_url, verify=self.verify_ssl, headers=request_header,
-            params=parameters)
+            params=parameters, timeout=self.default_timeout)
 
         # Retry request if token is not valid forcing token renew
         retry_with_login = (
@@ -784,7 +797,7 @@ class PumpWoodMicroService():
             request_header = self._check__auth_header(auth_header=auth_header)
             response = requests.delete(
                 post_url, verify=self.verify_ssl, headers=request_header,
-                params=parameters)
+                params=parameters, timeout=self.default_timeout)
 
         # Re-raise Pumpwood Exceptions
         self.error_handler(response)
@@ -792,12 +805,7 @@ class PumpWoodMicroService():
 
     def list_registered_routes(self, auth_header: dict = None):
         """List routes that have been registed at Kong."""
-        list_url = None
-        if self.auth_suffix is None:
-            list_url = 'rest/pumpwood/routes/'
-        else:
-            list_url = 'rest/{suffix}pumpwood/routes/'.format(
-                suffix=self.auth_suffix.lower())
+        list_url = 'rest/pumpwood/routes/'
         routes = self.request_get(
             url=list_url, auth_header=auth_header)
         for key, item in routes.items():
@@ -806,8 +814,7 @@ class PumpWoodMicroService():
 
     def is_microservice_registered(self, microservice: str,
                                    auth_header: dict = None) -> bool:
-        """
-        Check if a microservice (kong service) is registered at Kong.
+        """Check if a microservice (kong service) is registered at Kong.
 
         Args:
             microservice:
@@ -816,6 +823,7 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Return true if microservice is registered.
         """
@@ -825,8 +833,7 @@ class PumpWoodMicroService():
     def list_registered_endpoints(self, auth_header: dict = None,
                                   availability: str = 'front_avaiable'
                                   ) -> list:
-        """
-        List all routes and services that have been registed at Kong.
+        """List all routes and services that have been registed at Kong.
 
         It is possible to restrict the return to end-points that should be
         avaiable at the frontend. Using this feature it is possibel to 'hide'
@@ -839,6 +846,7 @@ class PumpWoodMicroService():
             availability:
                 Set the availability that is associated with the service.
                 So far it is implemented 'front_avaiable' and 'all'.
+
         Returns:
             Return a list of serialized services objects containing the
             routes associated with at `route_set`.
@@ -846,17 +854,13 @@ class PumpWoodMicroService():
             Service and routes have `notes__verbose` and `description__verbose`
             that are  the repective strings associated with note and
             description but translated using Pumpwood's I8s,
+
         Raises:
             PumpWoodWrongParameters:
                 Raise PumpWoodWrongParameters if availability passed as
                 paraemter is not implemented.
         """
-        list_url = None
-        if self.auth_suffix is None:
-            list_url = 'rest/pumpwood/endpoints/'
-        else:
-            list_url = 'rest/{suffix}pumpwood/endpoints/'.format(
-                suffix=self.auth_suffix.lower())
+        list_url = 'rest/pumpwood/endpoints/'
         routes = self.request_get(
             url=list_url, parameters={'availability': availability},
             auth_header=auth_header)
@@ -864,8 +868,7 @@ class PumpWoodMicroService():
 
     def dummy_call(self, payload: dict = None,
                    auth_header: dict = None) -> dict:
-        """
-        Return a dummy call to ensure headers and payload reaching app.
+        """Return a dummy call to ensure headers and payload reaching app.
 
         The request just bounce on the server and return the headers and
         payload that reached the application. It is usefull for probing
@@ -878,6 +881,7 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Return a dictonary with:
             - **full_path**: Full path of the request.
@@ -885,13 +889,7 @@ class PumpWoodMicroService():
             - **headers**: Headers at the request.
             - **data**: Post payload sent at the request.
         """
-        list_url = None
-        if self.auth_suffix is None:
-            list_url = 'rest/pumpwood/dummy-call/'
-        else:
-            list_url = 'rest/{suffix}pumpwood/dummy-call/'.format(
-                suffix=self.auth_suffix.lower())
-
+        list_url = 'rest/pumpwood/dummy-call/'
         if payload is None:
             return self.request_get(
                 url=list_url, auth_header=auth_header)
@@ -902,8 +900,7 @@ class PumpWoodMicroService():
 
     def dummy_raise(self, exception_class: str, exception_deep: int,
                     payload: dict = {}, auth_header: dict = None) -> None:
-        """
-        Raise an Pumpwood error with the payload.
+        """Raise an Pumpwood error with the payload.
 
         This and point raises an Arbitrary PumpWoodException error, it can be
         used for debuging error treatment.
@@ -920,9 +917,11 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Should not return any results, all possible call should result
             in raising the correspondent error.
+
         Raises:
             Should raise the correspondent error passed on exception_class
             arg, with payload.
@@ -934,8 +933,7 @@ class PumpWoodMicroService():
 
     def get_pks_from_unique_field(self, model_class: str, field: str,
                                   values: List[Any]) -> pd.DataFrame:
-        """
-        Get pk using unique fields values.
+        """Get pk using unique fields values.
 
         Use unique field values to retrieve pk of the objects. This end-point
         is usefull for retrieving pks of the objects associated with unique
@@ -963,11 +961,13 @@ class PumpWoodMicroService():
                 as unique field, for that use `dimension->[key]` notation.
             values:
                 List of the unique fields used to fetch primary keys.
+
         Return:
             Return a dataframe in same order as values with columns:
             - **pk**: Correspondent primary key of the unique value.
             - **[field]**: Column with same name of field argument,
                 correspondent to pk.
+
         Raises:
             PumpWoodQueryException:
                 Raises if field is not found on the model and it is note
@@ -1016,7 +1016,7 @@ class PumpWoodMicroService():
 
         values_series = pd.Series(values)
         return pd.DataFrame({
-            "pk": values_series.map(pk_map).values,
+            "pk": values_series.map(pk_map).to_numpy(),
             field: values_series
         })
 
@@ -1030,8 +1030,7 @@ class PumpWoodMicroService():
              default_fields: bool = False, limit: int = None,
              foreign_key_fields: bool = False,
              **kwargs) -> List[dict]:
-        """
-        List objects with pagination.
+        """List objects with pagination.
 
         List end-point (resumed data) of PumpWood like systems,
         results will be paginated. To get next pag, send all recived pk at
@@ -1185,6 +1184,8 @@ class PumpWoodMicroService():
                 corresponding object. Ex: `created_by_id` reference to
                 a user `model_class` the correspondent to User will be
                 returned at `created_by`.
+            **kwargs:
+                Other parameters for compatibility.
 
         Returns:
           Containing objects serialized by list Serializer.
@@ -1206,8 +1207,7 @@ class PumpWoodMicroService():
                        exclude_dict: dict = {}, auth_header: dict = None,
                        fields: list = None, default_fields: bool = False,
                        chunk_size: int = 50000, **kwargs) -> List[dict]:
-        """
-        List object fetching them by chucks using pk to paginate.
+        """List object fetching them by chucks using pk to paginate.
 
         List data by chunck to load by datasets without breaking the backend
         or receive server timeout. It load chunks orderring the results using
@@ -1231,8 +1231,10 @@ class PumpWoodMicroService():
             default_fields:
                 Boolean, if true and fields arguments None will return the
                 default fields set for list by the backend.
-            chuck_size:
+            chunk_size:
                 Number of objects to be fetched each query.
+            **kwargs:
+                Other parameters for compatibility.
 
         Returns:
           Containing objects serialized by list Serializer.
@@ -1272,45 +1274,55 @@ class PumpWoodMicroService():
                          convert_geometry: bool = True, fields: list = None,
                          default_fields: bool = False,
                          foreign_key_fields: bool = False, **kwargs):
-        """
-        List object without pagination.
+        """List object without pagination.
 
         Function to post at list end-point (resumed data) of PumpWood like
         systems, results won't be paginated.
         **Be carefull with large returns.**
 
         Args:
-            model_class:
+            model_class (str):
                 Model class of the end-point
-            filter_dict:
+            filter_dict (dict):
                 Filter dict to be used at the query. Filter elements from query
                 return that satifies all statements of the dictonary.
-            exclude_dict:
+            exclude_dict (dict):
                 Exclude dict to be used at the query. Remove elements from
                 query return that satifies all statements of the dictonary.
-            order_by: Order results acording to list of strings
+            order_by (bool):
+                Order results acording to list of strings
                 correspondent to fields. It is possible to use '-' at the
                 begginng of the field name for reverse ordering. Ex.:
                 ['description'] for accendent ordering and ['-description']
                 for descendent ordering.
-            auth_header:
+            auth_header (dict):
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
-            fields:
+            fields (List[str]):
                 Set the fields to be returned by the list end-point.
-            default_fields:
+            default_fields (bool):
                 Boolean, if true and fields arguments None will return the
                 default fields set for list by the backend.
-            limit:
+            limit (int):
                 Set the limit of elements of the returned query. By default,
                 backend usually return 50 elements.
-            foreign_key_fields:
+            foreign_key_fields (bool):
                 Return forenging key objects. It will return the fk
                 corresponding object. Ex: `created_by_id` reference to
                 a user `model_class` the correspondent to User will be
                 returned at `created_by`.
+            convert_geometry (bool):
+                If geometry columns should be convert to shapely geometry.
+                Fields with key 'geometry' will be considered geometry.
+            return_type (str):
+                Set return type to list of dictinary `list` or to a pandas
+                dataframe `dataframe`.
+            **kwargs:
+                Other unused arguments for compatibility.
+
         Returns:
           Containing objects serialized by list Serializer.
+
         Raises:
           No especific raises.
         """
@@ -1354,8 +1366,7 @@ class PumpWoodMicroService():
     def list_dimensions(self, model_class: str, filter_dict: dict = {},
                         exclude_dict: dict = {}, auth_header: dict = None
                         ) -> List[str]:
-        """
-        List dimensions avaiable for model_class.
+        """List dimensions avaiable for model_class.
 
         It list all keys avaiable at dimension retricting the results with
         query parameters `filter_dict` and `exclude_dict`.
@@ -1372,7 +1383,8 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
-        Returns
+
+        Returns:
             List of keys avaiable in results from the query dict.
         """
         url_str = self._build_list_dimensions(model_class)
@@ -1387,8 +1399,7 @@ class PumpWoodMicroService():
     def list_dimension_values(self, model_class: str, key: str,
                               filter_dict: dict = {}, exclude_dict: dict = {},
                               auth_header: dict = None) -> List[any]:
-        """
-        List values associated with dimensions key.
+        """List values associated with dimensions key.
 
         It list all keys avaiable at dimension retricting the results with
         query parameters `filter_dict` and `exclude_dict`.
@@ -1408,6 +1419,7 @@ class PumpWoodMicroService():
             key:
                 Key to list the avaiable values using the query filter
                 and exclude.
+
         Returns:
             List of values associated with dimensions key at the objects that
             are returned with `filter_dict` and `exclude_dict`.
@@ -1425,8 +1437,7 @@ class PumpWoodMicroService():
     def list_one(self, model_class: str, pk: int, fields: list = None,
                  default_fields: bool = True, foreign_key_fields: bool = False,
                  related_fields: bool = False, auth_header: dict = None):
-        """
-        Retrieve an object using list serializer (simple).
+        """Retrieve an object using list serializer (simple).
 
         **# DEPRECTED #** It is the same as retrieve using
         `default_fields: bool = True`, if possible migrate to retrieve
@@ -1457,8 +1468,10 @@ class PumpWoodMicroService():
                 dictionaries usually in a field with `_set` at end.
                 Returning related_fields consume backend resorces, use
                 carefully.
+
         Returns:
             Return object with the correspondent pk.
+
         Raises:
             PumpWoodObjectDoesNotExist:
                 If pk not found on database.
@@ -1481,8 +1494,7 @@ class PumpWoodMicroService():
                  related_fields: bool = False,
                  fields: list = None,
                  auth_header: dict = None):
-        """
-        Retrieve an object from PumpWood.
+        """Retrieve an object from PumpWood.
 
         Function to get object serialized by retrieve end-point
         (more detailed data).
@@ -1512,8 +1524,10 @@ class PumpWoodMicroService():
                 dictionaries usually in a field with `_set` at end.
                 Returning related_fields consume backend resorces, use
                 carefully.
+
         Returns:
             Return object with the correspondent pk.
+
         Raises:
             PumpWoodObjectDoesNotExist:
                 If pk not found on database.
@@ -1534,8 +1548,7 @@ class PumpWoodMicroService():
                       auth_header: dict = None, save_file: bool = True,
                       save_path: str = "./", file_name: str = None,
                       if_exists: str = "fail") -> any:
-        """
-        Retrieve a file from PumpWood.
+        """Retrieve a file from PumpWood.
 
         This function will retrieve file as a single request, depending on the
         size of the files it would be preferred to use streaming end-point.
@@ -1566,10 +1579,12 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             May return the file name if save_file=True; If false will return
             a dictonary with keys `filename` with original file name and
             `content` with binary data of file content.
+
         Raises:
             PumpWoodForbidden:
                 'storage_object attribute not set for view, file operations
@@ -1653,8 +1668,7 @@ class PumpWoodMicroService():
                                 auth_header: dict = None,
                                 save_path: str = "./",
                                 if_exists: str = "fail"):
-        """
-        Retrieve a file from PumpWood using streaming to retrieve content.
+        """Retrieve a file from PumpWood using streaming to retrieve content.
 
         This funcion uses file streaming to retrieve file content, it should be
         prefered when dealing with large (bigger than 10Mb) files transfer.
@@ -1685,8 +1699,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Returns the file path that recived the file content.
+
         Raises:
             PumpWoodForbidden:
                 'storage_object attribute not set for view, file operations
@@ -1748,7 +1764,8 @@ class PumpWoodMicroService():
         get_url = self.server_url + url_str
         with requests.get(
                 get_url, verify=self.verify_ssl, headers=request_header,
-                params={"file-field": file_field}) as response:
+                params={"file-field": file_field},
+                timeout=self.default_timeout) as response:
             self.error_handler(response)
             with open(file_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -1761,8 +1778,7 @@ class PumpWoodMicroService():
         return "rest/%s/save/" % (model_class.lower())
 
     def save(self, obj_dict, files: dict = None, auth_header: dict = None):
-        """
-        Save or Update a new object.
+        """Save or Update a new object.
 
         Function to save or update a new model_class object. If obj_dict['pk']
         is None or not defined a new object will be created. The obj
@@ -1784,8 +1800,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Return updated/created object data.
+
         Raises:
             PumpWoodObjectSavingException:
                 'To save an object obj_dict must have model_class defined.'
@@ -1823,8 +1841,7 @@ class PumpWoodMicroService():
     def save_streaming_file(self, model_class: str, pk: int, file_field: str,
                             file: io.BufferedReader, file_name: str = None,
                             auth_header: dict = None) -> str:
-        """
-        Stream file to PumpWood.
+        """Stream file to PumpWood.
 
         Use streaming to transfer a file content to Pumpwood storage, this
         end-point is prefered when transmiting files bigger than 10Mb. It
@@ -1845,8 +1862,10 @@ class PumpWoodMicroService():
             file_name:
                 Name of the file, if not set it will be saved as
                 {pk}__{file_field}.{extension at permited extension}
+
         Returns:
             Return the file name associated with data at the storage.
+
         Raises:
             PumpWoodForbidden:
                 'file_field must be set on self.file_fields dictionary'. This
@@ -1870,7 +1889,8 @@ class PumpWoodMicroService():
 
         response = requests.post(
             url=post_url, data=file, params=parameters,
-            verify=self.verify_ssl, headers=request_header, stream=True)
+            verify=self.verify_ssl, headers=request_header, stream=True,
+            timeout=self.default_timeout)
 
         file_last_bite = file.tell()
         self.error_handler(response)
@@ -1891,8 +1911,7 @@ class PumpWoodMicroService():
 
     def delete(self, model_class: str, pk: int,
                auth_header: dict = None) -> dict:
-        """
-        Send delete request to a PumpWood object.
+        """Send delete request to a PumpWood object.
 
         Delete (or whatever the PumpWood system have been implemented) the
         object with the specified pk.
@@ -1909,8 +1928,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Returns delete object.
+
         Raises:
             PumpWoodObjectDoesNotExist:
                 'Requested object {model_class}[{pk}] not found.' This
@@ -1925,8 +1946,7 @@ class PumpWoodMicroService():
 
     def remove_file_field(self, model_class: str, pk: int, file_field: str,
                           auth_header: dict = None) -> bool:
-        """
-        Send delete request to a PumpWood object.
+        """Send delete request to a PumpWood object.
 
         Delete (or whatever the PumpWood system have been implemented) the
         object with the specified pk.
@@ -1942,8 +1962,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Return True is file was successful removed
+
         Raises:
             PumpWoodForbidden:
                 'storage_object attribute not set for view, file operations
@@ -1971,8 +1993,7 @@ class PumpWoodMicroService():
 
     def delete_many(self, model_class: str, filter_dict: dict = {},
                     exclude_dict: dict = {}, auth_header: dict = None) -> bool:
-        """
-        Remove many objects using query to retrict removal.
+        """Remove many objects using query to retrict removal.
 
         CAUTION It is not possible to undo this operation, model_class
         this deleted field will be removed from database when using this
@@ -1988,8 +2009,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             True if delete is ok.
+
         Raises:
             PumpWoodObjectDeleteException:
                 Raises error if there is any error when commiting object
@@ -2003,8 +2026,7 @@ class PumpWoodMicroService():
 
     def list_actions(self, model_class: str,
                      auth_header: dict = None) -> List[dict]:
-        """
-        Return a list of all actions avaiable at this model class.
+        """Return a list of all actions avaiable at this model class.
 
         Args:
           model_class:
@@ -2012,8 +2034,10 @@ class PumpWoodMicroService():
           auth_header:
               Auth header to substitute the microservice original
               at the request (user impersonation).
+
         Returns:
           List of possible actions and its descriptions.
+
         Raises:
             No particular errors.
         """
@@ -2031,12 +2055,14 @@ class PumpWoodMicroService():
     def execute_action(self, model_class: str, action: str, pk: int = None,
                        parameters: dict = {}, files: list = None,
                        auth_header: dict = None) -> dict:
-        """
-        Execute action associated with a model class.
+        """Execute action associated with a model class.
 
         If action is static or classfunction no pk is necessary.
 
         Args:
+            pk (int):
+                PK of the object to run action at. If not set action will be
+                considered a classmethod and will run over the class.
             model_class:
                 Model class to run action the object
             action:
@@ -2050,6 +2076,7 @@ class PumpWoodMicroService():
                 A dictionary of files to be added to as a multi-part
                 post request. File must be passed as a file object with read
                 bytes.
+
         Returns:
             Return a dictonary with keys:
             - **result:**: Result of the action that was performed.
@@ -2059,6 +2086,7 @@ class PumpWoodMicroService():
             - **object:** If a pk was passed to execute and action (not
                 classmethod or staticmethod), the object with the correspondent
                 pk is returned.
+
         Raises:
             PumpWoodException:
                 'There is no method {action} in rest actions for {class_name}'.
@@ -2085,8 +2113,7 @@ class PumpWoodMicroService():
 
     def search_options(self, model_class: str,
                        auth_header: dict = None) -> dict:
-        """
-        Return search options.
+        """Return search options.
 
         DEPRECTED Use `list_options` function instead.
 
@@ -2099,6 +2126,7 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Return a dictonary with field names as keys and information of
             them as values. Information at values:
@@ -2129,6 +2157,7 @@ class PumpWoodMicroService():
                 partition is used on filter or exclude clauses. If table has
                 more than one level o partition, at least the first one must
                 be used when retrieving data.
+
         Raises:
             No particular raises.
         """
@@ -2137,8 +2166,7 @@ class PumpWoodMicroService():
 
     def fill_options(self, model_class, parcial_obj_dict: dict = {},
                      field: str = None, auth_header: dict = None):
-        """
-        Return options for object fields.
+        """Return options for object fields.
 
         DEPRECTED Use `fill_validation` function instead.
 
@@ -2156,6 +2184,7 @@ class PumpWoodMicroService():
                 update fill options acording to values passed for each field.
             field:
                 Retrict validation for an especific field if implemented.
+
         Returns:
             Return a dictonary with field names as keys and information of
             them as values. Information at values:
@@ -2186,6 +2215,7 @@ class PumpWoodMicroService():
                 partition is used on filter or exclude clauses. If table has
                 more than one level o partition, at least the first one must
                 be used when retrieving data.
+
         Raises:
             No particular raises.
         """
@@ -2197,8 +2227,7 @@ class PumpWoodMicroService():
             auth_header=auth_header)
 
     def list_options(self, model_class: str, auth_header: dict) -> dict:
-        """
-        Return options to render list views.
+        """Return options to render list views.
 
         This function send partial object data and return options to finish
         object fillment.
@@ -2209,12 +2238,14 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Dictionary with keys:
             - **default_list_fields:** Default list field defined on the
                 application backend.
             - **field_descriptions:** Description of the fields associated
                 with the model class.
+
         Raises:
           No particular raise.
         """
@@ -2225,8 +2256,7 @@ class PumpWoodMicroService():
 
     def retrieve_options(self, model_class: str,
                          auth_header: dict = None) -> dict:
-        """
-        Return options to render retrieve views.
+        """Return options to render retrieve views.
 
         Return information of the field sets that can be used to create
         frontend site. It also return a `verbose_field` which can be used
@@ -2239,6 +2269,7 @@ class PumpWoodMicroService():
           auth_header:
               Auth header to substitute the microservice original
               at the request (user impersonation).
+
         Returns:
             Return a dictinary with keys:
             - **verbose_field:** String sugesting how the tittle of the
@@ -2247,6 +2278,7 @@ class PumpWoodMicroService():
             - **fieldset:** An dictinary with organization of data,
                 setting field sets that could be grouped toguether in
                 tabs.
+
         Raises:
             No particular raises.
         """
@@ -2258,8 +2290,7 @@ class PumpWoodMicroService():
     def fill_validation(self, model_class: str, parcial_obj_dict: dict = {},
                         field: str = None, auth_header: dict = None,
                         user_type: str = 'api') -> dict:
-        """
-        Return options for object fields.
+        """Return options for object fields.
 
         This function send partial object data and return options to finish
         object fillment.
@@ -2279,6 +2310,7 @@ class PumpWoodMicroService():
                 possible to set `api` and `gui`. Gui user_type will return
                 fields listed in gui_readonly as read-only fields to
                 facilitate navegation.
+
         Returns:
             Return a dictinary with keys:
             - **field_descriptions:** Same of fill_options, but setting as
@@ -2286,6 +2318,7 @@ class PumpWoodMicroService():
                 user_type='gui'.
             - **gui_readonly:** Return a list of fields that will be
                 considered as read-only if user_type='gui' is requested.
+
         Raises:
             No particular raises.
         """
@@ -2306,8 +2339,7 @@ class PumpWoodMicroService():
               filter_dict: dict = {}, exclude_dict: dict = {},
               order_by: list = [], variables: list = None,
               show_deleted=False, auth_header: dict = None) -> any:
-        """
-        Pivot object data acording to columns specified.
+        """Pivot object data acording to columns specified.
 
         Pivoting per-se is not usually used, beeing the name of the function
         a legacy. Normality data transformation is done at the client level.
@@ -2337,9 +2369,11 @@ class PumpWoodMicroService():
                 Fields with deleted column will have objects with deleted=True
                 omited from results. show_deleted=True will return this
                 information.
+
         Returns:
             Return a list or a dictinary depending on the format set on
             format parameter.
+
         Raises:
             PumpWoodException:
                 'Columns must be a list of elements.'. Indicates that the list
@@ -2428,8 +2462,7 @@ class PumpWoodMicroService():
                             create_composite_pk: bool = False,
                             start_date: str = None,
                             end_date: str = None) -> pd.DataFrame:
-        """
-        Incrementally fetch data from pivot end-point.
+        """Incrementally fetch data from pivot end-point.
 
         Fetch data from pivot end-point paginating by id of chunk_size lenght.
 
@@ -2466,6 +2499,7 @@ class PumpWoodMicroService():
                 If true and table has a composite pk, it will create pk
                 value based on the hash on the json serialized dictionary
                 of the components of the primary key.
+
         Returns:
             Returns a dataframe with all information fetched.
 
@@ -2568,7 +2602,7 @@ class PumpWoodMicroService():
                         request_filter_dict_t = copy.deepcopy(
                             request_filter_dict)
                         # If is not the last interval, query using open
-                        # right interval so subsequence querys does
+                        # right interval so subsequence queries does
                         # not overlap
                         if i != len(month_sequence) - 1:
                             request_filter_dict_t["time__gte"] = \
@@ -2576,7 +2610,7 @@ class PumpWoodMicroService():
                             request_filter_dict_t["time__lt"] = \
                                 month_sequence[i]["end"]
 
-                        # At the last interaval use closed right interval so
+                        # At the last interval use closed right interval so
                         # last element is also included in the interval
                         else:
                             request_filter_dict_t["time__gte"] = \
@@ -2629,7 +2663,7 @@ class PumpWoodMicroService():
             if fields is not None:
                 fields = ['pk'] + fields
 
-        # Ajust columns to return the columns set at fields
+        # Adjust columns to return the columns set at fields
         if fields is not None:
             resp_df = pd.DataFrame(resp_df, columns=fields)
         return resp_df
@@ -2640,8 +2674,7 @@ class PumpWoodMicroService():
 
     def bulk_save(self, model_class: str, data_to_save: list,
                   auth_header: dict = None) -> dict:
-        """
-        Save a list of objects with one request.
+        """Save a list of objects with one request.
 
         It is used with a unique call save many objects at the same time. It
         is necessary that the end-point is able to receive bulk save requests
@@ -2655,9 +2688,11 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             A dictinary with `saved_count` as key indicating the number of
             objects that were saved in database.
+
         Raises:
             PumpWoodException:
                 'Expected columns and data columns do not match: Expected
@@ -2680,16 +2715,16 @@ class PumpWoodMicroService():
             auth_header=auth_header)
 
     ########################
-    # Paralell aux functions
+    # Parallel aux functions
     @staticmethod
     def flatten_parallel(parallel_result: list):
-        """
-        Concat all parallel return to one list.
+        """Concat all parallel return to one list.
 
         Args:
             parallel_result:
                 A list of lists to be flated (concatenate
                 all lists into one).
+
         Returns:
             A list with all sub list itens.
         """
@@ -2709,8 +2744,7 @@ class PumpWoodMicroService():
     def parallel_request_get(self, urls_list: list, n_parallel: int = None,
                              parameters: Union[List[dict], dict] = None,
                              auth_header: dict = None) -> List[any]:
-        """
-        Make [n_parallel] parallel get requests.
+        """Make [n_parallel] parallel get requests.
 
         Args:
             urls_list:
@@ -2727,9 +2761,11 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Return a list with all get request reponses. The results are
             on the same order of argument list.
+
         Raises:
             PumpWoodException:
                 'lenght of urls_list[{}] is different of parameters[{}]'.
@@ -2745,14 +2781,14 @@ class PumpWoodMicroService():
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
-        # Create url parameters if not set as parameter with
-        # empty dictinaries
+        # Create URL parameters if not set as parameter with
+        # empty dicionaries
         n_urls = len(urls_list)
         parameters_list = None
         if parameters is None:
-            parameters = [{}]*n_urls
+            parameters = [{}] * n_urls
         elif type(parameters) is dict:
-            parameters = [{parameters}]*n_urls
+            parameters = [{parameters}] * n_urls
         elif type(parameters) is list:
             if len(parameters) == n_urls:
                 parameters_list = parameters
@@ -2794,8 +2830,7 @@ class PumpWoodMicroService():
                               parameters: Union[List[dict], dict] = None,
                               n_parallel: int = None,
                               auth_header: dict = None) -> List[any]:
-        """
-        Make [n_parallel] parallel post request.
+        """Make [n_parallel] parallel post request.
 
         Args:
             urls_list:
@@ -2811,10 +2846,13 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             List of the post request reponses.
+
         Raises:
             No particular raises
+
         Example:
             No example yet.
 
@@ -2823,14 +2861,14 @@ class PumpWoodMicroService():
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
-        # Create url parameters if not set as parameter with
-        # empty dictinaries
+        # Create URL parameters if not set as parameter with
+        # empty dicionaries
         n_urls = len(urls_list)
         parameters_list = None
         if parameters is None:
-            parameters_list = [{}]*n_urls
+            parameters_list = [{}] * n_urls
         elif type(parameters) is dict:
-            parameters_list = [{parameters}]*n_urls
+            parameters_list = [{parameters}] * n_urls
         elif type(parameters) is list:
             if len(parameters) == n_urls:
                 parameters_list = parameters
@@ -2845,7 +2883,7 @@ class PumpWoodMicroService():
                 str(type(parameters)))
             raise PumpWoodNotImplementedError(msg)
 
-        # Validate if len of url is the same of data_list
+        # Validate if length of URL is the same of data_list
         if len(urls_list) != len(data_list):
             msg = (
                 'len(urls_list)[{}] must be equal ' +
@@ -2880,8 +2918,7 @@ class PumpWoodMicroService():
                                 parameters: Union[List[dict], dict] = None,
                                 n_parallel: int = None,
                                 auth_header: dict = None):
-        """
-        Make [n_parallel] parallel delete request.
+        """Make [n_parallel] parallel delete request.
 
         Args:
             urls_list:
@@ -2894,26 +2931,28 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             list: List of the get request reponses.
+
         Raises:
-            No particular raises
+            No particular raises.
+
         Example:
             No example yet.
-
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
-        # Create url parameters if not set as parameter with
-        # empty dictinaries
+        # Create URL parameters if not set as parameter with
+        # empty dicionaries
         n_urls = len(urls_list)
         parameters_list = None
         if parameters is None:
-            parameters = [{}]*n_urls
+            parameters = [{}] * n_urls
         elif type(parameters) is dict:
-            parameters = [{parameters}]*n_urls
+            parameters = [{parameters}] * n_urls
         elif type(parameters) is list:
             if len(parameters) == n_urls:
                 parameters_list = parameters
@@ -2941,15 +2980,14 @@ class PumpWoodMicroService():
         return results
 
     ######################
-    # Paralell functions #
+    # Parallel functions #
     def parallel_retrieve(self, model_class: Union[str, List[str]],
                           list_pk: List[int], default_fields: bool = False,
                           foreign_key_fields: bool = False,
                           related_fields: bool = False,
                           fields: list = None, n_parallel: int = None,
                           auth_header: dict = None):
-        """
-        Make [n_parallel] parallel retrieve request.
+        """Make [n_parallel] parallel retrieve request.
 
         Args:
             model_class:
@@ -2979,8 +3017,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             List of the retrieve request data.
+
         Raises:
             PumpWoodException:
                 'len(model_class)[{}] != len(list_pk)[{}]'. Indicates that
@@ -2992,7 +3032,7 @@ class PumpWoodMicroService():
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         if type(model_class) is str:
-            model_class = [model_class]*len(list_pk)
+            model_class = [model_class] * len(list_pk)
         elif type(model_class) is list:
             if len(model_class) != len(list_pk):
                 msg = (
@@ -3028,8 +3068,7 @@ class PumpWoodMicroService():
                                if_exists: str = "fail",
                                n_parallel: int = None,
                                auth_header: dict = None):
-        """
-        Make many [n_parallel] retrieve request.
+        """Make many [n_parallel] retrieve request.
 
         Args:
             model_class:
@@ -3057,8 +3096,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             List of the retrieve file request data.
+
         Raises:
             PumpWoodException:
                 'Lenght of list_file_name and list_pk are not equal:
@@ -3107,24 +3148,38 @@ class PumpWoodMicroService():
                       auth_header: dict = None, fields: list = None,
                       default_fields: bool = False, limit: int = None,
                       foreign_key_fields: bool = False) -> List[dict]:
-        """
-        Make [n_parallel] parallel list request.
+        """Make [n_parallel] parallel list request.
 
         Args:
-            model_class:
+            model_class (str):
                 Model Class to retrieve.
-            list_args_list:
+            list_args (List[dict]):
                 A list of list request args (filter_dict,
                 exclude_dict, order_by, fields, default_fields, limit,
                 foreign_key_fields).
             n_parallel (int): Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
-            auth_header:
+            auth_header (dict):
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+            fields (List[str]):
+                Set the fields to be returned by the list end-point.
+            default_fields (bool):
+                Boolean, if true and fields arguments None will return the
+                default fields set for list by the backend.
+            limit (int):
+                Set the limit of elements of the returned query. By default,
+                backend usually return 50 elements.
+            foreign_key_fields (bool):
+                Return forenging key objects. It will return the fk
+                corresponding object. Ex: `created_by_id` reference to
+                a user `model_class` the correspondent to User will be
+                returned at `created_by`.
+
         Returns:
             Flatten List of the list request reponses.
+
         Raises:
             PumpWoodException:
                 'len(model_class)[{}] != len(list_args)[{}]'. Indicates that
@@ -3136,7 +3191,7 @@ class PumpWoodMicroService():
 
         urls_list = None
         if type(model_class) is str:
-            urls_list = [self._build_list_url(model_class)]*len(list_args)
+            urls_list = [self._build_list_url(model_class)] * len(list_args)
         else:
             if len(model_class) != len(list_args):
                 msg = 'len(model_class)[{}] != len(list_args)[{}]'.format(
@@ -3153,24 +3208,26 @@ class PumpWoodMicroService():
                                   list_args: List[dict],
                                   n_parallel: int = None,
                                   auth_header: dict = None):
-        """
-        Make [n_parallel] parallel list_without_pag request.
+        """Make [n_parallel] parallel list_without_pag request.
 
         Args:
             model_class:
                 Model Class to retrieve.
-            list_args_list:
+            list_args:
                 A list of list request args (filter_dict,
                 exclude_dict, order_by, fields, default_fields, limit,
                 foreign_key_fields).
-            n_parallel (int): Number of simultaneus get requests, if not set
+            n_parallel (int):
+                Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             Flatten List of the list request reponses.
+
         Raises:
             PumpWoodException:
                 'len(model_class)[{}] != len(list_args)[{}]'. Indicates that
@@ -3183,7 +3240,7 @@ class PumpWoodMicroService():
         urls_list = None
         if type(model_class) is str:
             url_temp = [self._build_list_without_pag_url(model_class)]
-            urls_list = url_temp*len(list_args)
+            urls_list = url_temp * len(list_args)
         else:
             if len(model_class) != len(list_args):
                 msg = 'len(model_class)[{}] != len(list_args)[{}]'.format(
@@ -3200,8 +3257,7 @@ class PumpWoodMicroService():
     def parallel_list_one(self, model_class: Union[str, List[str]],
                           list_pk: List[int], n_parallel: int = None,
                           auth_header: dict = None):
-        """
-        Make [n_parallel] parallel list_one request.
+        """Make [n_parallel] parallel list_one request.
 
         DEPRECTED user retrieve call with default_fields=True.
 
@@ -3217,8 +3273,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             List of the list_one request data.
+
         Raises:
             PumpWoodException:
                 'len(model_class) != len(list_pk)'. Indicates that lenght
@@ -3229,7 +3287,7 @@ class PumpWoodMicroService():
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         if type(model_class) is list:
-            model_class = [model_class]*len(list_pk)
+            model_class = [model_class] * len(list_pk)
 
         if len(model_class) is len(list_pk):
             raise PumpWoodException('len(model_class) != len(list_pk)')
@@ -3247,8 +3305,7 @@ class PumpWoodMicroService():
     def parallel_save(self, list_obj_dict: List[dict],
                       n_parallel: int = None,
                       auth_header: dict = None) -> List[dict]:
-        """
-        Make [n_parallel] parallel save requests.
+        """Make [n_parallel] parallel save requests.
 
         Args:
             list_obj_dict:
@@ -3261,8 +3318,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             List of the save request data.
+
         Raises:
             No particular raises
         """
@@ -3280,8 +3339,7 @@ class PumpWoodMicroService():
     def parallel_delete(self, model_class: Union[str, List[str]],
                         list_pk: List[int], n_parallel: int = None,
                         auth_header: dict = None):
-        """
-        Make many [n_parallel] delete requests.
+        """Make many [n_parallel] delete requests.
 
         Args:
             model_class:
@@ -3295,8 +3353,10 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             List of the delete request data.
+
         Raises:
             PumpWoodException:
                 'len(model_class)[{}] != len(list_args)[{}]'. Indicates
@@ -3308,7 +3368,7 @@ class PumpWoodMicroService():
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         if type(model_class) is list:
-            model_class = [model_class]*len(list_pk)
+            model_class = [model_class] * len(list_pk)
         if len(model_class) != len(list_pk):
             msg = 'len(model_class)[{}] != len(list_args)[{}]'.format(
                 len(model_class), len(list_pk))
@@ -3327,8 +3387,7 @@ class PumpWoodMicroService():
     def parallel_delete_many(self, model_class: Union[str, List[str]],
                              list_args: List[dict], n_parallel: int = None,
                              auth_header: dict = None) -> List[dict]:
-        """
-        Make [n_parallel] parallel delete_many request.
+        """Make [n_parallel] parallel delete_many request.
 
         Args:
             model_class (str):
@@ -3342,16 +3401,18 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             List of the delete many request reponses.
+
         Raises:
             PumpWoodException:
                 'len(model_class)[{}] != len(list_args)[{}]'. Indicates
                 that length of model_class and list_args arguments
                 are not equal.
+
         Example:
             No example yet.
-
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
@@ -3360,7 +3421,7 @@ class PumpWoodMicroService():
         urls_list = None
         if type(model_class) is str:
             url_temp = [self._build_delete_many_request_url(model_class)]
-            urls_list = url_temp*len(list_args)
+            urls_list = url_temp * len(list_args)
         else:
             if len(model_class) != len(list_args):
                 msg = 'len(model_class)[{}] != len(list_args)[{}]'.format(
@@ -3380,8 +3441,7 @@ class PumpWoodMicroService():
                                 parameters: Union[dict, List[dict]] = {},
                                 n_parallel: int = None,
                                 auth_header: dict = None) -> List[dict]:
-        """
-        Make [n_parallel] parallel execute_action requests.
+        """Make [n_parallel] parallel execute_action requests.
 
         Args:
             model_class:
@@ -3403,15 +3463,17 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             List of the execute_action request data.
+
         Raises:
             PumpWoodException:
                 'parallel_length != len([argument])'. Indicates that function
                 arguments does not have all the same lenght.
+
         Example:
             No example yet.
-
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
@@ -3452,16 +3514,16 @@ class PumpWoodMicroService():
 
         model_class = (
             model_class if type(model_class) is list
-            else [model_class]*parallel_length)
+            else [model_class] * parallel_length)
         pk = (
             pk if type(pk) is list
-            else [pk]*parallel_length)
+            else [pk] * parallel_length)
         action = (
             action if type(action) is list
-            else [action]*parallel_length)
+            else [action] * parallel_length)
         parameters = (
             parameters if type(parameters) is list
-            else [parameters]*parallel_length)
+            else [parameters] * parallel_length)
 
         urls_list = [
             self._build_execute_action_url(
@@ -3477,8 +3539,7 @@ class PumpWoodMicroService():
                            data_to_save: Union[pd.DataFrame, List[dict]],
                            n_parallel: int = None, chunksize: int = 1000,
                            auth_header: dict = None):
-        """
-        Break data_to_save in many parallel bulk_save requests.
+        """Break data_to_save in many parallel bulk_save requests.
 
         Args:
             model_class:
@@ -3494,6 +3555,7 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             List of the responses of bulk_save.
         """
@@ -3506,7 +3568,7 @@ class PumpWoodMicroService():
 
         chunks = break_in_chunks(df_to_break=data_to_save, chunksize=chunksize)
         url = self._build_bulk_save_url(model_class)
-        urls_list = [url]*len(chunks)
+        urls_list = [url] * len(chunks)
 
         print("## Starting parallel_bulk_save: %s" % len(urls_list))
         self.paralell_request_post(
@@ -3517,8 +3579,7 @@ class PumpWoodMicroService():
                        columns: List[str], format: str, n_parallel: int = None,
                        variables: list = None, show_deleted: bool = False,
                        auth_header: dict = None) -> List[dict]:
-        """
-        Make [n_parallel] parallel pivot request.
+        """Make [n_parallel] parallel pivot request.
 
         Args:
             model_class:
@@ -3538,20 +3599,22 @@ class PumpWoodMicroService():
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+
         Returns:
             List of the pivot request reponses.
+
         Raises:
-            No particular raises
+            No particular raises.
+
         Example:
             No example yet.
-
         """
         if n_parallel is None:
             n_parallel = int(os.getenv(
                 "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
 
         url_temp = [self._build_pivot_url(model_class)]
-        urls_list = url_temp*len(list_args)
+        urls_list = url_temp * len(list_args)
         for q in list_args:
             q["variables"] = variables
             q["show_deleted"] = show_deleted
