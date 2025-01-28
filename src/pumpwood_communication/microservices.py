@@ -96,7 +96,7 @@ class PumpWoodMicroService(ABCSimpleBatchMicroservice):
     def __init__(self, name: str = None, server_url: str = None,
                  username: str = None, password: str = None,
                  verify_ssl: bool = True, debug: bool = None,
-                 default_timeout: int = 300, **kwargs,):
+                 default_timeout: int = 60, **kwargs,):
         """Create new PumpWoodMicroService object.
 
         Creates a new microservice object. If just name is passed, object must

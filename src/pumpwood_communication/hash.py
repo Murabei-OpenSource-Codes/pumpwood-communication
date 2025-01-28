@@ -7,8 +7,7 @@ from pumpwood_communication.serializers import pumpJsonDump
 
 def create_hash_from_dict(index_dict: dict, salt: str = "",
                           get_env: bool = True, keys: List[str] = None) -> str:
-    """
-    Create a hash from a dictionary limiting keys used at `keys` arguments.
+    """Create a hash from a dictionary limiting keys used at `keys` arguments.
 
     Create hash from a dictionary, it adds `HASH_SALT` as salt at the
     beginng of the string if `HASH_SALT` enviroment variable is present.
@@ -37,15 +36,15 @@ def create_hash_from_dict(index_dict: dict, salt: str = "",
         temp_dict = dict([(k, index_dict[k]) for k in keys])
 
     string_dict = pumpJsonDump(temp_dict)
-    hash_object = hashlib.sha1(salt.encode() + str(string_dict).encode())
+    hash_object = hashlib.sha1( # NOQA
+        salt.encode() + str(string_dict).encode())
     pbHash = hash_object.hexdigest()
     return pbHash
 
 
 def create_hash_from_str(index: str, salt: str = "",
                          get_env: bool = True) -> str:
-    """
-    Create a hash for the index.
+    """Create a hash for the index.
 
     Args:
         index: String used to create the hash.
@@ -60,6 +59,7 @@ def create_hash_from_str(index: str, salt: str = "",
     if salt == "" and get_env:
         salt = os.getenv("HASH_SALT", "")
 
-    hash_object = hashlib.sha1(salt.encode() + index.encode())
+    hash_object = hashlib.sha1( # NOQA
+        salt.encode() + index.encode())
     pbHash = hash_object.hexdigest()
     return pbHash

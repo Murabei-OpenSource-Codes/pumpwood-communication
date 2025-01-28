@@ -6,9 +6,8 @@ and will not result in default 500 errors
 """
 
 
-class PumpWoodException(Exception):
-    """
-    Special exception used in Pumpowod Systems.
+class PumpWoodException(Exception): # NOQA
+    """Special exception used in Pumpowod Systems.
 
     It permits treatment of raises on applications serializing response
     using to_dict function and return status code as `status_code`
@@ -50,15 +49,17 @@ class PumpWoodException(Exception):
             payload=self.payload)
 
     def __init__(self, message: str, payload: dict = {}, status_code=None):
-        """
-        __init__.
+        """__init__.
 
         Args:
-            message: Message that will be formated using payload
+            message:
+                Message that will be formated using payload
                 information using `{key}` to replace information.
-            payload: Payload data passed as a dictionary, it will be returned
+            payload:
+                Payload data passed as a dictionary, it will be returned
                 in payload at `to_dict` funcion and used to format message.
-            status_code: Change the default status code of the exception.
+            status_code:
+                Change the default status code of the exception.
         """
         Exception.__init__(self)
         self.message = message
@@ -67,8 +68,7 @@ class PumpWoodException(Exception):
         self.payload = payload
 
     def format_message(self) -> str:
-        """
-        Format exception message using payload data.
+        """Format exception message using payload data.
 
         Substitute placeholders at exception message with payload.
 
@@ -82,8 +82,7 @@ class PumpWoodException(Exception):
             return self.message + "\n** format error **"
 
     def to_dict(self) -> dict:
-        """
-        Serialize Exception object to return as reponse of Pumpwood backends.
+        """Serialize Exception object to return as reponse.
 
         Returns:
             Return a dictionary with keys:
@@ -198,6 +197,7 @@ class PumpWoodOtherException(PumpWoodException):
     status_code = 500
 
     def __repr__(self):
+        """__repr__."""
         template = "{class_name}[status_code={status_code}]: " + \
             "{message}\nerror payload={payload}"
         return template.format(
@@ -206,6 +206,7 @@ class PumpWoodOtherException(PumpWoodException):
             payload=self.payload,)
 
     def __str__(self):
+        """__str__."""
         template = "{class_name}[status_code={status_code}]: " + \
             "{message}\nerror payload={payload}"
         return template.format(
@@ -214,6 +215,7 @@ class PumpWoodOtherException(PumpWoodException):
             payload=self.payload,)
 
     def __init__(self, message: str, payload: dict = {}, status_code=None):
+        """__init__."""
         Exception.__init__(self)
         # Limit size of the error
         self.message = message[:1000]
@@ -222,6 +224,7 @@ class PumpWoodOtherException(PumpWoodException):
         self.payload = payload
 
     def to_dict(self):
+        """Serialize exception to dictionary."""
         rv = {
             "payload": self.payload,
             "type": self.__class__.__name__,
@@ -238,21 +241,23 @@ class AirflowMicroServiceException(PumpWoodException):
 exceptions_dict = {
     "PumpWoodException": PumpWoodException,
     "PumpWoodDataLoadingException": PumpWoodDataLoadingException,
+    "PumpWoodDatabaseError": PumpWoodDatabaseError,
     "PumpWoodDataTransformationException": PumpWoodDataTransformationException,
+    "PumpWoodWrongParameters": PumpWoodWrongParameters,
     "PumpWoodObjectSavingException": PumpWoodObjectSavingException,
+    "PumpWoodObjectDeleteException": PumpWoodObjectDeleteException,
     "PumpWoodActionArgsException": PumpWoodActionArgsException,
     "PumpWoodUnauthorized": PumpWoodUnauthorized,
     "PumpWoodForbidden": PumpWoodForbidden,
     "PumpWoodObjectDoesNotExist": PumpWoodObjectDoesNotExist,
     "PumpWoodQueryException": PumpWoodQueryException,
     "PumpWoodIntegrityError": PumpWoodIntegrityError,
-    "PumpWoodWrongParameters": PumpWoodWrongParameters,
     "PumpWoodNotImplementedError": PumpWoodNotImplementedError,
-    "PumpWoodOtherException": PumpWoodOtherException,
-    "PumpWoodObjectDeleteException": PumpWoodObjectDeleteException,
-    "AirflowMicroServiceException": AirflowMicroServiceException,
     "PumpWoodMicroserviceUnavailableError":
-        PumpWoodMicroserviceUnavailableError
+        PumpWoodMicroserviceUnavailableError,
+    "PumpWoodMFAError": PumpWoodMFAError,
+    "PumpWoodOtherException": PumpWoodOtherException,
+    "AirflowMicroServiceException": AirflowMicroServiceException,
 }
 """
 Dictionary used by backends/microservice to treat Pumpwood exceptions and

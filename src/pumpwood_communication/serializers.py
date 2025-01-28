@@ -16,8 +16,7 @@ from pumpwood_communication.exceptions import PumpWoodException
 
 
 class PumpWoodJSONEncoder(JSONEncoder):
-    """
-    PumpWood default serializer.
+    """PumpWood default serializer.
 
     Treat not simple python types to facilitate at serialization of
     pandas, numpy, data, datetime and other data types.
@@ -25,7 +24,9 @@ class PumpWoodJSONEncoder(JSONEncoder):
 
     def default(self, obj):
         """Serialize complex objects."""
-        # Return None if object is nan
+        print("PumpWoodJSONEncoder.default")
+        print("type(obj):", type(obj))
+        # Return None if object is NaN
         if isinstance(obj, datetime):
             return obj.isoformat()
         if isinstance(obj, Timestamp):
@@ -59,9 +60,8 @@ class PumpWoodJSONEncoder(JSONEncoder):
                 "Unserializable object {} of type {}".format(obj, type(obj)))
 
 
-def pumpJsonDump(x: any, sort_keys: bool = True):
-    """
-    Dump a Json to python object.
+def pumpJsonDump(x: any, sort_keys: bool = True): # NOQA
+    """Dump a Json to python object.
 
     Args:
         x:
@@ -80,8 +80,7 @@ class CompositePkBase64Converter:
 
     @staticmethod
     def dump(obj, primary_keys: List[str]) -> Union[str, int]:
-        """
-        Convert primary keys and composite to a single value.
+        """Convert primary keys and composite to a single value.
 
         Treat cases when more than one column are used as primary keys,
         at this cases, a base64 used on url serialization of the dictionary
@@ -92,6 +91,7 @@ class CompositePkBase64Converter:
                 SQLAlchemy object.
             primary_keys:
                 List of primary keys of the object.
+
         Return:
             If the primary key is unique, return the value of the primary
             key, if is have more than one column as primary key, return
@@ -109,8 +109,7 @@ class CompositePkBase64Converter:
 
     @staticmethod
     def load(value: Union[str, int]) -> Union[int, dict]:
-        """
-        Convert encoded primary keys to values.
+        """Convert encoded primary keys to values.
 
         If the primary key is a string, try to transform it to dictionary
         decoding json base64 to a dictionary.
@@ -119,6 +118,7 @@ class CompositePkBase64Converter:
             value:
                 Primary key value as an integer or as a base64
                 encoded json dictionary.
+
         Return:
             Return the primary key as integer if possible, or try to decoded
             it to a dictionary from a base64 encoded json.
@@ -132,7 +132,7 @@ class CompositePkBase64Converter:
                 msg = "[{value}] value is a float, but not integer."
                 raise PumpWoodException(msg, payload={"value": value})
 
-        # If not possible, try to decode a base64 JSON dictonary
+        # If not possible, try to decode a base64 JSON dictionary
         except Exception as e1:
             try:
                 return json.loads(base64.b64decode(value))

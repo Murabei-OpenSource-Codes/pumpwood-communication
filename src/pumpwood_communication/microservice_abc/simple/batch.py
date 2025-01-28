@@ -13,8 +13,8 @@ class ABCSimpleBatchMicroservice(ABC):
 
     def aggregate(self, model_class: str, group_by: List[str], agg: dict,
                   filter_dict: dict = {}, exclude_dict: dict = {},
-                  order_by: List[str] = [], auth_header: dict = None
-                  ) -> pd.DataFrame:
+                  order_by: List[str] = [], auth_header: dict = None,
+                  limit: int = None) -> pd.DataFrame:
         """Save a list of objects with one request.
 
         Args:
@@ -35,6 +35,8 @@ class ABCSimpleBatchMicroservice(ABC):
                 fields created as keys of agg dictinary.
             auth_header (dict):
                 Authentication header used to impersonation of user.
+            limit (int):
+                Limit number of returned row at aggregation query.
 
         Returns:
             Return a DataFrame with aggregation results.
@@ -42,6 +44,7 @@ class ABCSimpleBatchMicroservice(ABC):
         url_str = self._build_aggregate_url(model_class=model_class)
         data = {
             'agg': agg, 'group_by': group_by, 'filter_dict': filter_dict,
-            'exclude_dict': exclude_dict, 'order_by': order_by}
+            'exclude_dict': exclude_dict, 'order_by': order_by,
+            'limit': limit}
         return self.request_post(
             url=url_str, data=data, auth_header=auth_header)
