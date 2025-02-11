@@ -24,8 +24,6 @@ class PumpWoodJSONEncoder(JSONEncoder):
 
     def default(self, obj):
         """Serialize complex objects."""
-        print("PumpWoodJSONEncoder.default")
-        print("type(obj):", type(obj))
         # Return None if object is NaN
         if isinstance(obj, datetime):
             return obj.isoformat()
