@@ -22,7 +22,7 @@ select = [
 # Os códigos de erros colocados aqui são ignorados pelo linter. O erro abaixo é em relação ao assert. Está comentado por padrão.
 ignore = [
   # "S101" # Use of `assert` detected
-  "E402"
+  "E402", "N806"
 ]
 
 # ativa um modo plus do ruff

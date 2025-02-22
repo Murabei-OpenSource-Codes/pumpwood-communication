@@ -58,19 +58,21 @@ class PumpWoodJSONEncoder(JSONEncoder):
                 "Unserializable object {} of type {}".format(obj, type(obj)))
 
 
-def pumpJsonDump(x: any, sort_keys: bool = True): # NOQA
+def pumpJsonDump(x: any, sort_keys: bool = True, indent: int = None): # NOQA
     """Dump a Json to python object.
 
     Args:
-        x:
+        x (any):
             Object to be serialized using PumpWoodJSONEncoder encoder.
-        sort_keys:
+        sort_keys (bool):
             If json serialized data should have its keys sorted. This option
             makes serialization return of data reproductable.
+        indent (int):
+            Pass indent argument to simplejson dumps.
     """
     return json.dumps(
         x, cls=PumpWoodJSONEncoder, ignore_nan=True,
-        sort_keys=sort_keys)
+        sort_keys=sort_keys, indent=indent)
 
 
 class CompositePkBase64Converter:

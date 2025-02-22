@@ -2473,29 +2473,37 @@ class PumpWoodMicroService(ABCSimpleBatchMicroservice):
         retrieving each month data in parallel.
 
         Args:
-            model_class [str]:
+            model_class (str):
                 Model class to be pivoted.
-            filter_dict [dict]:
+            filter_dict (dict):
                 Dictionary to to be used in objects.filter argument
                 (Same as list end-point).
-            exclude_dict [dict]:
+            exclude_dict (dict):
                 Dictionary to to be used in objects.exclude argument
                 (Same as list end-point).
-            fields [List[str] | None]:
+            fields (List[str] | None):
                 List of the variables to be returned,
                 if None, the default variables will be returned.
                 If fields is set, dataframe will return that columns
                 even if data is empty.
-            show_deleted [bool]:
+            start_date (datetime | str):
+                Set a begin date for the query. If begin and end date are
+                set, query will be splited with chucks by month that will be
+                requested in parallel.
+            end_date (datetime | str):
+                Set a end date for the query. If begin and end date are
+                set, query will be splited with chucks by month that will be
+                requested in parallel.
+            show_deleted (bool):
                 If deleted data should be returned.
-            auth_header [dict]:
+            auth_header (dict):
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
-            chunk_size [int]:
+            chunk_size (int):
                 Limit of data to fetch per call.
-            n_parallel [int]:
+            n_parallel (int):
                 Number of parallel process to perform.
-            create_composite_pk [bool]:
+            create_composite_pk (bool):
                 If true and table has a composite pk, it will create pk
                 value based on the hash on the json serialized dictionary
                 of the components of the primary key.
@@ -3596,6 +3604,11 @@ class PumpWoodMicroService(ABCSimpleBatchMicroservice):
                 Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
                 not set then 4 will be considered.
+            variables:
+                Restrict the fields that will be returned at the query.
+            show_deleted:
+                If results should include data with deleted=True. This will
+                be ignored if model class does not have deleted field.
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
