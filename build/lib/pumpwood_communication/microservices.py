@@ -279,7 +279,8 @@ class PumpWoodMicroService(ABCSimpleBatchMicroservice):
         # When if debug always refresh token
         is_debug = None
         if self.debug is None:
-            is_debug = os.getenv("DEBUG", "FALSE") == "TRUE"
+            is_debug = os.getenv(
+                "PUMPWOOD_COMUNICATION__DEBUG", "FALSE") == "TRUE"
         else:
             is_debug = self.debug
 
