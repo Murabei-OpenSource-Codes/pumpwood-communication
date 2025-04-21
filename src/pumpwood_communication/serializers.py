@@ -151,11 +151,9 @@ class CompositePkBase64Converter:
             # convert to a base64 dictionary to be used as PK. Using
             # dictionary will map values before converting to base64
             # dictionary
-            print("composite_pk_dict:", composite_pk_dict)
             composite_pk_str = pumpJsonDump(composite_pk_dict)
             base64_composite_pk = base64.urlsafe_b64encode(
                 composite_pk_str.encode()).decode()
-            print("base64_composite_pk:", base64_composite_pk)
             return base64_composite_pk
 
         # This will raise error if primary_keys type is not implemented

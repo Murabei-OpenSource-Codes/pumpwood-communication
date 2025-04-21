@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.7] - 2025-03-08
+
+### Added
+- No adds
+
+### Changed
+- Changed behavior of `CompositePkBase64Converter.dump` to accept
+  dictionary and list at `primary_keys` argument. It now permits to
+  pass map dictionary to create composite primary converting fields
+  to other keys. This can be used at related fields when the target
+  object has different names. List argument will keep same behavior
+  of the past implementation, and string will return the field without
+  converting to base64 dictinary.
+
+### Removed
+- No removes.
+
 ## [2.2.4] - 2025-03-08
 
 ### Added
