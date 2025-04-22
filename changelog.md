@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to other keys. This can be used at related fields when the target
   object has different names. List argument will keep same behavior
   of the past implementation, and string will return the field without
-  converting to base64 dictinary.
+  converting to base64 dictionary.
 
 ### Removed
 - No removes.
