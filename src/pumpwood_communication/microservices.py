@@ -33,7 +33,7 @@ from pumpwood_communication.misc import unpack_dict_columns
 
 # Importing abstract classes for Micro Service
 from pumpwood_communication.microservice_abc.simple import (
-    ABCSimpleBatchMicroservice)
+    ABCSimpleBatchMicroservice, ABCPermissionMicroservice)
 
 
 # Creating logger for Micro Service calls
@@ -62,7 +62,8 @@ def break_in_chunks(df_to_break: pd.DataFrame,
     return to_return
 
 
-class PumpWoodMicroService(ABCSimpleBatchMicroservice):
+class PumpWoodMicroService(ABCSimpleBatchMicroservice,
+                           ABCPermissionMicroservice):
     """Class to define an inter-pumpwood MicroService.
 
     Create an object ot help communication with Pumpwood based backends. It
@@ -396,40 +397,6 @@ class PumpWoodMicroService(ABCSimpleBatchMicroservice):
         return {
             "auth_header": self.__auth_header,
             "token_expiry": self.__token_expiry}
-
-    def check_if_logged(self, auth_header: dict) -> bool:
-        """Check if user is logged.
-
-        Args:
-            auth_header:
-                AuthHeader to substitute the microservice original at
-                request.
-
-        Returns:
-            Return True if auth_header is looged and False if not
-        """
-        try:
-            check = self.request_get(
-                url="rest/registration/check/", auth_header=auth_header)
-        except PumpWoodUnauthorized:
-            return False
-        return check
-
-    def get_user_info(self, auth_header: dict = None) -> dict:
-        """Get user info.
-
-        Args:
-            auth_header:
-                AuthHeader to substitute the microservice original
-                at the request (user impersonation).
-
-        Returns:
-            A serialized user object with information of the logged user.
-        """
-        user_info = self.request_get(
-            url="rest/registration/retrieveauthenticateduser/",
-            auth_header=auth_header, timeout=self.default_timeout)
-        return user_info
 
     def _check__auth_header(self, auth_header, multipart: bool = False):
         """Check if auth_header is set or auth_header if provided.
@@ -2336,40 +2303,45 @@ class PumpWoodMicroService(ABCSimpleBatchMicroservice):
     def _build_pivot_url(model_class):
         return "rest/%s/pivot/" % (model_class.lower(), )
 
-    def pivot(self, model_class: str, columns: list = [], format: str = 'list',
-              filter_dict: dict = {}, exclude_dict: dict = {},
-              order_by: list = [], variables: list = None,
-              show_deleted=False, auth_header: dict = None) -> any:
+    def pivot(self, model_class: str, columns: List[str] = [],
+              format: str = 'list', filter_dict: dict = {},
+              exclude_dict: dict = {}, order_by: List[str] = [],
+              variables: List[str] = None, show_deleted: bool = False,
+              add_pk_column: bool = False, auth_header: dict = None) -> any:
         """Pivot object data acording to columns specified.
 
         Pivoting per-se is not usually used, beeing the name of the function
         a legacy. Normality data transformation is done at the client level.
 
         Args:
-            model_class:
+            model_class (str):
                 Model class to check search parameters.
-            auth_header:
-                Auth header to substitute the microservice original
-                at the request (user impersonation).
-            columns:
+            columns (List[str]):
                 List of fields to be used as columns when pivoting the data.
-            format:
+            format (str):
                 Format to be used to convert pandas.DataFrame to
                 dictionary, must be in ['dict','list','series',
                 'split', 'records','index'].
-            filter_dict:
+            filter_dict (dict):
                 Same as list function.
-            exclude_dict:
+            exclude_dict (dict):
                 Same as list function.
-            order_by:
+            order_by (List[str]):
                  Same as list function.
-            variables:
+            variables (List[str]):
                 List of the fields to be returned, if None, the default
                 variables will be returned. Same as fields on list functions.
-            show_deleted:
+            show_deleted (bool):
                 Fields with deleted column will have objects with deleted=True
                 omited from results. show_deleted=True will return this
                 information.
+            add_pk_column (bool):
+                If add pk values of the objects at pivot results. Adding
+                pk key on pivot end-points won't be possible to pivot since
+                pk is unique for each entry.
+            auth_header (dict):
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
 
         Returns:
             Return a list or a dictinary depending on the format set on
@@ -2402,7 +2374,7 @@ class PumpWoodMicroService(ABCSimpleBatchMicroservice):
             'columns': columns, 'format': format,
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
             'order_by': order_by, "variables": variables,
-            "show_deleted": show_deleted}
+            "show_deleted": show_deleted, "add_pk_column": add_pk_column}
         return self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
 

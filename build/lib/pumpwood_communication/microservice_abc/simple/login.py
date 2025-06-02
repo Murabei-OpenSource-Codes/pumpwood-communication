@@ -1,4 +1,4 @@
-"""Module for retrieve functions of microservice."""
+"""Module for login related functions of microservice."""
 from abc import ABC
 # import re
 # import os
