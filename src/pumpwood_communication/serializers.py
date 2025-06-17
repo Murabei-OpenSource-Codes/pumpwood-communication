@@ -3,7 +3,7 @@ import base64
 import simplejson as json
 import numpy as np
 import pandas as pd
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Any
 from simplejson import JSONEncoder
 from datetime import datetime
 from datetime import date
@@ -80,7 +80,28 @@ class CompositePkBase64Converter:
     """Convert composite primary keys in base64 dictionary."""
 
     @staticmethod
-    def dump(obj, primary_keys: Union[str, List[str], Dict[str, str]]
+    def get_attribute(obj: Any, att: str) -> Any:
+        """Get attribute from object or dictinary.
+
+        Args:
+            obj (Any):
+                Object or a dictinary.
+            att (str):
+                Name of the attribute/key that will be used to return
+                the value.
+
+        Return:
+            Return object/dictionary value associated with attribute.
+        """
+        temp_pk_value = None
+        if type(obj) is dict:
+            temp_pk_value = obj[att]
+        else:
+            temp_pk_value = getattr(obj, att)
+        return temp_pk_value
+
+    @classmethod
+    def dump(cls, obj, primary_keys: Union[str, List[str], Dict[str, str]]
              ) -> Union[str, int]:
         """Convert primary keys and composite to a single value.
 
@@ -121,7 +142,7 @@ class CompositePkBase64Converter:
                 is_all_none = False
                 composite_pk_dict = {}
                 for pk_col in primary_keys:
-                    temp_pk_value = getattr(obj, pk_col)
+                    temp_pk_value = cls.get_attribute(obj, pk_col)
                     is_all_none = is_all_none or (temp_pk_value is None)
                     composite_pk_dict[pk_col] = temp_pk_value
                 if is_all_none:
@@ -141,7 +162,7 @@ class CompositePkBase64Converter:
             is_all_none = False
             composite_pk_dict = {}
             for key, value in primary_keys.items():
-                temp_pk_value = getattr(obj, key)
+                temp_pk_value = cls.get_attribute(obj, pk_col)
                 is_all_none = is_all_none or (temp_pk_value is None)
                 composite_pk_dict[value] = temp_pk_value
             if is_all_none:
