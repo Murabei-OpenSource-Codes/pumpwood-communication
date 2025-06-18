@@ -10,5 +10,7 @@ https://github.com/Murabei-OpenSource-Codes/pumpwood-communication
 
 __docformat__ = "google"
 from .batch import ABCSimpleBatchMicroservice
+from .permission import ABCPermissionMicroservice
 
-__all__ = [ABCSimpleBatchMicroservice]
+__all__ = [
+    ABCSimpleBatchMicroservice, ABCPermissionMicroservice]

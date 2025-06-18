@@ -39,6 +39,21 @@
                 </ul>
 
             </li>
+            <li>
+                    <a class="class" href="#ABCPermissionMicroservice">ABCPermissionMicroservice</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#ABCPermissionMicroservice.check_if_logged">check_if_logged</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ABCPermissionMicroservice.get_user_info">get_user_info</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ABCPermissionMicroservice.check_permission">check_permission</a>
+                        </li>
+                </ul>
+
+            </li>
     </ul>
 
 
@@ -80,8 +95,10 @@ pattern and helps with authentication.</p>
 </span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a>
 </span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a><span class="n">__docformat__</span> <span class="o">=</span> <span class="s2">&quot;google&quot;</span>
 </span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a><span class="kn">from</span> <span class="nn">.batch</span> <span class="kn">import</span> <span class="n">ABCSimpleBatchMicroservice</span>
-</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a>
-</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="n">ABCSimpleBatchMicroservice</span><span class="p">]</span>
+</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a><span class="kn">from</span> <span class="nn">.permission</span> <span class="kn">import</span> <span class="n">ABCPermissionMicroservice</span>
+</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a>
+</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>    <span class="n">ABCSimpleBatchMicroservice</span><span class="p">,</span> <span class="n">ABCPermissionMicroservice</span><span class="p">]</span>
 </span></pre></div>
 
 
@@ -221,6 +238,284 @@ fields created as keys of agg dictinary.</li>
 
 <blockquote>
   <p>Return a DataFrame with aggregation results.</p>
+</blockquote>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="ABCPermissionMicroservice">
+                            <input id="ABCPermissionMicroservice-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">ABCPermissionMicroservice</span><wbr>(<span class="base">abc.ABC</span>):
+
+                <label class="view-source-button" for="ABCPermissionMicroservice-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#ABCPermissionMicroservice"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ABCPermissionMicroservice-7"><a href="#ABCPermissionMicroservice-7"><span class="linenos"> 7</span></a><span class="k">class</span> <span class="nc">ABCPermissionMicroservice</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+</span><span id="ABCPermissionMicroservice-8"><a href="#ABCPermissionMicroservice-8"><span class="linenos"> 8</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract class for permission checking at pumpwood.&quot;&quot;&quot;</span>
+</span><span id="ABCPermissionMicroservice-9"><a href="#ABCPermissionMicroservice-9"><span class="linenos"> 9</span></a>
+</span><span id="ABCPermissionMicroservice-10"><a href="#ABCPermissionMicroservice-10"><span class="linenos">10</span></a>    <span class="k">def</span> <span class="nf">check_if_logged</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">auth_header</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="ABCPermissionMicroservice-11"><a href="#ABCPermissionMicroservice-11"><span class="linenos">11</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if user is logged.</span>
+</span><span id="ABCPermissionMicroservice-12"><a href="#ABCPermissionMicroservice-12"><span class="linenos">12</span></a>
+</span><span id="ABCPermissionMicroservice-13"><a href="#ABCPermissionMicroservice-13"><span class="linenos">13</span></a><span class="sd">        Args:</span>
+</span><span id="ABCPermissionMicroservice-14"><a href="#ABCPermissionMicroservice-14"><span class="linenos">14</span></a><span class="sd">            auth_header (dict): = None</span>
+</span><span id="ABCPermissionMicroservice-15"><a href="#ABCPermissionMicroservice-15"><span class="linenos">15</span></a><span class="sd">                AuthHeader to substitute the microservice original at</span>
+</span><span id="ABCPermissionMicroservice-16"><a href="#ABCPermissionMicroservice-16"><span class="linenos">16</span></a><span class="sd">                request. If not passed, microservice object auth_header</span>
+</span><span id="ABCPermissionMicroservice-17"><a href="#ABCPermissionMicroservice-17"><span class="linenos">17</span></a><span class="sd">                will be used.</span>
+</span><span id="ABCPermissionMicroservice-18"><a href="#ABCPermissionMicroservice-18"><span class="linenos">18</span></a>
+</span><span id="ABCPermissionMicroservice-19"><a href="#ABCPermissionMicroservice-19"><span class="linenos">19</span></a><span class="sd">        Returns:</span>
+</span><span id="ABCPermissionMicroservice-20"><a href="#ABCPermissionMicroservice-20"><span class="linenos">20</span></a><span class="sd">            Return True if auth_header is looged and False if not</span>
+</span><span id="ABCPermissionMicroservice-21"><a href="#ABCPermissionMicroservice-21"><span class="linenos">21</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="ABCPermissionMicroservice-22"><a href="#ABCPermissionMicroservice-22"><span class="linenos">22</span></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="ABCPermissionMicroservice-23"><a href="#ABCPermissionMicroservice-23"><span class="linenos">23</span></a>            <span class="n">check</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_get</span><span class="p">(</span>
+</span><span id="ABCPermissionMicroservice-24"><a href="#ABCPermissionMicroservice-24"><span class="linenos">24</span></a>                <span class="n">url</span><span class="o">=</span><span class="s2">&quot;rest/registration/check/&quot;</span><span class="p">,</span>
+</span><span id="ABCPermissionMicroservice-25"><a href="#ABCPermissionMicroservice-25"><span class="linenos">25</span></a>                <span class="n">auth_header</span><span class="o">=</span><span class="n">auth_header</span><span class="p">)</span>
+</span><span id="ABCPermissionMicroservice-26"><a href="#ABCPermissionMicroservice-26"><span class="linenos">26</span></a>        <span class="k">except</span> <span class="n">PumpWoodUnauthorized</span><span class="p">:</span>
+</span><span id="ABCPermissionMicroservice-27"><a href="#ABCPermissionMicroservice-27"><span class="linenos">27</span></a>            <span class="k">return</span> <span class="kc">False</span>
+</span><span id="ABCPermissionMicroservice-28"><a href="#ABCPermissionMicroservice-28"><span class="linenos">28</span></a>        <span class="k">return</span> <span class="n">check</span>
+</span><span id="ABCPermissionMicroservice-29"><a href="#ABCPermissionMicroservice-29"><span class="linenos">29</span></a>
+</span><span id="ABCPermissionMicroservice-30"><a href="#ABCPermissionMicroservice-30"><span class="linenos">30</span></a>    <span class="k">def</span> <span class="nf">get_user_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">auth_header</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="ABCPermissionMicroservice-31"><a href="#ABCPermissionMicroservice-31"><span class="linenos">31</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Get user info.</span>
+</span><span id="ABCPermissionMicroservice-32"><a href="#ABCPermissionMicroservice-32"><span class="linenos">32</span></a>
+</span><span id="ABCPermissionMicroservice-33"><a href="#ABCPermissionMicroservice-33"><span class="linenos">33</span></a><span class="sd">        Args:</span>
+</span><span id="ABCPermissionMicroservice-34"><a href="#ABCPermissionMicroservice-34"><span class="linenos">34</span></a><span class="sd">            auth_header (dict): = None</span>
+</span><span id="ABCPermissionMicroservice-35"><a href="#ABCPermissionMicroservice-35"><span class="linenos">35</span></a><span class="sd">                AuthHeader to substitute the microservice original at</span>
+</span><span id="ABCPermissionMicroservice-36"><a href="#ABCPermissionMicroservice-36"><span class="linenos">36</span></a><span class="sd">                request. If not passed, microservice object auth_header</span>
+</span><span id="ABCPermissionMicroservice-37"><a href="#ABCPermissionMicroservice-37"><span class="linenos">37</span></a><span class="sd">                will be used.</span>
+</span><span id="ABCPermissionMicroservice-38"><a href="#ABCPermissionMicroservice-38"><span class="linenos">38</span></a>
+</span><span id="ABCPermissionMicroservice-39"><a href="#ABCPermissionMicroservice-39"><span class="linenos">39</span></a><span class="sd">        Returns:</span>
+</span><span id="ABCPermissionMicroservice-40"><a href="#ABCPermissionMicroservice-40"><span class="linenos">40</span></a><span class="sd">            A serialized user object with information of the logged user.</span>
+</span><span id="ABCPermissionMicroservice-41"><a href="#ABCPermissionMicroservice-41"><span class="linenos">41</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="ABCPermissionMicroservice-42"><a href="#ABCPermissionMicroservice-42"><span class="linenos">42</span></a>        <span class="n">user_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_get</span><span class="p">(</span>
+</span><span id="ABCPermissionMicroservice-43"><a href="#ABCPermissionMicroservice-43"><span class="linenos">43</span></a>            <span class="n">url</span><span class="o">=</span><span class="s2">&quot;rest/registration/retrieveauthenticateduser/&quot;</span><span class="p">,</span>
+</span><span id="ABCPermissionMicroservice-44"><a href="#ABCPermissionMicroservice-44"><span class="linenos">44</span></a>            <span class="n">auth_header</span><span class="o">=</span><span class="n">auth_header</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default_timeout</span><span class="p">)</span>
+</span><span id="ABCPermissionMicroservice-45"><a href="#ABCPermissionMicroservice-45"><span class="linenos">45</span></a>        <span class="k">return</span> <span class="n">user_info</span>
+</span><span id="ABCPermissionMicroservice-46"><a href="#ABCPermissionMicroservice-46"><span class="linenos">46</span></a>
+</span><span id="ABCPermissionMicroservice-47"><a href="#ABCPermissionMicroservice-47"><span class="linenos">47</span></a>    <span class="k">def</span> <span class="nf">check_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_class</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">end_point</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="ABCPermissionMicroservice-48"><a href="#ABCPermissionMicroservice-48"><span class="linenos">48</span></a>                         <span class="n">extra_arg</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">allow_service_user</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="ABCPermissionMicroservice-49"><a href="#ABCPermissionMicroservice-49"><span class="linenos">49</span></a>                         <span class="n">allow_external</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">auth_header</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="ABCPermissionMicroservice-50"><a href="#ABCPermissionMicroservice-50"><span class="linenos">50</span></a>                         <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="ABCPermissionMicroservice-51"><a href="#ABCPermissionMicroservice-51"><span class="linenos">51</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Get user info.</span>
+</span><span id="ABCPermissionMicroservice-52"><a href="#ABCPermissionMicroservice-52"><span class="linenos">52</span></a>
+</span><span id="ABCPermissionMicroservice-53"><a href="#ABCPermissionMicroservice-53"><span class="linenos">53</span></a><span class="sd">        Args:</span>
+</span><span id="ABCPermissionMicroservice-54"><a href="#ABCPermissionMicroservice-54"><span class="linenos">54</span></a><span class="sd">            model_class (str):</span>
+</span><span id="ABCPermissionMicroservice-55"><a href="#ABCPermissionMicroservice-55"><span class="linenos">55</span></a><span class="sd">                Model class associated to be checked for access.</span>
+</span><span id="ABCPermissionMicroservice-56"><a href="#ABCPermissionMicroservice-56"><span class="linenos">56</span></a><span class="sd">            end_point (str):</span>
+</span><span id="ABCPermissionMicroservice-57"><a href="#ABCPermissionMicroservice-57"><span class="linenos">57</span></a><span class="sd">                Name of the end-point that will be checked for permission. Ex.:</span>
+</span><span id="ABCPermissionMicroservice-58"><a href="#ABCPermissionMicroservice-58"><span class="linenos">58</span></a><span class="sd">                retrieve, save, list, list-without-pag, ...</span>
+</span><span id="ABCPermissionMicroservice-59"><a href="#ABCPermissionMicroservice-59"><span class="linenos">59</span></a><span class="sd">            extra_arg (str):</span>
+</span><span id="ABCPermissionMicroservice-60"><a href="#ABCPermissionMicroservice-60"><span class="linenos">60</span></a><span class="sd">                Used on some end-points. On action end-point it is reponsible</span>
+</span><span id="ABCPermissionMicroservice-61"><a href="#ABCPermissionMicroservice-61"><span class="linenos">61</span></a><span class="sd">                for setting the action associated with the call.</span>
+</span><span id="ABCPermissionMicroservice-62"><a href="#ABCPermissionMicroservice-62"><span class="linenos">62</span></a><span class="sd">            allow_service_user: str = None:</span>
+</span><span id="ABCPermissionMicroservice-63"><a href="#ABCPermissionMicroservice-63"><span class="linenos">63</span></a>
+</span><span id="ABCPermissionMicroservice-64"><a href="#ABCPermissionMicroservice-64"><span class="linenos">64</span></a><span class="sd">            allow_external: str = None:</span>
+</span><span id="ABCPermissionMicroservice-65"><a href="#ABCPermissionMicroservice-65"><span class="linenos">65</span></a>
+</span><span id="ABCPermissionMicroservice-66"><a href="#ABCPermissionMicroservice-66"><span class="linenos">66</span></a><span class="sd">            auth_header (dict):</span>
+</span><span id="ABCPermissionMicroservice-67"><a href="#ABCPermissionMicroservice-67"><span class="linenos">67</span></a><span class="sd">                AuthHeader to substitute the microservice original at</span>
+</span><span id="ABCPermissionMicroservice-68"><a href="#ABCPermissionMicroservice-68"><span class="linenos">68</span></a><span class="sd">                request. If not passed, microservice object auth_header</span>
+</span><span id="ABCPermissionMicroservice-69"><a href="#ABCPermissionMicroservice-69"><span class="linenos">69</span></a><span class="sd">                will be used.</span>
+</span><span id="ABCPermissionMicroservice-70"><a href="#ABCPermissionMicroservice-70"><span class="linenos">70</span></a>
+</span><span id="ABCPermissionMicroservice-71"><a href="#ABCPermissionMicroservice-71"><span class="linenos">71</span></a><span class="sd">        Returns:</span>
+</span><span id="ABCPermissionMicroservice-72"><a href="#ABCPermissionMicroservice-72"><span class="linenos">72</span></a><span class="sd">            A serialized user object with information of the logged user.</span>
+</span><span id="ABCPermissionMicroservice-73"><a href="#ABCPermissionMicroservice-73"><span class="linenos">73</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="ABCPermissionMicroservice-74"><a href="#ABCPermissionMicroservice-74"><span class="linenos">74</span></a>        <span class="c1"># user_info = self.request_post(</span>
+</span><span id="ABCPermissionMicroservice-75"><a href="#ABCPermissionMicroservice-75"><span class="linenos">75</span></a>        <span class="c1">#     url=&quot;rest/registration/check/&quot;,</span>
+</span><span id="ABCPermissionMicroservice-76"><a href="#ABCPermissionMicroservice-76"><span class="linenos">76</span></a>        <span class="c1">#     payload={</span>
+</span><span id="ABCPermissionMicroservice-77"><a href="#ABCPermissionMicroservice-77"><span class="linenos">77</span></a>        <span class="c1">#         &#39;end_point&#39;: end_point,</span>
+</span><span id="ABCPermissionMicroservice-78"><a href="#ABCPermissionMicroservice-78"><span class="linenos">78</span></a>        <span class="c1">#         &#39;first_arg&#39;: first_arg,</span>
+</span><span id="ABCPermissionMicroservice-79"><a href="#ABCPermissionMicroservice-79"><span class="linenos">79</span></a>        <span class="c1">#         &#39;second_arg&#39;: second_arg,</span>
+</span><span id="ABCPermissionMicroservice-80"><a href="#ABCPermissionMicroservice-80"><span class="linenos">80</span></a>        <span class="c1">#         &#39;api_config_allow&#39;: api_config_allow,</span>
+</span><span id="ABCPermissionMicroservice-81"><a href="#ABCPermissionMicroservice-81"><span class="linenos">81</span></a>        <span class="c1">#         &#39;api_config_deny&#39;: api_config_deny},</span>
+</span><span id="ABCPermissionMicroservice-82"><a href="#ABCPermissionMicroservice-82"><span class="linenos">82</span></a>        <span class="c1">#     auth_header=auth_header, timeout=self.default_timeout)</span>
+</span><span id="ABCPermissionMicroservice-83"><a href="#ABCPermissionMicroservice-83"><span class="linenos">83</span></a>        <span class="c1"># return user_info</span>
+</span><span id="ABCPermissionMicroservice-84"><a href="#ABCPermissionMicroservice-84"><span class="linenos">84</span></a>        <span class="k">return</span> <span class="kc">True</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Abstract class for permission checking at pumpwood.</p>
+</div>
+
+
+                            <div id="ABCPermissionMicroservice.check_if_logged" class="classattr">
+                                        <input id="ABCPermissionMicroservice.check_if_logged-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">check_if_logged</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">auth_header</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+
+                <label class="view-source-button" for="ABCPermissionMicroservice.check_if_logged-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#ABCPermissionMicroservice.check_if_logged"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ABCPermissionMicroservice.check_if_logged-10"><a href="#ABCPermissionMicroservice.check_if_logged-10"><span class="linenos">10</span></a>    <span class="k">def</span> <span class="nf">check_if_logged</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">auth_header</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-11"><a href="#ABCPermissionMicroservice.check_if_logged-11"><span class="linenos">11</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if user is logged.</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-12"><a href="#ABCPermissionMicroservice.check_if_logged-12"><span class="linenos">12</span></a>
+</span><span id="ABCPermissionMicroservice.check_if_logged-13"><a href="#ABCPermissionMicroservice.check_if_logged-13"><span class="linenos">13</span></a><span class="sd">        Args:</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-14"><a href="#ABCPermissionMicroservice.check_if_logged-14"><span class="linenos">14</span></a><span class="sd">            auth_header (dict): = None</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-15"><a href="#ABCPermissionMicroservice.check_if_logged-15"><span class="linenos">15</span></a><span class="sd">                AuthHeader to substitute the microservice original at</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-16"><a href="#ABCPermissionMicroservice.check_if_logged-16"><span class="linenos">16</span></a><span class="sd">                request. If not passed, microservice object auth_header</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-17"><a href="#ABCPermissionMicroservice.check_if_logged-17"><span class="linenos">17</span></a><span class="sd">                will be used.</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-18"><a href="#ABCPermissionMicroservice.check_if_logged-18"><span class="linenos">18</span></a>
+</span><span id="ABCPermissionMicroservice.check_if_logged-19"><a href="#ABCPermissionMicroservice.check_if_logged-19"><span class="linenos">19</span></a><span class="sd">        Returns:</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-20"><a href="#ABCPermissionMicroservice.check_if_logged-20"><span class="linenos">20</span></a><span class="sd">            Return True if auth_header is looged and False if not</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-21"><a href="#ABCPermissionMicroservice.check_if_logged-21"><span class="linenos">21</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-22"><a href="#ABCPermissionMicroservice.check_if_logged-22"><span class="linenos">22</span></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-23"><a href="#ABCPermissionMicroservice.check_if_logged-23"><span class="linenos">23</span></a>            <span class="n">check</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_get</span><span class="p">(</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-24"><a href="#ABCPermissionMicroservice.check_if_logged-24"><span class="linenos">24</span></a>                <span class="n">url</span><span class="o">=</span><span class="s2">&quot;rest/registration/check/&quot;</span><span class="p">,</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-25"><a href="#ABCPermissionMicroservice.check_if_logged-25"><span class="linenos">25</span></a>                <span class="n">auth_header</span><span class="o">=</span><span class="n">auth_header</span><span class="p">)</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-26"><a href="#ABCPermissionMicroservice.check_if_logged-26"><span class="linenos">26</span></a>        <span class="k">except</span> <span class="n">PumpWoodUnauthorized</span><span class="p">:</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-27"><a href="#ABCPermissionMicroservice.check_if_logged-27"><span class="linenos">27</span></a>            <span class="k">return</span> <span class="kc">False</span>
+</span><span id="ABCPermissionMicroservice.check_if_logged-28"><a href="#ABCPermissionMicroservice.check_if_logged-28"><span class="linenos">28</span></a>        <span class="k">return</span> <span class="n">check</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Check if user is logged.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>auth_header (dict):</strong>  = None
+AuthHeader to substitute the microservice original at
+request. If not passed, microservice object auth_header
+will be used.</li>
+</ul>
+
+<h6 id="returns">Returns:</h6>
+
+<blockquote>
+  <p>Return True if auth_header is looged and False if not</p>
+</blockquote>
+</div>
+
+
+                            </div>
+                            <div id="ABCPermissionMicroservice.get_user_info" class="classattr">
+                                        <input id="ABCPermissionMicroservice.get_user_info-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">get_user_info</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">auth_header</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span>:</span></span>
+
+                <label class="view-source-button" for="ABCPermissionMicroservice.get_user_info-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#ABCPermissionMicroservice.get_user_info"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ABCPermissionMicroservice.get_user_info-30"><a href="#ABCPermissionMicroservice.get_user_info-30"><span class="linenos">30</span></a>    <span class="k">def</span> <span class="nf">get_user_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">auth_header</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-31"><a href="#ABCPermissionMicroservice.get_user_info-31"><span class="linenos">31</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Get user info.</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-32"><a href="#ABCPermissionMicroservice.get_user_info-32"><span class="linenos">32</span></a>
+</span><span id="ABCPermissionMicroservice.get_user_info-33"><a href="#ABCPermissionMicroservice.get_user_info-33"><span class="linenos">33</span></a><span class="sd">        Args:</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-34"><a href="#ABCPermissionMicroservice.get_user_info-34"><span class="linenos">34</span></a><span class="sd">            auth_header (dict): = None</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-35"><a href="#ABCPermissionMicroservice.get_user_info-35"><span class="linenos">35</span></a><span class="sd">                AuthHeader to substitute the microservice original at</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-36"><a href="#ABCPermissionMicroservice.get_user_info-36"><span class="linenos">36</span></a><span class="sd">                request. If not passed, microservice object auth_header</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-37"><a href="#ABCPermissionMicroservice.get_user_info-37"><span class="linenos">37</span></a><span class="sd">                will be used.</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-38"><a href="#ABCPermissionMicroservice.get_user_info-38"><span class="linenos">38</span></a>
+</span><span id="ABCPermissionMicroservice.get_user_info-39"><a href="#ABCPermissionMicroservice.get_user_info-39"><span class="linenos">39</span></a><span class="sd">        Returns:</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-40"><a href="#ABCPermissionMicroservice.get_user_info-40"><span class="linenos">40</span></a><span class="sd">            A serialized user object with information of the logged user.</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-41"><a href="#ABCPermissionMicroservice.get_user_info-41"><span class="linenos">41</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-42"><a href="#ABCPermissionMicroservice.get_user_info-42"><span class="linenos">42</span></a>        <span class="n">user_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_get</span><span class="p">(</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-43"><a href="#ABCPermissionMicroservice.get_user_info-43"><span class="linenos">43</span></a>            <span class="n">url</span><span class="o">=</span><span class="s2">&quot;rest/registration/retrieveauthenticateduser/&quot;</span><span class="p">,</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-44"><a href="#ABCPermissionMicroservice.get_user_info-44"><span class="linenos">44</span></a>            <span class="n">auth_header</span><span class="o">=</span><span class="n">auth_header</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default_timeout</span><span class="p">)</span>
+</span><span id="ABCPermissionMicroservice.get_user_info-45"><a href="#ABCPermissionMicroservice.get_user_info-45"><span class="linenos">45</span></a>        <span class="k">return</span> <span class="n">user_info</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Get user info.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>auth_header (dict):</strong>  = None
+AuthHeader to substitute the microservice original at
+request. If not passed, microservice object auth_header
+will be used.</li>
+</ul>
+
+<h6 id="returns">Returns:</h6>
+
+<blockquote>
+  <p>A serialized user object with information of the logged user.</p>
+</blockquote>
+</div>
+
+
+                            </div>
+                            <div id="ABCPermissionMicroservice.check_permission" class="classattr">
+                                        <input id="ABCPermissionMicroservice.check_permission-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">check_permission</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">model_class</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">end_point</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">extra_arg</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">allow_service_user</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">allow_external</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">auth_header</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span>:</span></span>
+
+                <label class="view-source-button" for="ABCPermissionMicroservice.check_permission-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#ABCPermissionMicroservice.check_permission"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ABCPermissionMicroservice.check_permission-47"><a href="#ABCPermissionMicroservice.check_permission-47"><span class="linenos">47</span></a>    <span class="k">def</span> <span class="nf">check_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_class</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">end_point</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="ABCPermissionMicroservice.check_permission-48"><a href="#ABCPermissionMicroservice.check_permission-48"><span class="linenos">48</span></a>                         <span class="n">extra_arg</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">allow_service_user</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="ABCPermissionMicroservice.check_permission-49"><a href="#ABCPermissionMicroservice.check_permission-49"><span class="linenos">49</span></a>                         <span class="n">allow_external</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">auth_header</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="ABCPermissionMicroservice.check_permission-50"><a href="#ABCPermissionMicroservice.check_permission-50"><span class="linenos">50</span></a>                         <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="ABCPermissionMicroservice.check_permission-51"><a href="#ABCPermissionMicroservice.check_permission-51"><span class="linenos">51</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Get user info.</span>
+</span><span id="ABCPermissionMicroservice.check_permission-52"><a href="#ABCPermissionMicroservice.check_permission-52"><span class="linenos">52</span></a>
+</span><span id="ABCPermissionMicroservice.check_permission-53"><a href="#ABCPermissionMicroservice.check_permission-53"><span class="linenos">53</span></a><span class="sd">        Args:</span>
+</span><span id="ABCPermissionMicroservice.check_permission-54"><a href="#ABCPermissionMicroservice.check_permission-54"><span class="linenos">54</span></a><span class="sd">            model_class (str):</span>
+</span><span id="ABCPermissionMicroservice.check_permission-55"><a href="#ABCPermissionMicroservice.check_permission-55"><span class="linenos">55</span></a><span class="sd">                Model class associated to be checked for access.</span>
+</span><span id="ABCPermissionMicroservice.check_permission-56"><a href="#ABCPermissionMicroservice.check_permission-56"><span class="linenos">56</span></a><span class="sd">            end_point (str):</span>
+</span><span id="ABCPermissionMicroservice.check_permission-57"><a href="#ABCPermissionMicroservice.check_permission-57"><span class="linenos">57</span></a><span class="sd">                Name of the end-point that will be checked for permission. Ex.:</span>
+</span><span id="ABCPermissionMicroservice.check_permission-58"><a href="#ABCPermissionMicroservice.check_permission-58"><span class="linenos">58</span></a><span class="sd">                retrieve, save, list, list-without-pag, ...</span>
+</span><span id="ABCPermissionMicroservice.check_permission-59"><a href="#ABCPermissionMicroservice.check_permission-59"><span class="linenos">59</span></a><span class="sd">            extra_arg (str):</span>
+</span><span id="ABCPermissionMicroservice.check_permission-60"><a href="#ABCPermissionMicroservice.check_permission-60"><span class="linenos">60</span></a><span class="sd">                Used on some end-points. On action end-point it is reponsible</span>
+</span><span id="ABCPermissionMicroservice.check_permission-61"><a href="#ABCPermissionMicroservice.check_permission-61"><span class="linenos">61</span></a><span class="sd">                for setting the action associated with the call.</span>
+</span><span id="ABCPermissionMicroservice.check_permission-62"><a href="#ABCPermissionMicroservice.check_permission-62"><span class="linenos">62</span></a><span class="sd">            allow_service_user: str = None:</span>
+</span><span id="ABCPermissionMicroservice.check_permission-63"><a href="#ABCPermissionMicroservice.check_permission-63"><span class="linenos">63</span></a>
+</span><span id="ABCPermissionMicroservice.check_permission-64"><a href="#ABCPermissionMicroservice.check_permission-64"><span class="linenos">64</span></a><span class="sd">            allow_external: str = None:</span>
+</span><span id="ABCPermissionMicroservice.check_permission-65"><a href="#ABCPermissionMicroservice.check_permission-65"><span class="linenos">65</span></a>
+</span><span id="ABCPermissionMicroservice.check_permission-66"><a href="#ABCPermissionMicroservice.check_permission-66"><span class="linenos">66</span></a><span class="sd">            auth_header (dict):</span>
+</span><span id="ABCPermissionMicroservice.check_permission-67"><a href="#ABCPermissionMicroservice.check_permission-67"><span class="linenos">67</span></a><span class="sd">                AuthHeader to substitute the microservice original at</span>
+</span><span id="ABCPermissionMicroservice.check_permission-68"><a href="#ABCPermissionMicroservice.check_permission-68"><span class="linenos">68</span></a><span class="sd">                request. If not passed, microservice object auth_header</span>
+</span><span id="ABCPermissionMicroservice.check_permission-69"><a href="#ABCPermissionMicroservice.check_permission-69"><span class="linenos">69</span></a><span class="sd">                will be used.</span>
+</span><span id="ABCPermissionMicroservice.check_permission-70"><a href="#ABCPermissionMicroservice.check_permission-70"><span class="linenos">70</span></a>
+</span><span id="ABCPermissionMicroservice.check_permission-71"><a href="#ABCPermissionMicroservice.check_permission-71"><span class="linenos">71</span></a><span class="sd">        Returns:</span>
+</span><span id="ABCPermissionMicroservice.check_permission-72"><a href="#ABCPermissionMicroservice.check_permission-72"><span class="linenos">72</span></a><span class="sd">            A serialized user object with information of the logged user.</span>
+</span><span id="ABCPermissionMicroservice.check_permission-73"><a href="#ABCPermissionMicroservice.check_permission-73"><span class="linenos">73</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="ABCPermissionMicroservice.check_permission-74"><a href="#ABCPermissionMicroservice.check_permission-74"><span class="linenos">74</span></a>        <span class="c1"># user_info = self.request_post(</span>
+</span><span id="ABCPermissionMicroservice.check_permission-75"><a href="#ABCPermissionMicroservice.check_permission-75"><span class="linenos">75</span></a>        <span class="c1">#     url=&quot;rest/registration/check/&quot;,</span>
+</span><span id="ABCPermissionMicroservice.check_permission-76"><a href="#ABCPermissionMicroservice.check_permission-76"><span class="linenos">76</span></a>        <span class="c1">#     payload={</span>
+</span><span id="ABCPermissionMicroservice.check_permission-77"><a href="#ABCPermissionMicroservice.check_permission-77"><span class="linenos">77</span></a>        <span class="c1">#         &#39;end_point&#39;: end_point,</span>
+</span><span id="ABCPermissionMicroservice.check_permission-78"><a href="#ABCPermissionMicroservice.check_permission-78"><span class="linenos">78</span></a>        <span class="c1">#         &#39;first_arg&#39;: first_arg,</span>
+</span><span id="ABCPermissionMicroservice.check_permission-79"><a href="#ABCPermissionMicroservice.check_permission-79"><span class="linenos">79</span></a>        <span class="c1">#         &#39;second_arg&#39;: second_arg,</span>
+</span><span id="ABCPermissionMicroservice.check_permission-80"><a href="#ABCPermissionMicroservice.check_permission-80"><span class="linenos">80</span></a>        <span class="c1">#         &#39;api_config_allow&#39;: api_config_allow,</span>
+</span><span id="ABCPermissionMicroservice.check_permission-81"><a href="#ABCPermissionMicroservice.check_permission-81"><span class="linenos">81</span></a>        <span class="c1">#         &#39;api_config_deny&#39;: api_config_deny},</span>
+</span><span id="ABCPermissionMicroservice.check_permission-82"><a href="#ABCPermissionMicroservice.check_permission-82"><span class="linenos">82</span></a>        <span class="c1">#     auth_header=auth_header, timeout=self.default_timeout)</span>
+</span><span id="ABCPermissionMicroservice.check_permission-83"><a href="#ABCPermissionMicroservice.check_permission-83"><span class="linenos">83</span></a>        <span class="c1"># return user_info</span>
+</span><span id="ABCPermissionMicroservice.check_permission-84"><a href="#ABCPermissionMicroservice.check_permission-84"><span class="linenos">84</span></a>        <span class="k">return</span> <span class="kc">True</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Get user info.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>model_class (str):</strong>  Model class associated to be checked for access.</li>
+<li><strong>end_point (str):</strong>  Name of the end-point that will be checked for permission. Ex.:
+retrieve, save, list, list-without-pag, ...</li>
+<li><strong>extra_arg (str):</strong>  Used on some end-points. On action end-point it is reponsible
+for setting the action associated with the call.</li>
+<li><strong>allow_service_user:</strong>  str = None:</li>
+<li><strong>allow_external:</strong>  str = None:</li>
+<li><strong>auth_header (dict):</strong>  AuthHeader to substitute the microservice original at
+request. If not passed, microservice object auth_header
+will be used.</li>
+</ul>
+
+<h6 id="returns">Returns:</h6>
+
+<blockquote>
+  <p>A serialized user object with information of the logged user.</p>
 </blockquote>
 </div>
 
