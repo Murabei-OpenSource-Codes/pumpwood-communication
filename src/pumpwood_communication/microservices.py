@@ -17,7 +17,7 @@ import datetime
 import copy
 from urllib.parse import urljoin
 from shapely import geometry
-from typing import Union, List, Any
+from typing import Union, List, Any, Dict
 from multiprocessing import Pool
 from pandas import ExcelWriter
 from copy import deepcopy
@@ -2307,7 +2307,9 @@ class PumpWoodMicroService(ABCSimpleBatchMicroservice,
               format: str = 'list', filter_dict: dict = {},
               exclude_dict: dict = {}, order_by: List[str] = [],
               variables: List[str] = None, show_deleted: bool = False,
-              add_pk_column: bool = False, auth_header: dict = None) -> any:
+              add_pk_column: bool = False, auth_header: dict = None,
+              as_dataframe: bool = False
+              ) -> Union[List[dict], Dict[str, list], pd.DataFrame]:
         """Pivot object data acording to columns specified.
 
         Pivoting per-se is not usually used, beeing the name of the function
@@ -2342,6 +2344,8 @@ class PumpWoodMicroService(ABCSimpleBatchMicroservice,
             auth_header (dict):
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+            as_dataframe (bool):
+                If results should be returned as a dataframe.
 
         Returns:
             Return a list or a dictinary depending on the format set on
@@ -2375,8 +2379,27 @@ class PumpWoodMicroService(ABCSimpleBatchMicroservice,
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
             'order_by': order_by, "variables": variables,
             "show_deleted": show_deleted, "add_pk_column": add_pk_column}
-        return self.request_post(
+        pivot_results = self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
+
+        if not add_pk_column:
+            if as_dataframe:
+                return pd.DataFrame(pivot_results)
+            else:
+                return pivot_results
+        else:
+            pd_pivot_results = pd.DataFrame(pivot_results)
+            if len(pd_pivot_results) != 0:
+                fill_options = self.fill_options(
+                    model_class=model_class, auth_header=auth_header)
+                primary_keys = fill_options["pk"]["column"]
+                pd_pivot_results["pk"] = pd_pivot_results[primary_keys].apply(
+                    CompositePkBase64Converter.dump,
+                    primary_keys=primary_keys, axis=1)
+            if as_dataframe:
+                return pd_pivot_results
+            else:
+                return pd_pivot_results.to_dict(format)
 
     def _flat_list_by_chunks_helper(self, args):
         try:

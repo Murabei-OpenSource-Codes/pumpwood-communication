@@ -162,7 +162,7 @@ class CompositePkBase64Converter:
             is_all_none = False
             composite_pk_dict = {}
             for key, value in primary_keys.items():
-                temp_pk_value = cls.get_attribute(obj, pk_col)
+                temp_pk_value = cls.get_attribute(obj, key)
                 is_all_none = is_all_none or (temp_pk_value is None)
                 composite_pk_dict[value] = temp_pk_value
             if is_all_none:
