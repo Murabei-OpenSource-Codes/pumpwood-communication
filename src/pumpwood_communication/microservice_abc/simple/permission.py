@@ -40,7 +40,7 @@ class ABCPermissionMicroservice(ABC):
         """
         user_info = self.request_get(
             url="rest/registration/retrieveauthenticateduser/",
-            auth_header=auth_header, timeout=self.default_timeout)
+            auth_header=auth_header)
         return user_info
 
     def check_permission(self, model_class: str, end_point: str,
