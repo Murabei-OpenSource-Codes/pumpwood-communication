@@ -16,4 +16,4 @@ from .delete import ABCSimpleDeleteMicroservice
 
 __all__ = [
     ABCSimpleBatchMicroservice, ABCPermissionMicroservice,
-    ABCSimpleRetriveMicroservice]
+    ABCSimpleRetriveMicroservice, ABCSimpleDeleteMicroservice]

@@ -20,6 +20,7 @@ src/pumpwood_communication/microservice_abc/parallel/__init__.py
 src/pumpwood_communication/microservice_abc/parallel/retrieve.py
 src/pumpwood_communication/microservice_abc/simple/__init__.py
 src/pumpwood_communication/microservice_abc/simple/batch.py
+src/pumpwood_communication/microservice_abc/simple/delete.py
 src/pumpwood_communication/microservice_abc/simple/info.py
 src/pumpwood_communication/microservice_abc/simple/login.py
 src/pumpwood_communication/microservice_abc/simple/permission.py
