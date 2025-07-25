@@ -1,3 +1,12 @@
+# Update version path
+VERSION_FILE="VERSION"
+current_version=$(grep -E "^VERSION=" "$VERSION_FILE" | cut -d'=' -f2)
+IFS='.' read -r major minor patch <<< "$current_version"
+patch=$((patch + 1))
+new_version="$major.$minor.$patch"
+sed -i "s/^VERSION=.*/VERSION=$new_version/" "$VERSION_FILE"
+echo "Updated version to $new_version"
+
 source VERSION
 sed -e 's#{VERSION}#'"${VERSION}"'#g' setup_template.py > setup.py
 
