@@ -113,6 +113,12 @@ class PumpWoodDatabaseError(PumpWoodException):
     pass
 
 
+class PumpWoodUniqueDatabaseError(PumpWoodException):
+    """Unique errors raised by Postgres."""
+
+    pass
+
+
 class PumpWoodDataTransformationException(PumpWoodException):
     """Problem when transforming model data."""
 
@@ -258,6 +264,7 @@ exceptions_dict = {
     "PumpWoodMFAError": PumpWoodMFAError,
     "PumpWoodOtherException": PumpWoodOtherException,
     "AirflowMicroServiceException": AirflowMicroServiceException,
+    "PumpWoodUniqueDatabaseError": PumpWoodUniqueDatabaseError
 }
 """
 Dictionary used by backends/microservice to treat Pumpwood exceptions and
