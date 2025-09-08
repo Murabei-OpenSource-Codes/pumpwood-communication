@@ -25,3 +25,4 @@ src/pumpwood_communication/microservice_abc/simple/info.py
 src/pumpwood_communication/microservice_abc/simple/login.py
 src/pumpwood_communication/microservice_abc/simple/permission.py
 src/pumpwood_communication/microservice_abc/simple/retrieve.py
+src/pumpwood_communication/microservice_abc/simple/save.py

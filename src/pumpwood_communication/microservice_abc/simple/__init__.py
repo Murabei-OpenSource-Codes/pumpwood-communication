@@ -13,7 +13,9 @@ from .batch import ABCSimpleBatchMicroservice
 from .permission import ABCPermissionMicroservice
 from .retrieve import ABCSimpleRetriveMicroservice
 from .delete import ABCSimpleDeleteMicroservice
+from .save import ABCSimpleSaveMicroservice
 
 __all__ = [
     ABCSimpleBatchMicroservice, ABCPermissionMicroservice,
-    ABCSimpleRetriveMicroservice, ABCSimpleDeleteMicroservice]
+    ABCSimpleRetriveMicroservice, ABCSimpleDeleteMicroservice,
+    ABCSimpleSaveMicroservice]
