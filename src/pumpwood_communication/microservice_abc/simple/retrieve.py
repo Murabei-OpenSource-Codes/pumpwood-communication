@@ -4,9 +4,11 @@ import requests
 from abc import ABC
 from werkzeug.utils import secure_filename
 from pumpwood_communication.exceptions import PumpWoodException
+from pumpwood_communication.microservice_abc.base import (
+    PumpWoodMicroServiceBase)
 
 
-class ABCSimpleRetriveMicroservice(ABC):
+class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
     """Abstract class for parallel calls at Pumpwood end-points."""
 
     @staticmethod
@@ -15,7 +17,9 @@ class ABCSimpleRetriveMicroservice(ABC):
 
     def list_one(self, model_class: str, pk: int, fields: list = None,
                  default_fields: bool = True, foreign_key_fields: bool = False,
-                 related_fields: bool = False, auth_header: dict = None):
+                 related_fields: bool = False, auth_header: dict = None,
+                 use_disk_cache: bool = False,
+                 disk_cache_expire: int = None) -> dict:
         """Retrieve an object using list serializer (simple).
 
         **# DEPRECTED #** It is the same as retrieve using
@@ -47,6 +51,12 @@ class ABCSimpleRetriveMicroservice(ABC):
                 dictionaries usually in a field with `_set` at end.
                 Returning related_fields consume backend resorces, use
                 carefully.
+            use_disk_cache (bool):
+                If set true, get request will use local cache to reduce
+                the requests to the backend.
+            disk_cache_expire (int):
+                Time in seconds to expire the cache, it None it will
+                use de default set be PumpwoodCache.
 
         Returns:
             Return object with the correspondent pk.
@@ -60,8 +70,9 @@ class ABCSimpleRetriveMicroservice(ABC):
             url=url_str, parameters={
                 "fields": fields, "default_fields": default_fields,
                 "foreign_key_fields": foreign_key_fields,
-                "related_fields": related_fields,
-            }, auth_header=auth_header)
+                "related_fields": related_fields},
+            auth_header=auth_header, use_disk_cache=use_disk_cache,
+            disk_cache_expire=disk_cache_expire)
 
     @staticmethod
     def _build_retrieve_url(model_class: str, pk: int):
@@ -72,7 +83,9 @@ class ABCSimpleRetriveMicroservice(ABC):
                  foreign_key_fields: bool = False,
                  related_fields: bool = False,
                  fields: list = None,
-                 auth_header: dict = None):
+                 auth_header: dict = None,
+                 use_disk_cache: bool = False,
+                 disk_cache_expire: int = None) -> dict:
         """Retrieve an object from PumpWood.
 
         Function to get object serialized by retrieve end-point
@@ -103,6 +116,12 @@ class ABCSimpleRetriveMicroservice(ABC):
                 dictionaries usually in a field with `_set` at end.
                 Returning related_fields consume backend resorces, use
                 carefully.
+            use_disk_cache (bool):
+                If set true, get request will use local cache to reduce
+                the requests to the backend.
+            disk_cache_expire (int):
+                Time in seconds to expire the cache, it None it will
+                use de default set be PumpwoodCache.
 
         Returns:
             Return object with the correspondent pk.
@@ -117,7 +136,8 @@ class ABCSimpleRetriveMicroservice(ABC):
                 "fields": fields, "default_fields": default_fields,
                 "foreign_key_fields": foreign_key_fields,
                 "related_fields": related_fields},
-            auth_header=auth_header)
+            auth_header=auth_header, use_disk_cache=use_disk_cache,
+            disk_cache_expire=disk_cache_expire)
 
     @staticmethod
     def _build_retrieve_file_url(model_class: str, pk: int):

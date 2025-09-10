@@ -1,8 +1,10 @@
 """Module for retrieve functions of microservice."""
 from abc import ABC
+from pumpwood_communication.microservice_abc.base import (
+    PumpWoodMicroServiceBase)
 
 
-class ABCSimpleDeleteMicroservice(ABC):
+class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
     """Abstract class for calls at Pumpwood delete end-points."""
 
     @staticmethod

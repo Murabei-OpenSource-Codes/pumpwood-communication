@@ -1,6 +1,6 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.2
 Name: pumpwood-communication
-Version: 2.2.13
+Version: 2.2.20
 Summary: Package for inter Pumpwood loging and comunication
 Home-page: https://github.com/Murabei-OpenSource-Codes/pumpwood-communication
 Author: André Andrade Baceti
@@ -22,6 +22,9 @@ Requires-Dist: GeoAlchemy2>=0.17.0
 Requires-Dist: apache-airflow-client==2.3.0
 Requires-Dist: requests>=2.28.2
 Requires-Dist: Werkzeug>=1.0.1
+Requires-Dist: diskcache==5.6.3
+Requires-Dist: orjson>=3.11.3
+Requires-Dist: loguru>=0.7.3
 Dynamic: author
 Dynamic: author-email
 Dynamic: classifier
@@ -29,7 +32,6 @@ Dynamic: description
 Dynamic: description-content-type
 Dynamic: home-page
 Dynamic: license
-Dynamic: license-file
 Dynamic: requires-dist
 Dynamic: requires-python
 Dynamic: summary

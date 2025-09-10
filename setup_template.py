@@ -50,6 +50,9 @@ setuptools.setup(
         "apache-airflow-client==2.3.0",
         "requests>=2.28.2",
         "Werkzeug>=1.0.1",
+        "diskcache==5.6.3",
+        "orjson>=3.11.3",
+        "loguru>=0.7.3"
     ],
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.6",

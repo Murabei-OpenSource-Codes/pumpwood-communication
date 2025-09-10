@@ -197,6 +197,12 @@ class PumpWoodMFAError(PumpWoodException):
     pass
 
 
+class PumpWoodJSONLoadError(PumpWoodException):
+    """Problem loading json data from request."""
+
+    pass
+
+
 class PumpWoodOtherException(PumpWoodException):
     """Other untreated error on server."""
 

@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.19, 2.2.20] - 2025-09-09
+
+### Added
+- No adds.
+
+### Changed
+- Add numpy to orjson serialization.
+- Fix cache `expire` argument that was not been used.
+
+### Removed
+- No removes
+
+## [2.2.15] - 2025-09-09
+
+### Added
+- No adds.
+
+### Changed
+- Set cache to a specific location for all workers to use the same
+  disk cache database.
+
+### Removed
+- No removes
+
+## [2.2.14] - 2025-09-09
+
+### Added
+- Add disk cache for get requests.
+
+### Changed
+- Refactor codes.
+
+### Removed
+- No removes
+
 ## [2.2.11] - 2025-03-08
 
 ### Added
