@@ -15,7 +15,9 @@ class PumpwoodCache:
             'PUMPWOOD_COMUNICATION__CACHE_LIMIT_MB', 250)) * 1e8
         self._expire_time = int(os.getenv(
             'PUMPWOOD_COMUNICATION__CACHE_DEFAULT_EXPIRE', 60))
-        self._cache = Cache(cache_size=self._size_limit)
+        cache_path = '/tmp/pumpwood_cache/' # NOQA
+        self._cache = Cache(
+            directory=cache_path, cache_size=self._size_limit)
 
     @classmethod
     def _generate_hash(cls, hash_dict: dict) -> str:
