@@ -63,9 +63,10 @@ class PumpwoodCache:
         Returns:
             Return a boolean value
         """
+        expire_time = expire or self._expire_time
         hash_str = self._generate_hash(hash_dict=hash_dict)
         return self._cache.set(
-            hash_str, value=value, expire=self._expire_time)
+            hash_str, value=value, expire=expire_time)
 
 
 default_cache = PumpwoodCache()

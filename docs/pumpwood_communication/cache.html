@@ -46,7 +46,7 @@
 
             </li>
             <li>
-                    <a class="variable" href="#&lt;pumpwood_communication.cache.cache.PumpwoodCache object at 0x70188981f9e0&gt;">PumpwoodCache object at 0x70188981f9e0&gt;</a>
+                    <a class="variable" href="#&lt;pumpwood_communication.cache.cache.PumpwoodCache object at 0x7844c9d96f30&gt;">PumpwoodCache object at 0x7844c9d96f30&gt;</a>
             </li>
     </ul>
 
@@ -150,9 +150,10 @@
 </span><span id="PumpwoodCache-64"><a href="#PumpwoodCache-64"><span class="linenos">64</span></a><span class="sd">        Returns:</span>
 </span><span id="PumpwoodCache-65"><a href="#PumpwoodCache-65"><span class="linenos">65</span></a><span class="sd">            Return a boolean value</span>
 </span><span id="PumpwoodCache-66"><a href="#PumpwoodCache-66"><span class="linenos">66</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="PumpwoodCache-67"><a href="#PumpwoodCache-67"><span class="linenos">67</span></a>        <span class="n">hash_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_hash</span><span class="p">(</span><span class="n">hash_dict</span><span class="o">=</span><span class="n">hash_dict</span><span class="p">)</span>
-</span><span id="PumpwoodCache-68"><a href="#PumpwoodCache-68"><span class="linenos">68</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
-</span><span id="PumpwoodCache-69"><a href="#PumpwoodCache-69"><span class="linenos">69</span></a>            <span class="n">hash_str</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">expire</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_expire_time</span><span class="p">)</span>
+</span><span id="PumpwoodCache-67"><a href="#PumpwoodCache-67"><span class="linenos">67</span></a>        <span class="n">expire_time</span> <span class="o">=</span> <span class="n">expire</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expire_time</span>
+</span><span id="PumpwoodCache-68"><a href="#PumpwoodCache-68"><span class="linenos">68</span></a>        <span class="n">hash_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_hash</span><span class="p">(</span><span class="n">hash_dict</span><span class="o">=</span><span class="n">hash_dict</span><span class="p">)</span>
+</span><span id="PumpwoodCache-69"><a href="#PumpwoodCache-69"><span class="linenos">69</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+</span><span id="PumpwoodCache-70"><a href="#PumpwoodCache-70"><span class="linenos">70</span></a>            <span class="n">hash_str</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">expire</span><span class="o">=</span><span class="n">expire_time</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -255,9 +256,10 @@
 </span><span id="PumpwoodCache.set-64"><a href="#PumpwoodCache.set-64"><span class="linenos">64</span></a><span class="sd">        Returns:</span>
 </span><span id="PumpwoodCache.set-65"><a href="#PumpwoodCache.set-65"><span class="linenos">65</span></a><span class="sd">            Return a boolean value</span>
 </span><span id="PumpwoodCache.set-66"><a href="#PumpwoodCache.set-66"><span class="linenos">66</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="PumpwoodCache.set-67"><a href="#PumpwoodCache.set-67"><span class="linenos">67</span></a>        <span class="n">hash_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_hash</span><span class="p">(</span><span class="n">hash_dict</span><span class="o">=</span><span class="n">hash_dict</span><span class="p">)</span>
-</span><span id="PumpwoodCache.set-68"><a href="#PumpwoodCache.set-68"><span class="linenos">68</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
-</span><span id="PumpwoodCache.set-69"><a href="#PumpwoodCache.set-69"><span class="linenos">69</span></a>            <span class="n">hash_str</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">expire</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_expire_time</span><span class="p">)</span>
+</span><span id="PumpwoodCache.set-67"><a href="#PumpwoodCache.set-67"><span class="linenos">67</span></a>        <span class="n">expire_time</span> <span class="o">=</span> <span class="n">expire</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expire_time</span>
+</span><span id="PumpwoodCache.set-68"><a href="#PumpwoodCache.set-68"><span class="linenos">68</span></a>        <span class="n">hash_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_hash</span><span class="p">(</span><span class="n">hash_dict</span><span class="o">=</span><span class="n">hash_dict</span><span class="p">)</span>
+</span><span id="PumpwoodCache.set-69"><a href="#PumpwoodCache.set-69"><span class="linenos">69</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+</span><span id="PumpwoodCache.set-70"><a href="#PumpwoodCache.set-70"><span class="linenos">70</span></a>            <span class="n">hash_str</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">expire</span><span class="o">=</span><span class="n">expire_time</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -281,13 +283,13 @@
 
                             </div>
                 </section>
-                <section id="&lt;pumpwood_communication.cache.cache.PumpwoodCache object at 0x70188981f9e0&gt;">
+                <section id="&lt;pumpwood_communication.cache.cache.PumpwoodCache object at 0x7844c9d96f30&gt;">
                     <div class="attr variable">
-            <span class="name">PumpwoodCache object at 0x70188981f9e0&gt;</span>
+            <span class="name">PumpwoodCache object at 0x7844c9d96f30&gt;</span>
 
         
     </div>
-    <a class="headerlink" href="#&lt;pumpwood_communication.cache.cache.PumpwoodCache object at 0x70188981f9e0&gt;"></a>
+    <a class="headerlink" href="#&lt;pumpwood_communication.cache.cache.PumpwoodCache object at 0x7844c9d96f30&gt;"></a>
     
     
 
