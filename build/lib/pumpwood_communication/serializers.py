@@ -83,18 +83,20 @@ def pumpJsonDump(x: any, sort_keys: bool = False,  # NOQA
     if sort_keys and is_indent:
         return orjson.dumps(x, default=default_encoder, option=(
             orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
-            orjson.OPT_SORT_KEYS | orjson.OPT_INDENT_2))
+            orjson.OPT_SORT_KEYS | orjson.OPT_INDENT_2 |
+            orjson.OPT_SERIALIZE_NUMPY))
     elif sort_keys:
         return orjson.dumps(x, default=default_encoder, option=(
             orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
-            orjson.OPT_SORT_KEYS))
+            orjson.OPT_SORT_KEYS | orjson.OPT_SERIALIZE_NUMPY))
     elif is_indent:
         return orjson.dumps(x, default=default_encoder, option=(
             orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
-            orjson.OPT_INDENT_2))
+            orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY))
     else:
         return orjson.dumps(x, default=default_encoder, option=(
-            orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS))
+            orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
+            orjson.OPT_SERIALIZE_NUMPY))
 
 
 class CompositePkBase64Converter:
