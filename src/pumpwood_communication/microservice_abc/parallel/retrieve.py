@@ -12,8 +12,10 @@ from abc import ABC
 # from pandas import ExcelWriter
 # from pumpwood_communication.exceptions import (
 #     PumpWoodException, PumpWoodNotImplementedError)
+from pumpwood_communication.microservice_abc.base import (
+    PumpWoodMicroServiceBase)
 
 
-class ABCParalellRetriveMicroservice(ABC):
+class ABCParalellRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
     """Abstract class for parallel calls at Pumpwood end-points."""
     pass

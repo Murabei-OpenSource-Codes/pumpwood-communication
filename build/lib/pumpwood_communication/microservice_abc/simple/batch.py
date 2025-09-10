@@ -2,9 +2,11 @@
 import pandas as pd
 from abc import ABC
 from typing import List
+from pumpwood_communication.microservice_abc.base import (
+    PumpWoodMicroServiceBase)
 
 
-class ABCSimpleBatchMicroservice(ABC):
+class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
     """Abstract class for batch end-points."""
 
     @staticmethod

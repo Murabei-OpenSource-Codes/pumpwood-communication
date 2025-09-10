@@ -1,9 +1,11 @@
 """Module for permission related functions of microservice."""
 from abc import ABC
 from pumpwood_communication.exceptions import PumpWoodUnauthorized
+from pumpwood_communication.microservice_abc.base import (
+    PumpWoodMicroServiceBase)
 
 
-class ABCPermissionMicroservice(ABC):
+class ABCPermissionMicroservice(ABC, PumpWoodMicroServiceBase):
     """Abstract class for permission checking at pumpwood."""
 
     def check_if_logged(self, auth_header: dict = None) -> bool:

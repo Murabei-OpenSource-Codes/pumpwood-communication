@@ -24,7 +24,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setuptools.setup(
     name='pumpwood-communication',
-    version='2.2.13',
+    version='2.2.14',
     include_package_data=True,
     license='BSD-3-Clause License',
     description='Package for inter Pumpwood loging and comunication',
@@ -50,6 +50,9 @@ setuptools.setup(
         "apache-airflow-client==2.3.0",
         "requests>=2.28.2",
         "Werkzeug>=1.0.1",
+        "diskcache==5.6.3",
+        "orjson>=3.11.3",
+        "loguru>=0.7.3"
     ],
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.6",

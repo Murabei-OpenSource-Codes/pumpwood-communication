@@ -1,6 +1,7 @@
 """Miscellaneous to help with serializers in communication."""
 import base64
 import simplejson as json
+import orjson
 import numpy as np
 import pandas as pd
 from typing import List, Union, Dict, Any
@@ -16,6 +17,42 @@ from pumpwood_communication.exceptions import (
     PumpWoodException, PumpWoodNotImplementedError)
 
 
+def default_encoder(obj):
+    """Serialize complex objects."""
+    # Return None if object is NaN
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if isinstance(obj, Timestamp):
+        return obj.isoformat()
+    if isinstance(obj, date):
+        return obj.isoformat()
+    if isinstance(obj, time):
+        return obj.isoformat()
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, pd.DataFrame):
+        return obj.to_dict('records')
+    if isinstance(obj, pd.Series):
+        obj.dtype == Timestamp
+        return obj.tolist()
+    if isinstance(obj, np.generic):
+        return obj.item()
+    if isinstance(obj, BaseGeometry):
+        if obj.is_empty:
+            return None
+        else:
+            return mapping(obj)
+    if isinstance(obj, BaseGeometry):
+        return mapping(obj)
+    if isinstance(obj, Choice):
+        return obj.code
+    if isinstance(obj, set):
+        return list(obj)
+    else:
+        raise TypeError(
+            "Unserializable object {} of type {}".format(obj, type(obj)))
+
+
 class PumpWoodJSONEncoder(JSONEncoder):
     """PumpWood default serializer.
 
@@ -25,41 +62,11 @@ class PumpWoodJSONEncoder(JSONEncoder):
 
     def default(self, obj):
         """Serialize complex objects."""
-        # Return None if object is NaN
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        if isinstance(obj, Timestamp):
-            return obj.isoformat()
-        if isinstance(obj, date):
-            return obj.isoformat()
-        if isinstance(obj, time):
-            return obj.isoformat()
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, pd.DataFrame):
-            return obj.to_dict('records')
-        if isinstance(obj, pd.Series):
-            obj.dtype == Timestamp
-            return obj.tolist()
-        if isinstance(obj, np.generic):
-            return obj.item()
-        if isinstance(obj, BaseGeometry):
-            if obj.is_empty:
-                return None
-            else:
-                return mapping(obj)
-        if isinstance(obj, BaseGeometry):
-            return mapping(obj)
-        if isinstance(obj, Choice):
-            return obj.code
-        if isinstance(obj, set):
-            return list(obj)
-        else:
-            raise TypeError(
-                "Unserializable object {} of type {}".format(obj, type(obj)))
+        return default_encoder(obj)
 
 
-def pumpJsonDump(x: any, sort_keys: bool = True, indent: int = None): # NOQA
+def pumpJsonDump(x: any, sort_keys: bool = False,  # NOQA
+                 indent: Union[int, bool] = None):
     """Dump a Json to python object.
 
     Args:
@@ -71,9 +78,23 @@ def pumpJsonDump(x: any, sort_keys: bool = True, indent: int = None): # NOQA
         indent (int):
             Pass indent argument to simplejson dumps.
     """
-    return json.dumps(
-        x, cls=PumpWoodJSONEncoder, ignore_nan=True,
-        sort_keys=sort_keys, indent=indent)
+    # Compatibility with simplejson serialization
+    is_indent = indent is not None
+    if sort_keys and is_indent:
+        return orjson.dumps(x, default=default_encoder, option=(
+            orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
+            orjson.OPT_SORT_KEYS | orjson.OPT_INDENT_2))
+    elif sort_keys:
+        return orjson.dumps(x, default=default_encoder, option=(
+            orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
+            orjson.OPT_SORT_KEYS))
+    elif is_indent:
+        return orjson.dumps(x, default=default_encoder, option=(
+            orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
+            orjson.OPT_INDENT_2))
+    else:
+        return orjson.dumps(x, default=default_encoder, option=(
+            orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS))
 
 
 class CompositePkBase64Converter:

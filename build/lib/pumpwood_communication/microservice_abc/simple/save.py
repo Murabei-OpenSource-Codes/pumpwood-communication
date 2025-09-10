@@ -4,9 +4,11 @@ import requests
 from abc import ABC
 from pumpwood_communication.exceptions import (
     PumpWoodException, PumpWoodObjectSavingException)
+from pumpwood_communication.microservice_abc.base import (
+    PumpWoodMicroServiceBase)
 
 
-class ABCSimpleSaveMicroservice(ABC):
+class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
     """Abstract class for parallel calls at Pumpwood end-points."""
 
     @staticmethod
