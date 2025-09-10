@@ -73,11 +73,13 @@
 </span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a><span class="c1"># from pandas import ExcelWriter</span>
 </span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a><span class="c1"># from pumpwood_communication.exceptions import (</span>
 </span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a><span class="c1">#     PumpWoodException, PumpWoodNotImplementedError)</span>
-</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a>
-</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>
-</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a><span class="k">class</span><span class="w"> </span><span class="nc">ABCParalellRetriveMicroservice</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
-</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract class for parallel calls at Pumpwood end-points.&quot;&quot;&quot;</span>
-</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a>    <span class="k">pass</span>
+</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">pumpwood_communication.microservice_abc.base</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>    <span class="n">PumpWoodMicroServiceBase</span><span class="p">)</span>
+</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a>
+</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a>
+</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a><span class="k">class</span><span class="w"> </span><span class="nc">ABCParalellRetriveMicroservice</span><span class="p">(</span><span class="n">ABC</span><span class="p">,</span> <span class="n">PumpWoodMicroServiceBase</span><span class="p">):</span>
+</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract class for parallel calls at Pumpwood end-points.&quot;&quot;&quot;</span>
+</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a>    <span class="k">pass</span>
 </span></pre></div>
 
 
@@ -87,15 +89,15 @@
 <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">ABCParalellRetriveMicroservice</span><wbr>(<span class="base">abc.ABC</span>):
+    <span class="name">ABCParalellRetriveMicroservice</span><wbr>(<span class="base">abc.ABC</span>, <span class="base">pumpwood_communication.microservice_abc.base.base.PumpWoodMicroServiceBase</span>):
 
                 <label class="view-source-button" for="ABCParalellRetriveMicroservice-view-source"><span>View Source</span></label>
 
     </div>
     <a class="headerlink" href="#ABCParalellRetriveMicroservice"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="ABCParalellRetriveMicroservice-18"><a href="#ABCParalellRetriveMicroservice-18"><span class="linenos">18</span></a><span class="k">class</span><span class="w"> </span><span class="nc">ABCParalellRetriveMicroservice</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
-</span><span id="ABCParalellRetriveMicroservice-19"><a href="#ABCParalellRetriveMicroservice-19"><span class="linenos">19</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract class for parallel calls at Pumpwood end-points.&quot;&quot;&quot;</span>
-</span><span id="ABCParalellRetriveMicroservice-20"><a href="#ABCParalellRetriveMicroservice-20"><span class="linenos">20</span></a>    <span class="k">pass</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ABCParalellRetriveMicroservice-20"><a href="#ABCParalellRetriveMicroservice-20"><span class="linenos">20</span></a><span class="k">class</span><span class="w"> </span><span class="nc">ABCParalellRetriveMicroservice</span><span class="p">(</span><span class="n">ABC</span><span class="p">,</span> <span class="n">PumpWoodMicroServiceBase</span><span class="p">):</span>
+</span><span id="ABCParalellRetriveMicroservice-21"><a href="#ABCParalellRetriveMicroservice-21"><span class="linenos">21</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract class for parallel calls at Pumpwood end-points.&quot;&quot;&quot;</span>
+</span><span id="ABCParalellRetriveMicroservice-22"><a href="#ABCParalellRetriveMicroservice-22"><span class="linenos">22</span></a>    <span class="k">pass</span>
 </span></pre></div>
 
 
