@@ -146,7 +146,6 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
                 fill_options = self.fill_options(
                     model_class=model_class, auth_header=auth_header)
                 primary_keys = fill_options["pk"]["column"]
-                print('fill_options["pk"]["column"]:', fill_options["pk"]["column"])
                 pd_pivot_results["pk"] = pd_pivot_results[primary_keys].apply(
                     CompositePkBase64Converter.dump,
                     primary_keys=primary_keys, axis=1)
