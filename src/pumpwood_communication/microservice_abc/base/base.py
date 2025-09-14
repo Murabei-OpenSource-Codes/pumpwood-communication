@@ -373,10 +373,10 @@ class PumpWoodMicroServiceBase:
                 login_data = self.confirm_mfa_code(
                     mfa_login_data=login_data)
 
-            self.__auth_header = {
-                'Authorization': 'Token ' + login_data['token']}
-            self.__user = login_data["user"]
-            self.__token_expiry = pd.to_datetime(login_data['expiry'])
+            self.set_auth_header(
+                auth_token='Token ' + login_data['token'],
+                token_expiry=pd.to_datetime(login_data['expiry']),
+                user=login_data["user"])
         else:
             # Token is not expired or envicted, them keep same token
             return None
@@ -428,6 +428,29 @@ class PumpWoodMicroServiceBase:
         return copy.deepcopy({
             "auth_header": self.__auth_header,
             "token_expiry": self.__token_expiry})
+
+    def set_auth_header(self, auth_token: str,
+                        token_expiry: pd.Timestamp,
+                        user: dict = None) -> dict:
+        """Retrieve auth_header and token_expiry from object.
+
+        Args:
+            auth_token (str):
+                Auth token that will be set for authentication.
+            token_expiry (pd.Timestamp):
+                Token expiry time.
+            user (dict):
+                User information to be set on authetication.
+
+        Returns:
+            Return authorization header and token_expiry datetime from object.
+        """
+        # Copy the dictonary to avoid updating the original one
+        self.__auth_header = {
+            'Authorization': auth_token}
+        self.__token_expiry = token_expiry
+        self.__user = user
+        return True
 
     def _check_auth_header(self, auth_header: dict,
                            multipart: bool = False) -> dict:
