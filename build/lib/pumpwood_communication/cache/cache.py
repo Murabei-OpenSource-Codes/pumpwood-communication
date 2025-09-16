@@ -17,7 +17,8 @@ class PumpwoodCache:
             'PUMPWOOD_COMUNICATION__CACHE_DEFAULT_EXPIRE', 60))
         cache_path = '/tmp/pumpwood_cache/' # NOQA
         self._cache = Cache(
-            directory=cache_path, cache_size=self._size_limit)
+            directory=cache_path, cache_size=self._size_limit,
+            tag_index=True)
 
     @classmethod
     def _generate_hash(cls, hash_dict: dict) -> str:
@@ -36,6 +37,29 @@ class PumpwoodCache:
         str_hash_dict = pumpJsonDump(hash_dict, sort_keys=True)
         return hashlib.sha512(str_hash_dict).hexdigest()
 
+    def clear(self) -> bool:
+        """Invalidate cache.
+
+        Returns:
+            True is ok.
+        """
+        return self._cache.clear()
+
+    def evict(self, tag_dict: dict) -> bool:
+        """Invalidate cache from a tag.
+
+        Returns:
+            True is ok.
+        """
+        from pumpwood_communication.exceptions import PumpWoodOtherException
+        if tag_dict is None:
+            msg = (
+                "At pumpwood_communication cache.evict tag_dict should not be "
+                "'None'. To envict all databse use clear function.")
+            raise PumpWoodOtherException(msg)
+        hash_str = self._generate_hash(hash_dict=tag_dict)
+        return self._cache.evict(hash_str)
+
     def get(self, hash_dict: dict) -> Any:
         """Get a value from cache.
 
@@ -49,7 +73,8 @@ class PumpwoodCache:
         hash_str = self._generate_hash(hash_dict=hash_dict)
         return self._cache.get(hash_str)
 
-    def set(self, hash_dict: dict, value: Any, expire: int = None) -> bool:
+    def set(self, hash_dict: dict, value: Any, expire: int = None,
+            tag_dict: dict = None) -> bool:
         """Set cache value.
 
         Args:
@@ -59,14 +84,29 @@ class PumpwoodCache:
                 Value that will be set on diskcache.
             expire (int):
                 Number of seconds that will be considered as expirity time.
+            tag_dict (dict):
+                Optional parameter to set a tag to cache. Tagged cache can be
+                envicted together using envict function.
 
         Returns:
             Return a boolean value
         """
+        from pumpwood_communication.exceptions import PumpWoodOtherException
+        if hash_dict is None:
+            msg = (
+                "At pumpwood_communication cache.set hash_dict should not be "
+                "'None'")
+            raise PumpWoodOtherException(msg)
         expire_time = expire or self._expire_time
         hash_str = self._generate_hash(hash_dict=hash_dict)
+
+        tag_str = None
+        if tag_dict is not None:
+            tag_str = self._generate_hash(hash_dict=tag_dict)
+
         return self._cache.set(
-            hash_str, value=value, expire=expire_time)
+            hash_str, value=value, expire=expire_time,
+            tag=tag_str)
 
 
 default_cache = PumpwoodCache()

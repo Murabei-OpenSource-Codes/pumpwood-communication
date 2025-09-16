@@ -12,13 +12,11 @@ import geopandas as geopd
 import numpy as np
 import copy
 from shapely import geometry
-from typing import Union, List, Any, Dict
+from typing import Union, List, Any
 from multiprocessing import Pool
 from pandas import ExcelWriter
 from pumpwood_communication.exceptions import (
-    exceptions_dict, PumpWoodException, PumpWoodUnauthorized,
-    PumpWoodOtherException, PumpWoodQueryException,
-    PumpWoodNotImplementedError)
+    PumpWoodException, PumpWoodQueryException, PumpWoodNotImplementedError)
 from pumpwood_communication.serializers import CompositePkBase64Converter
 from pumpwood_communication.misc import unpack_dict_columns
 
