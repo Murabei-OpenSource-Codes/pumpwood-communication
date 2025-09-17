@@ -787,7 +787,8 @@ class PumpWoodMicroServiceBase:
     def request_get(self, url: str, parameters: dict = {},
                     auth_header: dict = None,
                     use_disk_cache: bool = False,
-                    disk_cache_expire: int = None) -> Any:
+                    disk_cache_expire: int = None,
+                    disk_cache_tag_dict: dict = None) -> Any:
         """Make a GET a request to url with data as JSON payload.
 
         Add the auth_header acording to login information and refresh token
@@ -807,6 +808,8 @@ class PumpWoodMicroServiceBase:
             disk_cache_expire (int):
                 Time in seconds to expire the cache, it None it will
                 use de default set be PumpwoodCache.
+            disk_cache_tag_dict (dict):
+                Dictionary to be used as a tag on get request.
 
         Returns:
             Return the post reponse data.
@@ -824,11 +827,13 @@ class PumpWoodMicroServiceBase:
         # the query paramerers, url and user access token. The
         # hash will be used as index, not exposing the token at cache
         # database
-        hash_dict = {}
+        hash_dict = None
         if use_disk_cache:
-            hash_dict['authorization'] = request_header['Authorization']
-            hash_dict['parameters'] = parameters
-            hash_dict['url'] = url
+            hash_dict = {
+                'context': 'pumpwood_communication-request_get',
+                'authorization': request_header['Authorization'],
+                'parameters': parameters,
+                'url': url}
             cache_results = default_cache.get(hash_dict=hash_dict)
             if cache_results is not None:
                 msg = "get from cache url[{url}]".format(url=url)
@@ -861,7 +866,8 @@ class PumpWoodMicroServiceBase:
         if use_disk_cache and not results.get('__file__', False):
             default_cache.set(
                 hash_dict=hash_dict, value=results,
-                expire=disk_cache_expire)
+                expire=disk_cache_expire,
+                tag_dict=disk_cache_tag_dict)
         return results
 
     def request_delete(self, url, parameters: dict = None,
