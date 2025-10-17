@@ -18,7 +18,7 @@ class PumpwoodCache:
         cache_path = '/tmp/pumpwood_cache/' # NOQA
         self._cache = Cache(
             directory=cache_path, cache_size=self._size_limit,
-            tag_index=True)
+            tag_index=True, timeout=5)
 
     @classmethod
     def _generate_hash(cls, hash_dict: dict) -> str:
@@ -104,9 +104,13 @@ class PumpwoodCache:
         if tag_dict is not None:
             tag_str = self._generate_hash(hash_dict=tag_dict)
 
-        return self._cache.set(
-            hash_str, value=value, expire=expire_time,
-            tag=tag_str)
+        try:
+            return self._cache.set(
+                hash_str, value=value, expire=expire_time,
+                tag=tag_str, retry=True)
+        finally:
+            # in case of deadlock
+            return False
 
 
 default_cache = PumpwoodCache()
