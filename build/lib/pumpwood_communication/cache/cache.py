@@ -15,10 +15,12 @@ class PumpwoodCache:
             'PUMPWOOD_COMUNICATION__CACHE_LIMIT_MB', 250)) * 1e8
         self._expire_time = int(os.getenv(
             'PUMPWOOD_COMUNICATION__CACHE_DEFAULT_EXPIRE', 60))
+        self._transaction_timeout = int(os.getenv(
+            'PUMPWOOD_COMUNICATION__CACHE_TRANSACTION_TIMEOUT', 0.5))
         cache_path = '/tmp/pumpwood_cache/' # NOQA
         self._cache = Cache(
             directory=cache_path, cache_size=self._size_limit,
-            tag_index=True, timeout=5)
+            tag_index=True, timeout=self._transaction_timeout)
 
     @classmethod
     def _generate_hash(cls, hash_dict: dict) -> str:
@@ -107,7 +109,7 @@ class PumpwoodCache:
         try:
             return self._cache.set(
                 hash_str, value=value, expire=expire_time,
-                tag=tag_str, retry=True)
+                tag=tag_str)
         finally:
             # in case of deadlock
             return False
