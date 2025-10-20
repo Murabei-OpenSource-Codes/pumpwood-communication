@@ -4,6 +4,7 @@ import hashlib
 from diskcache import Cache
 from typing import Any
 from pumpwood_communication.serializers import pumpJsonDump
+from loguru import logger
 
 
 class PumpwoodCache:
@@ -112,6 +113,9 @@ class PumpwoodCache:
                 tag=tag_str)
         finally:
             # in case of deadlock
+            warning_msg = ("Cache on deadlock, it was not possible " +
+                "to set information for key %s" % (hash_str))
+            logger.warning(warning_msg)
             return False
 
 
