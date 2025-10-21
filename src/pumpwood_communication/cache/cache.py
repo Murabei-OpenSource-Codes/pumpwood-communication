@@ -1,7 +1,7 @@
 """Module to implement local cache when using Pumpwood Comunication."""
 import os
 import hashlib
-from diskcache import Cache
+from diskcache import FanoutCache, Timeout
 from typing import Any
 from pumpwood_communication.serializers import pumpJsonDump
 from loguru import logger
@@ -16,12 +16,15 @@ class PumpwoodCache:
             'PUMPWOOD_COMUNICATION__CACHE_LIMIT_MB', 250)) * 1e8
         self._expire_time = int(os.getenv(
             'PUMPWOOD_COMUNICATION__CACHE_DEFAULT_EXPIRE', 60))
-        self._transaction_timeout = int(os.getenv(
-            'PUMPWOOD_COMUNICATION__CACHE_TRANSACTION_TIMEOUT', 0.5))
+        self._transaction_timeout = float(os.getenv(
+            'PUMPWOOD_COMUNICATION__CACHE_TRANSACTION_TIMEOUT', 0.1))
+        self._n_shards = int(os.getenv(
+            'PUMPWOOD_COMUNICATION__N_SHARDS', 8))
         cache_path = '/tmp/pumpwood_cache/' # NOQA
-        self._cache = Cache(
+        self._cache = FanoutCache(
             directory=cache_path, cache_size=self._size_limit,
-            tag_index=True, timeout=self._transaction_timeout)
+            tag_index=True, timeout=self._transaction_timeout,
+            shards=self._n_shards)
 
     @classmethod
     def _generate_hash(cls, hash_dict: dict) -> str:
@@ -111,9 +114,10 @@ class PumpwoodCache:
             return self._cache.set(
                 hash_str, value=value, expire=expire_time,
                 tag=tag_str)
-        finally:
+        except Timeout:
             # in case of deadlock
-            warning_msg = ("Cache on deadlock, it was not possible " +
+            warning_msg = (
+                "Cache on deadlock, it was not possible " +
                 "to set information for key %s" % (hash_str))
             logger.warning(warning_msg)
             return False
