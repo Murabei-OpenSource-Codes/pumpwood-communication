@@ -4,6 +4,7 @@ import hashlib
 from diskcache import FanoutCache, Timeout
 from typing import Any
 from pumpwood_communication.serializers import pumpJsonDump
+from pumpwood_communication.exceptions import PumpWoodOtherException
 from loguru import logger
 
 
@@ -97,7 +98,6 @@ class PumpwoodCache:
         Returns:
             Return a boolean value
         """
-        from pumpwood_communication.exceptions import PumpWoodOtherException
         if hash_dict is None:
             msg = (
                 "At pumpwood_communication cache.set hash_dict should not be "
@@ -121,6 +121,9 @@ class PumpwoodCache:
                 "to set information for key %s" % (hash_str))
             logger.warning(warning_msg)
             return False
+        except Exception:
+            msg = 'Error when retrieving cache not associated with Timeout'
+            raise PumpWoodOtherException(message=msg)
 
 
 default_cache = PumpwoodCache()
