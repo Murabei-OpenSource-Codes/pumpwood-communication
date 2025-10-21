@@ -1,9 +1,11 @@
 """Module to implement local cache when using Pumpwood Comunication."""
 import os
 import hashlib
-from diskcache import Cache
+from diskcache import FanoutCache, Timeout
 from typing import Any
 from pumpwood_communication.serializers import pumpJsonDump
+from pumpwood_communication.exceptions import PumpWoodOtherException
+from loguru import logger
 
 
 class PumpwoodCache:
@@ -15,10 +17,15 @@ class PumpwoodCache:
             'PUMPWOOD_COMUNICATION__CACHE_LIMIT_MB', 250)) * 1e8
         self._expire_time = int(os.getenv(
             'PUMPWOOD_COMUNICATION__CACHE_DEFAULT_EXPIRE', 60))
+        self._transaction_timeout = float(os.getenv(
+            'PUMPWOOD_COMUNICATION__CACHE_TRANSACTION_TIMEOUT', 0.1))
+        self._n_shards = int(os.getenv(
+            'PUMPWOOD_COMUNICATION__N_SHARDS', 8))
         cache_path = '/tmp/pumpwood_cache/' # NOQA
-        self._cache = Cache(
+        self._cache = FanoutCache(
             directory=cache_path, cache_size=self._size_limit,
-            tag_index=True)
+            tag_index=True, timeout=self._transaction_timeout,
+            shards=self._n_shards)
 
     @classmethod
     def _generate_hash(cls, hash_dict: dict) -> str:
@@ -91,7 +98,6 @@ class PumpwoodCache:
         Returns:
             Return a boolean value
         """
-        from pumpwood_communication.exceptions import PumpWoodOtherException
         if hash_dict is None:
             msg = (
                 "At pumpwood_communication cache.set hash_dict should not be "
@@ -104,9 +110,20 @@ class PumpwoodCache:
         if tag_dict is not None:
             tag_str = self._generate_hash(hash_dict=tag_dict)
 
-        return self._cache.set(
-            hash_str, value=value, expire=expire_time,
-            tag=tag_str)
+        try:
+            return self._cache.set(
+                hash_str, value=value, expire=expire_time,
+                tag=tag_str)
+        except Timeout:
+            # in case of deadlock
+            warning_msg = (
+                "Cache on deadlock, it was not possible " +
+                "to set information for key %s" % (hash_str))
+            logger.warning(warning_msg)
+            return False
+        except Exception:
+            msg = 'Error when retrieving cache not associated with Timeout'
+            raise PumpWoodOtherException(message=msg)
 
 
 default_cache = PumpwoodCache()
