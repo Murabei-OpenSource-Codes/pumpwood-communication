@@ -92,6 +92,28 @@ raise PumpWoodException(
   })
 ```
 
+## Enviroment variables
+- **PUMPWOOD_COMUNICATION__N_PARALLEL:** Define the number of parallel
+  requests. Default is `4`.
+- **PUMPWOOD_COMUNICATION__CACHE_LIMIT_MB:** Set a limit for caching data
+  using disk cache. Default `250`(Mb).
+- **PUMPWOOD_COMUNICATION__CACHE_DEFAULT_EXPIRE:** Set expiry for caching data.
+  Default 60s.
+- **PUMPWOOD_COMUNICATION__CACHE_TRANSACTION_TIMEOUT:** Set transaction
+  timeout for setting cache. Default `0.1`(s).
+- **PUMPWOOD_COMUNICATION__N_SHARDS:** PumpwoodCache uses diskcache FanoutCache
+  this enviroment variable define the number os shards used. Default `8`.
+- **PUMPWOOD_COMUNICATION__CRYPTO_FERNET_KEY:** Define the fernet key that will
+  be used to encrypt data using PumpwoodCache. No default and if not set
+  will raise error on PumpwoodCache encrypt and decrypt functions.
+- **PUMPWOOD_COMUNICATION__DEFAULT_TIMEOUT:** Define a default timeout for
+  requests. Default '60' (s).
+- **PUMPWOOD_COMUNICATION__DEBUG:** If on debug mode, pumpwood communication
+  will refresh token at each request. Default 'FALSE', if set must be in
+  [`"TRUE"`, `"FALSE"`].
+- **PUMPWOOD_COMUNICATION__VERIFY_SSL:** Set if requests will validate server
+  certificates. Default `TRUE`, if set must be in [`"TRUE"`, `"FALSE"`].
+
 ## Basic usage
 ### List and list without pagination
 Both methods list objects using dictionaries passed as payload on a post request.
