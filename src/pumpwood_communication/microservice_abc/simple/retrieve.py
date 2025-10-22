@@ -322,7 +322,7 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                 update at the model_class table or manual removal/rename of
                 files on storage.
         """
-        request_header = self._check__auth_header(auth_header)
+        request_header = self._check_auth_header(auth_header)
 
         # begin Args check
         if if_exists not in ["fail", "change_name", "overwrite"]:
@@ -362,9 +362,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
 
         get_url = self.server_url + url_str
         with requests.get(
-                get_url, verify=self.verify_ssl, headers=request_header,
+                get_url, verify=self._verify_ssl, headers=request_header,
                 params={"file-field": file_field},
-                timeout=self.default_timeout) as response:
+                timeout=self._default_timeout) as response:
             self.error_handler(response)
             with open(file_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):

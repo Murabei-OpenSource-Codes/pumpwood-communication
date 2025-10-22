@@ -174,8 +174,8 @@ class CompositePkBase64Converter:
                 # If not all primary keys are None, them serialize it and
                 # convert to a base64 dictionary to be used as PK
                 composite_pk_str = pumpJsonDump(composite_pk_dict)
-                return base64.urlsafe_b64encode(
-                    composite_pk_str.encode()).decode()
+                return base64.urlsafe_b64encode(composite_pk_str)\
+                    .decode()
 
         # Map object values to other, this is used when builds forenging
         # key references and request related field using microservice.
@@ -196,8 +196,8 @@ class CompositePkBase64Converter:
             # dictionary will map values before converting to base64
             # dictionary
             composite_pk_str = pumpJsonDump(composite_pk_dict)
-            base64_composite_pk = base64.urlsafe_b64encode(
-                composite_pk_str.encode()).decode()
+            base64_composite_pk = base64.urlsafe_b64encode(composite_pk_str)\
+                .decode()
             return base64_composite_pk
 
         # This will raise error if primary_keys type is not implemented
