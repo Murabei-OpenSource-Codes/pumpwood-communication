@@ -596,7 +596,7 @@ class PumpWoodMicroServiceBase:
 
     def _request_post_json(self, post_url: str, data: any,
                            auth_header: dict = None,
-                           parameters: dict = {}) -> any:
+                           parameters: None | dict = None) -> any:
         """Make a POST a request to url with data as JSON payload.
 
         Args:
@@ -617,6 +617,8 @@ class PumpWoodMicroServiceBase:
             PumpWoodException sub-types:
                 Response is passed to error_handler.
         """
+        parameters = {} if parameters is None else parameters
+
         response = None
         request_header = self._check_auth_header(auth_header=auth_header)
         dumped_data = pumpJsonDump(data)
@@ -643,7 +645,7 @@ class PumpWoodMicroServiceBase:
 
     def _request_post_multi(self, post_url: str, data: any, files: list = None,
                             auth_header: dict = None,
-                            parameters: dict = {}) -> any:
+                            parameters: None | dict = None) -> any:
         """Make a POST a request to url with data as multipart payload.
 
         Args:
@@ -668,6 +670,8 @@ class PumpWoodMicroServiceBase:
             PumpWoodException sub-types:
                 Response is passed to error_handler.
         """
+        parameters = {} if parameters is None else parameters
+
         # Request with files are done using multipart serializing all fields
         # as JSON
         request_header = self._check_auth_header(
@@ -743,7 +747,7 @@ class PumpWoodMicroServiceBase:
 
     def request_post(self, url: str, data: any, files: list = None,
                      auth_header: dict = None,
-                     parameters: dict = {}) -> any:
+                     parameters: None | dict = {}) -> any:
         """Make a POST a request to url with data as multipart/json payload.
 
         Args:
@@ -768,6 +772,8 @@ class PumpWoodMicroServiceBase:
             PumpWoodException sub-types:
                 Response is passed to error_handler.
         """
+        parameters = {} if parameters is None else parameters
+
         post_url = urljoin(self.server_url, url)
         dumped_parameters = self._dump_query_parameters(parameters=parameters)
         response = None
@@ -784,7 +790,7 @@ class PumpWoodMicroServiceBase:
         self.error_handler(response)
         return self._treat_response_for_file(response=response)
 
-    def request_get(self, url: str, parameters: dict = {},
+    def request_get(self, url: str, parameters: None | dict = None,
                     auth_header: dict = None,
                     use_disk_cache: bool = False,
                     disk_cache_expire: int = None,
@@ -822,6 +828,8 @@ class PumpWoodMicroServiceBase:
             PumpWoodOtherException:
                 If exception type is not found or return is not a json.
         """
+        parameters = {} if parameters is None else parameters
+
         request_header = self._check_auth_header(auth_header)
         # If is set to use diskcache, it will create a hash cash using
         # the query paramerers, url and user access token. The
