@@ -99,8 +99,9 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
     def _build_delete_many_request_url(model_class):
         return "rest/%s/delete/" % (model_class.lower(), )
 
-    def delete_many(self, model_class: str, filter_dict: dict = {},
-                    exclude_dict: dict = {}, auth_header: dict = None) -> bool:
+    def delete_many(self, model_class: str, filter_dict: None | dict = None,
+                    exclude_dict: None | dict = None,
+                    auth_header: dict = None) -> bool:
         """Remove many objects using query to retrict removal.
 
         CAUTION It is not possible to undo this operation, model_class
@@ -126,6 +127,9 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
                 Raises error if there is any error when commiting object
                 deletion on database.
         """
+        filter_dict = {} if filter_dict is None else filter_dict
+        exclude_dict = {} if exclude_dict is None else exclude_dict
+
         url_str = self._build_delete_many_request_url(model_class)
         return self.request_post(
             url=url_str,

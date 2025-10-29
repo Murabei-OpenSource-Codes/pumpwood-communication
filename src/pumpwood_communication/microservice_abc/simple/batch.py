@@ -15,8 +15,8 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
         return "rest/%s/aggregate/" % (model_class.lower(),)
 
     def aggregate(self, model_class: str, group_by: List[str], agg: dict,
-                  filter_dict: dict = {}, exclude_dict: dict = {},
-                  order_by: List[str] = [], auth_header: dict = None,
+                  filter_dict: None | dict = None, exclude_dict: dict = None,
+                  order_by: List[str] = None, auth_header: dict = None,
                   limit: int = None) -> pd.DataFrame:
         """Save a list of objects with one request.
 
@@ -44,6 +44,10 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
         Returns:
             Return a DataFrame with aggregation results.
         """
+        filter_dict = {} if filter_dict is None else filter_dict
+        exclude_dict = {} if exclude_dict is None else exclude_dict
+        order_by = [] if order_by is None else order_by
+
         url_str = self._build_aggregate_url(model_class=model_class)
         data = {
             'agg': agg, 'group_by': group_by, 'filter_dict': filter_dict,
@@ -56,9 +60,9 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
     def _build_pivot_url(model_class):
         return "rest/%s/pivot/" % (model_class.lower(), )
 
-    def pivot(self, model_class: str, columns: List[str] = [],
-              format: str = 'list', filter_dict: dict = {},
-              exclude_dict: dict = {}, order_by: List[str] = [],
+    def pivot(self, model_class: str, columns: None | List[str] = None,
+              format: str = 'list', filter_dict: dict = None,
+              exclude_dict: dict = None, order_by: List[str] = None,
               variables: List[str] = None, show_deleted: bool = False,
               add_pk_column: bool = False, auth_header: dict = None,
               as_dataframe: bool = False
@@ -126,6 +130,11 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
                 to pivot dataframe.". Indicates that data does not have a value
                 column, it must have it to populate pivoted table.
         """
+        filter_dict = {} if filter_dict is None else filter_dict
+        exclude_dict = {} if exclude_dict is None else exclude_dict
+        order_by = [] if order_by is None else order_by
+        columns = [] if columns is None else columns
+
         url_str = self._build_pivot_url(model_class)
         post_data = {
             'columns': columns, 'format': format,
