@@ -129,7 +129,7 @@ class PumpwoodCache:
                 'Error when retrieving cache not associated with Timeout. '
                 '{error}')
             raise PumpWoodOtherException(
-                message=msg, format=str(e))
+                message=msg, payload={'error': str(e)})
 
 
 default_cache = PumpwoodCache()
