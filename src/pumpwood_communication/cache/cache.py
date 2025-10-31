@@ -13,6 +13,9 @@ class PumpwoodCache:
 
     def __init__(self):
         """__init__."""
+        self._create_cache_object()
+
+    def _create_cache_object(self):
         self._size_limit = int(os.getenv(
             'PUMPWOOD_COMUNICATION__CACHE_LIMIT_MB', 250)) * 1e8
         self._expire_time = int(os.getenv(
