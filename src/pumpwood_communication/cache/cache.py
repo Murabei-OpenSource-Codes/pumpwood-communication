@@ -4,7 +4,7 @@ import hashlib
 from diskcache import FanoutCache, Timeout
 from typing import Any
 from pumpwood_communication.serializers import pumpJsonDump
-from pumpwood_communication.exceptions import PumpWoodOtherException
+from pumpwood_communication.exceptions import PumpWoodCacheError
 from loguru import logger
 
 
@@ -61,12 +61,12 @@ class PumpwoodCache:
         Returns:
             True is ok.
         """
-        from pumpwood_communication.exceptions import PumpWoodOtherException
+        from pumpwood_communication.exceptions import PumpWoodCacheError
         if tag_dict is None:
             msg = (
                 "At pumpwood_communication cache.evict tag_dict should not be "
                 "'None'. To envict all databse use clear function.")
-            raise PumpWoodOtherException(msg)
+            raise PumpWoodCacheError(msg)
         hash_str = self._generate_hash(hash_dict=tag_dict)
         return self._cache.evict(hash_str)
 
@@ -105,7 +105,7 @@ class PumpwoodCache:
             msg = (
                 "At pumpwood_communication cache.set hash_dict should not be "
                 "'None'")
-            raise PumpWoodOtherException(msg)
+            raise PumpWoodCacheError(msg)
         expire_time = expire or self._expire_time
         hash_str = self._generate_hash(hash_dict=hash_dict)
 
@@ -128,7 +128,7 @@ class PumpwoodCache:
             msg = (
                 'Error when retrieving cache not associated with Timeout. '
                 '{error}')
-            raise PumpWoodOtherException(
+            raise PumpWoodCacheError(
                 message=msg, payload={'error': str(e)})
 
 

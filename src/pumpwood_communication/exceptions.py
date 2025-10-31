@@ -203,6 +203,12 @@ class PumpWoodJSONLoadError(PumpWoodException):
     pass
 
 
+class PumpWoodCacheError(PumpWoodException):
+    """Problem using pumpwood cache."""
+
+    pass
+
+
 class PumpWoodOtherException(PumpWoodException):
     """Other untreated error on server."""
 
