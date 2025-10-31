@@ -121,9 +121,12 @@ class PumpwoodCache:
                 "to set information for key %s" % (hash_str))
             logger.warning(warning_msg)
             return False
-        except Exception:
-            msg = 'Error when retrieving cache not associated with Timeout'
-            raise PumpWoodOtherException(message=msg)
+        except Exception as e:
+            msg = (
+                'Error when retrieving cache not associated with Timeout. '
+                '{error}')
+            raise PumpWoodOtherException(
+                message=msg, format=str(e))
 
 
 default_cache = PumpwoodCache()
