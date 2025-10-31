@@ -4,7 +4,7 @@ import hashlib
 from diskcache import FanoutCache, Timeout
 from typing import Any
 from pumpwood_communication.serializers import pumpJsonDump
-from pumpwood_communication.exceptions import PumpWoodOtherException
+from pumpwood_communication.exceptions import PumpWoodCacheError
 from loguru import logger
 
 
@@ -13,6 +13,9 @@ class PumpwoodCache:
 
     def __init__(self):
         """__init__."""
+        self._create_cache_object()
+
+    def _create_cache_object(self):
         self._size_limit = int(os.getenv(
             'PUMPWOOD_COMUNICATION__CACHE_LIMIT_MB', 250)) * 1e8
         self._expire_time = int(os.getenv(
@@ -58,12 +61,12 @@ class PumpwoodCache:
         Returns:
             True is ok.
         """
-        from pumpwood_communication.exceptions import PumpWoodOtherException
+        from pumpwood_communication.exceptions import PumpWoodCacheError
         if tag_dict is None:
             msg = (
                 "At pumpwood_communication cache.evict tag_dict should not be "
                 "'None'. To envict all databse use clear function.")
-            raise PumpWoodOtherException(msg)
+            raise PumpWoodCacheError(msg)
         hash_str = self._generate_hash(hash_dict=tag_dict)
         return self._cache.evict(hash_str)
 
@@ -102,7 +105,7 @@ class PumpwoodCache:
             msg = (
                 "At pumpwood_communication cache.set hash_dict should not be "
                 "'None'")
-            raise PumpWoodOtherException(msg)
+            raise PumpWoodCacheError(msg)
         expire_time = expire or self._expire_time
         hash_str = self._generate_hash(hash_dict=hash_dict)
 
@@ -121,9 +124,12 @@ class PumpwoodCache:
                 "to set information for key %s" % (hash_str))
             logger.warning(warning_msg)
             return False
-        except Exception:
-            msg = 'Error when retrieving cache not associated with Timeout'
-            raise PumpWoodOtherException(message=msg)
+        except Exception as e:
+            msg = (
+                'Error when retrieving cache not associated with Timeout. '
+                '{error}')
+            raise PumpWoodCacheError(
+                message=msg, payload={'error': str(e)})
 
 
 default_cache = PumpwoodCache()

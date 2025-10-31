@@ -9,6 +9,7 @@ from simplejson import JSONEncoder
 from datetime import datetime
 from datetime import date
 from datetime import time
+from decimal import Decimal
 from pandas import Timestamp
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry import mapping
@@ -48,6 +49,13 @@ def default_encoder(obj):
         return obj.code
     if isinstance(obj, set):
         return list(obj)
+    if isinstance(obj, set):
+        return list(obj)
+    # TODO: Adjust convertion of decimal to preseve precision
+    # There is lost of precision when converting decimal to float,
+    # but Decimal is not currently parsiable using orjson
+    if isinstance(obj, Decimal):
+        return float(obj)
     else:
         raise TypeError(
             "Unserializable object {} of type {}".format(obj, type(obj)))

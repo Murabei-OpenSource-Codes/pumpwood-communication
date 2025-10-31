@@ -1252,7 +1252,7 @@ class PumpWoodMicroService(ABCPermissionMicroservice,
             except Exception as e:
                 PumpWoodException(message=str(e))
 
-        if (1 < len(partition)) and create_composite_pk:
+        if (1 < len(primary_keys)) and create_composite_pk:
             print("## Creating composite pk")
             resp_df["pk"] = resp_df[primary_keys].apply(
                 CompositePkBase64Converter.dump,
