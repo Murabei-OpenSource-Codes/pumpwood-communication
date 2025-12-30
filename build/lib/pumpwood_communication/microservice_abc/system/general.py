@@ -181,7 +181,7 @@ class ABCSystemMicroservice(ABC, PumpWoodMicroServiceBase):
         and receiving requests. It is usefull for tests and for inter-service
         calls.
 
-        If `raise_if_not_healthy` is set as True, function will raise
+        If `raise_error` is set as True, function will raise
         PumpWoodMicroserviceUnavailableError.
 
         Args:

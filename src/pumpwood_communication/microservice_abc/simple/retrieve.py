@@ -19,7 +19,8 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                  default_fields: bool = True, foreign_key_fields: bool = False,
                  related_fields: bool = False, auth_header: dict = None,
                  use_disk_cache: bool = False,
-                 disk_cache_expire: int = None) -> dict:
+                 disk_cache_expire: int = None,
+                 base_filter_skip: list = None) -> dict:
         """Retrieve an object using list serializer (simple).
 
         **# DEPRECTED #** It is the same as retrieve using
@@ -57,6 +58,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             disk_cache_expire (int):
                 Time in seconds to expire the cache, it None it will
                 use de default set be PumpwoodCache.
+            base_filter_skip (list):
+                List of base query filter to be skiped, it is necessary to
+                be superuser to skip base query filters.
 
         Returns:
             Return object with the correspondent pk.
@@ -65,12 +69,15 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             PumpWoodObjectDoesNotExist:
                 If pk not found on database.
         """
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
         url_str = self._build_list_one_url(model_class, pk)
         return self.request_get(
             url=url_str, parameters={
                 "fields": fields, "default_fields": default_fields,
                 "foreign_key_fields": foreign_key_fields,
-                "related_fields": related_fields},
+                "related_fields": related_fields,
+                "base_filter_skip": base_filter_skip},
             auth_header=auth_header, use_disk_cache=use_disk_cache,
             disk_cache_expire=disk_cache_expire)
 
@@ -85,7 +92,8 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                  fields: list = None,
                  auth_header: dict = None,
                  use_disk_cache: bool = False,
-                 disk_cache_expire: int = None) -> dict:
+                 disk_cache_expire: int = None,
+                 base_filter_skip: list = None) -> dict:
         """Retrieve an object from PumpWood.
 
         Function to get object serialized by retrieve end-point
@@ -122,6 +130,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             disk_cache_expire (int):
                 Time in seconds to expire the cache, it None it will
                 use de default set be PumpwoodCache.
+            base_filter_skip (list):
+                List of base query filter to be skiped, it is necessary to
+                be superuser to skip base query filters.
 
         Returns:
             Return object with the correspondent pk.
@@ -130,12 +141,15 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             PumpWoodObjectDoesNotExist:
                 If pk not found on database.
         """
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
         url_str = self._build_retrieve_url(model_class=model_class, pk=pk)
         return self.request_get(
             url=url_str, parameters={
                 "fields": fields, "default_fields": default_fields,
                 "foreign_key_fields": foreign_key_fields,
-                "related_fields": related_fields},
+                "related_fields": related_fields,
+                "base_filter_skip": base_filter_skip},
             auth_header=auth_header, use_disk_cache=use_disk_cache,
             disk_cache_expire=disk_cache_expire)
 
@@ -146,7 +160,8 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
     def retrieve_file(self, model_class: str, pk: int, file_field: str,
                       auth_header: dict = None, save_file: bool = True,
                       save_path: str = "./", file_name: str = None,
-                      if_exists: str = "fail") -> any:
+                      if_exists: str = "fail",
+                      base_filter_skip: list = None) -> any:
         """Retrieve a file from PumpWood.
 
         This function will retrieve file as a single request, depending on the
@@ -178,6 +193,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+            base_filter_skip (list):
+                List of base query filter to be skiped, it is necessary to
+                be superuser to skip base query filters.
 
         Returns:
             May return the file name if save_file=True; If false will return
@@ -204,6 +222,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                 update at the model_class table or manual removal/rename of
                 files on storage.
         """
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
+
         if if_exists not in ["fail", "change_name", "overwrite", "skip"]:
             raise PumpWoodException(
                 "if_exists must be in ['fail', 'change_name', 'overwrite', "
@@ -218,7 +239,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
 
         url_str = self._build_retrieve_file_url(model_class=model_class, pk=pk)
         file_response = self.request_get(
-            url=url_str, parameters={"file-field": file_field},
+            url=url_str, parameters={
+                "file-field": file_field,
+                "base_filter_skip": base_filter_skip},
             auth_header=auth_header)
         if not save_file:
             return file_response
@@ -266,7 +289,8 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                                 file_field: str, file_name: str,
                                 auth_header: dict = None,
                                 save_path: str = "./",
-                                if_exists: str = "fail"):
+                                if_exists: str = "fail",
+                                base_filter_skip: list = None):
         """Retrieve a file from PumpWood using streaming to retrieve content.
 
         This funcion uses file streaming to retrieve file content, it should be
@@ -298,6 +322,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+            base_filter_skip (list):
+                List of base query filter to be skiped, it is necessary to
+                be superuser to skip base query filters.
 
         Returns:
             Returns the file path that recived the file content.
@@ -322,6 +349,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                 update at the model_class table or manual removal/rename of
                 files on storage.
         """
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
+
         request_header = self._check_auth_header(auth_header)
 
         # begin Args check
@@ -363,7 +393,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
         get_url = self.server_url + url_str
         with requests.get(
                 get_url, verify=self._verify_ssl, headers=request_header,
-                params={"file-field": file_field},
+                params={
+                    "file-field": file_field,
+                    "base_filter_skip": base_filter_skip},
                 timeout=self._default_timeout) as response:
             self.error_handler(response)
             with open(file_path, 'wb') as f:

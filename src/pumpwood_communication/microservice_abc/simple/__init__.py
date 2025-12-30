@@ -14,8 +14,11 @@ from .permission import ABCPermissionMicroservice
 from .retrieve import ABCSimpleRetriveMicroservice
 from .delete import ABCSimpleDeleteMicroservice
 from .save import ABCSimpleSaveMicroservice
+from .list import ABCSimpleListMicroservice
+from .dimensions import ABCSimpleDimensionMicroservice
 
 __all__ = [
     ABCSimpleBatchMicroservice, ABCPermissionMicroservice,
     ABCSimpleRetriveMicroservice, ABCSimpleDeleteMicroservice,
-    ABCSimpleSaveMicroservice]
+    ABCSimpleSaveMicroservice, ABCSimpleListMicroservice,
+    ABCSimpleDimensionMicroservice]
