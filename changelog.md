@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.2.40] - 2025-12-30
+### Added
+- Add `base_filter_skip` parameter for end-points, this will send a
+  list at URL parameters that can be used by super user to skip application
+  of base_filter.
+
+### Changed
+- Refactor system end-points calls.
+
+### Removed
+- No removes
+
+
 ## [2.2.39] - 2025-11-28
 ### Added
 - Add clear cache and heath check for each server pointing to new
