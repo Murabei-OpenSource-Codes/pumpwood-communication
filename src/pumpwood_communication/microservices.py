@@ -19,12 +19,11 @@ from pumpwood_communication.misc import unpack_dict_columns
 
 # Importing abstract classes for Micro Service
 from pumpwood_communication.microservice_abc.simple import (
-    ABCSimpleBatchMicroservice, ABCPermissionMicroservice,
-    ABCSimpleRetriveMicroservice, ABCSimpleDeleteMicroservice,
-    ABCSimpleSaveMicroservice, ABCSimpleListMicroservice,
-    ABCSimpleDimensionMicroservice)
+    ABCSimpleBatchMicroservice, ABCSimpleRetriveMicroservice,
+    ABCSimpleDeleteMicroservice, ABCSimpleSaveMicroservice,
+    ABCSimpleListMicroservice, ABCSimpleDimensionMicroservice)
 from pumpwood_communication.microservice_abc.system import (
-    ABCSystemMicroservice)
+    ABCSystemMicroservice, ABCPermissionMicroservice)
 
 
 def break_in_chunks(df_to_break: pd.DataFrame,
@@ -457,7 +456,6 @@ class PumpWoodMicroService(ABCPermissionMicroservice,
         return self.request_post(
             url=url_str, auth_header=auth_header, data=parcial_obj_dict,
             parameters=params)
-
 
     @staticmethod
     def _build_bulk_save_url(model_class: str):

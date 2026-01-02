@@ -31,8 +31,8 @@ src/pumpwood_communication/microservice_abc/simple/delete.py
 src/pumpwood_communication/microservice_abc/simple/dimensions.py
 src/pumpwood_communication/microservice_abc/simple/info.py
 src/pumpwood_communication/microservice_abc/simple/list.py
-src/pumpwood_communication/microservice_abc/simple/permission.py
 src/pumpwood_communication/microservice_abc/simple/retrieve.py
 src/pumpwood_communication/microservice_abc/simple/save.py
 src/pumpwood_communication/microservice_abc/system/__init__.py
 src/pumpwood_communication/microservice_abc/system/general.py
+src/pumpwood_communication/microservice_abc/system/permission.py
