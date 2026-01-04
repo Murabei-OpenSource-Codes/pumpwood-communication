@@ -19,7 +19,7 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
     def _build_aggregate_url(model_class: str):
         return "rest/%s/aggregate/" % (model_class.lower(),)
 
-    def aggregate(self, model_class: str, group_by: List[str], agg: dict,
+    def aggregate(self, model_class: str, group_by: List[str] | str, agg: dict,
                   filter_dict: None | dict = None, exclude_dict: dict = None,
                   order_by: List[str] = None, auth_header: dict = None,
                   limit: int = None) -> pd.DataFrame:
@@ -28,12 +28,16 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
         Args:
             model_class (str):
                 Model class of the end-point that will be aggregated.
-            group_by (List[str]):
+            group_by (List[str] | str):
                 List of the fields that will be used on aggregation as
-                group by.
+                group by. If a string is passed as argument, it will be
+                considered the sigle group_by column.
             agg (dict):
-                A dictionary with dictionary itens as `field` and `function`
+                A dictionary with dictionary items as `field` and `function`
                 specifing the field that will be aggregated using a function.
+
+                The dictinary keys will be used to return the results as
+                columns.
             filter_dict (dict):
                 Filter that will be applied before the aggregation.
             exclude_dict (dict):
@@ -48,10 +52,27 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
 
         Returns:
             Return a DataFrame with aggregation results.
+
+        Example:
+            ```
+            microservice.aggregate(
+                model_class="ToLoadCalendar",
+                group_by=["calendar_id"],
+                agg={
+                    "n": {"field": "id", "function": "count"},
+                    "mean": {"field": "value", "function": "mean"
+                }})
+            ```
         """
         filter_dict = {} if filter_dict is None else filter_dict
         exclude_dict = {} if exclude_dict is None else exclude_dict
         order_by = [] if order_by is None else order_by
+
+        # If group_by is a string, convert to a list with this string
+        group_by = [[group_by] if isinstance(group_by, str) else group_by]
+        if not isinstance(group_by, (list, tuple, set)):
+            error_msg = "Argument `group_by` must be list, tuple, set or str."
+            raise TypeError(error_msg)
 
         url_str = self._build_aggregate_url(model_class=model_class)
         data = {
