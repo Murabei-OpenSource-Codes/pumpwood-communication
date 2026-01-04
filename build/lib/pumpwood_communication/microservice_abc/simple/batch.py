@@ -69,7 +69,7 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
         order_by = [] if order_by is None else order_by
 
         # If group_by is a string, convert to a list with this string
-        group_by = [[group_by] if isinstance(group_by, str) else group_by]
+        group_by = [group_by] if isinstance(group_by, str) else group_by
         if not isinstance(group_by, (list, tuple, set)):
             error_msg = "Argument `group_by` must be list, tuple, set or str."
             raise TypeError(error_msg)
