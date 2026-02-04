@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.48] - 2026-02-04
+### Added
+- Add base skip filter in save endpoint.
+
+### Changed
+- No changes.
+
+### Removed
+- No removes
+
+
+
+## [2.2.47] - 2026-01-14
+### Added
+- No Adds.
+
+### Changed
+- Fix stream upload.
+
+### Removed
+- No removes
+
 
 ## [2.2.40] - 2025-12-30
 ### Added
@@ -17,7 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - No removes
-
 
 ## [2.2.39] - 2025-11-28
 ### Added

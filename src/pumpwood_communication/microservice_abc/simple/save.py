@@ -18,7 +18,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
     def save(self, obj_dict, files: dict = None, auth_header: dict = None,
              fields: list = None, default_fields: bool = False,
              foreign_key_fields: bool = False,
-             related_fields: bool = False) -> dict:
+             related_fields: bool = False,
+             base_filter_skip: list = None) -> dict:
         """Save or Update a new object.
 
         Function to save or update a new model_class object. If obj_dict['pk']
@@ -58,6 +59,9 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
                 dictionaries usually in a field with `_set` at end.
                 Returning related_fields consume backend resorces, use
                 carefully.
+            base_filter_skip (list):
+                List of base query filter to be skiped, it is necessary to
+                be superuser to skip base query filters.
 
         Returns:
             Return updated/created object data.
@@ -81,6 +85,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
                 Return error at object validation on de-serializing the
                 object or files with unexpected extensions.
         """
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
         model_class = obj_dict.get('model_class')
         if model_class is None:
             raise PumpWoodObjectSavingException(
@@ -90,7 +96,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
         parameters = {
             "fields": fields, "default_fields": default_fields,
             "foreign_key_fields": foreign_key_fields,
-            "related_fields": related_fields}
+            "related_fields": related_fields,
+            "base_filter_skip": base_filter_skip}
         return self.request_post(
             url=url_str, data=obj_dict, parameters=parameters, files=files,
             auth_header=auth_header)
@@ -159,7 +166,7 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
                 to storage, the file bytes and transfered bytes does not
                 match.
         """
-        request_header = self._check__auth_header(auth_header=auth_header)
+        request_header = self._check_auth_header(auth_header=auth_header)
         request_header["Content-Type"] = "application/octet-stream"
         post_url = self.server_url + self._build_save_streaming_file_url(
             model_class=model_class, pk=pk)
@@ -171,10 +178,11 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
         if file_name is not None:
             parameters["file_name"] = file_name
 
+        dumped_parameters = self._dump_query_parameters(parameters=parameters)
         response = requests.post(
-            url=post_url, data=file, params=parameters,
-            verify=self.verify_ssl, headers=request_header, stream=True,
-            timeout=self.default_timeout)
+            url=post_url, data=file, params=dumped_parameters,
+            verify=self._verify_ssl, headers=request_header, stream=True,
+            timeout=self._default_timeout)
 
         file_last_bite = file.tell()
         self.error_handler(response)

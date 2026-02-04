@@ -38,6 +38,8 @@ def default_encoder(obj):
         return obj.tolist()
     if isinstance(obj, np.generic):
         return obj.item()
+    if isinstance(obj, Decimal):
+        return float(obj)
     if isinstance(obj, BaseGeometry):
         if obj.is_empty:
             return None

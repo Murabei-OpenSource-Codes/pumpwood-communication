@@ -16,8 +16,8 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
     def _build_list_url(model_class: str):
         return "rest/%s/list/" % (model_class.lower(),)
 
-    def list(self, model_class: str, filter_dict: dict = {},
-             exclude_dict: dict = {}, order_by: list = [],
+    def list(self, model_class: str, filter_dict: dict = None,
+             exclude_dict: dict = None, order_by: list = None,
              auth_header: dict = None, fields: list = None,
              default_fields: bool = False, limit: int = None,
              foreign_key_fields: bool = False,
@@ -189,8 +189,13 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
         Raises:
           No especific raises.
         """ # NOQA
+        filter_dict = {} if filter_dict is None else filter_dict
+        exclude_dict = {} if exclude_dict is None else exclude_dict
+        order_by = [] if order_by is None else order_by
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
+
         url_str = self._build_list_url(model_class)
-        base_filter_skip = [] if base_filter_skip is None else base_filter_skip
         post_data = {
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
             'order_by': order_by, 'default_fields': default_fields,
@@ -202,8 +207,8 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
             parameters={'base_filter_skip': base_filter_skip},
             auth_header=auth_header)
 
-    def list_by_chunks(self, model_class: str, filter_dict: dict = {},
-                       exclude_dict: dict = {}, auth_header: dict = None,
+    def list_by_chunks(self, model_class: str, filter_dict: dict = None,
+                       exclude_dict: dict = None, auth_header: dict = None,
                        fields: list = None, default_fields: bool = False,
                        chunk_size: int = 50000, base_filter_skip: list = None,
                        **kwargs) -> List[dict]:
@@ -245,9 +250,13 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
         Raises:
           No especific raises.
         """
+        filter_dict = {} if filter_dict is None else filter_dict
+        exclude_dict = {} if exclude_dict is None else exclude_dict
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
         base_filter_skip = [] if base_filter_skip is None else base_filter_skip
-        copy_filter_dict = copy.deepcopy(filter_dict)
 
+        copy_filter_dict = copy.deepcopy(filter_dict)
         list_all_results = []
         max_order_col = 0
         while True:
@@ -273,8 +282,8 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
     def _build_list_without_pag_url(model_class: str):
         return "rest/%s/list-without-pag/" % (model_class.lower(),)
 
-    def list_without_pag(self, model_class: str, filter_dict: dict = {},
-                         exclude_dict: dict = {}, order_by: list = [],
+    def list_without_pag(self, model_class: str, filter_dict: dict = None,
+                         exclude_dict: dict = None, order_by: list = None,
                          auth_header: dict = None, return_type: str = 'list',
                          convert_geometry: bool = True, fields: list = None,
                          default_fields: bool = False,
@@ -336,9 +345,14 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
         Raises:
           No especific raises.
         """
-        url_str = self._build_list_without_pag_url(model_class)
+        filter_dict = {} if filter_dict is None else filter_dict
+        exclude_dict = {} if exclude_dict is None else exclude_dict
         base_filter_skip = (
             [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = [] if base_filter_skip is None else base_filter_skip
+
+        url_str = self._build_list_without_pag_url(model_class)
+
         post_data = {
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
             'order_by': order_by, 'default_fields': default_fields,
