@@ -5,12 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.2.48] - 2026-02-04
+## [2.2.49] - 2026-02-06
 ### Added
-- Add base skip filter in save endpoint.
+- No adds.
 
 ### Changed
-- No changes.
+- Add storage path to cache, in deployments with more than one service
+  doming it is possible that cache might colide between services. I might
+  not be a problem, but is better be safe than sorry.
 
 ### Removed
 - No removes
