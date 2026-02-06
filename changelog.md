@@ -15,7 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - No removes
 
+## [2.2.48] - 2026-02-04
+### Added
+- Add base skip filter in save endpoint.
 
+### Changed
+- No changes.
+
+### Removed
+- No removes
 
 ## [2.2.47] - 2026-01-14
 ### Added
