@@ -4,7 +4,8 @@ import hashlib
 from typing import Any
 from pathlib import Path
 from diskcache import FanoutCache, Timeout
-from pumpwood_communication.config import STORAGE_BASE_PATH
+from pumpwood_communication.config import (
+    PUMPWOOD_COMUNICATION__CACHE_BASE_PATH)
 from pumpwood_communication.serializers import pumpJsonDump
 from pumpwood_communication.exceptions import PumpWoodCacheError
 from loguru import logger
@@ -26,7 +27,9 @@ class PumpwoodCache:
             'PUMPWOOD_COMUNICATION__CACHE_TRANSACTION_TIMEOUT', 0.1))
         self._n_shards = int(os.getenv(
             'PUMPWOOD_COMUNICATION__N_SHARDS', 8))
-        cache_path = Path('/tmp/pumpwood_cache/') / STORAGE_BASE_PATH  # NQOA
+        cache_path = (
+            Path('/tmp/pumpwood_cache/') /
+            PUMPWOOD_COMUNICATION__CACHE_BASE_PATH)
         self._cache = FanoutCache(
             directory=cache_path, cache_size=self._size_limit,
             tag_index=True, timeout=self._transaction_timeout,
