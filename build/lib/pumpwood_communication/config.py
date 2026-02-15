@@ -15,3 +15,7 @@ AUTHORIZATION_CACHE_TIMEOUT = int(
     os.getenv('PUMPWOOD_COMUNICATION__AUTHORIZATION_CACHE_TIMEOUT', 60))
 """Config variable to ser cache associated with autorization and row
    permission cache."""
+
+PUMPWOOD_COMUNICATION__CACHE_BASE_PATH = \
+    os.getenv('PUMPWOOD_COMUNICATION__CACHE_BASE_PATH', '')
+"""Base path for cache files."""
