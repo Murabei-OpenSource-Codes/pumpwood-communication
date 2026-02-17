@@ -1,7 +1,7 @@
 """Module to implement local cache when using Pumpwood Comunication."""
 import os
 import hashlib
-from typing import Any
+from typing import Any, Final
 from pathlib import Path
 from diskcache import FanoutCache, Timeout
 from pumpwood_communication.config import (
@@ -137,5 +137,5 @@ class PumpwoodCache:
                 message=msg, payload={'error': str(e)})
 
 
-default_cache = PumpwoodCache()
+default_cache: Final = PumpwoodCache()
 """Generate a default cache for Pumpwood."""
