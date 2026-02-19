@@ -5,7 +5,8 @@ from typing import Any, Final
 from pathlib import Path
 from diskcache import FanoutCache, Timeout
 from pumpwood_communication.config import (
-    PUMPWOOD_COMUNICATION__CACHE_BASE_PATH)
+    CACHE_BASE_PATH, CACHE_LIMIT_MB, CACHE_DEFAULT_EXPIRE,
+    CACHE_TRANSACTION_TIMEOUT, CACHE_N_SHARDS)
 from pumpwood_communication.serializers import pumpJsonDump
 from pumpwood_communication.exceptions import PumpWoodCacheError
 from loguru import logger
@@ -19,17 +20,13 @@ class PumpwoodCache:
         self._create_cache_object()
 
     def _create_cache_object(self):
-        self._size_limit = int(os.getenv(
-            'PUMPWOOD_COMUNICATION__CACHE_LIMIT_MB', 250)) * 1e8
-        self._expire_time = int(os.getenv(
-            'PUMPWOOD_COMUNICATION__CACHE_DEFAULT_EXPIRE', 60))
-        self._transaction_timeout = float(os.getenv(
-            'PUMPWOOD_COMUNICATION__CACHE_TRANSACTION_TIMEOUT', 0.1))
-        self._n_shards = int(os.getenv(
-            'PUMPWOOD_COMUNICATION__N_SHARDS', 8))
+        self._size_limit = CACHE_LIMIT_MB
+        self._expire_time = CACHE_DEFAULT_EXPIRE
+        self._transaction_timeout = CACHE_TRANSACTION_TIMEOUT
+        self._n_shards = CACHE_N_SHARDS
         cache_path = (
             Path('/tmp/pumpwood_cache/') /
-            PUMPWOOD_COMUNICATION__CACHE_BASE_PATH)
+            CACHE_BASE_PATH)
         self._cache = FanoutCache(
             directory=cache_path, cache_size=self._size_limit,
             tag_index=True, timeout=self._transaction_timeout,
@@ -112,8 +109,11 @@ class PumpwoodCache:
                 "'None'")
             raise PumpWoodCacheError(msg)
         expire_time = expire or self._expire_time
-        hash_str = self._generate_hash(hash_dict=hash_dict)
+        # Do not store cache if expire_time == 0
+        if expire_time == 0:
+            return True
 
+        hash_str = self._generate_hash(hash_dict=hash_dict)
         tag_str = None
         if tag_dict is not None:
             tag_str = self._generate_hash(hash_dict=tag_dict)

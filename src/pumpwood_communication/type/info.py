@@ -29,9 +29,12 @@ class ForeignKeyColumnExtraInfo(ColumnExtraInfo):
     object_field: str
     """Field that will receive information from the object."""
     source_keys: list[str]
-    """Fields that will used to get the data at foreign relation."""
+    """Fields that will used at current object to fetch data at
+       the foreign key object."""
     many: bool = False
     """Foreign keys are always many=False."""
+    fields: list[str] | None = None
+    """Fields that will be returned at object call."""
 
 
 @dataclass
@@ -110,6 +113,8 @@ class ColumnInfo(PumpwoodDataclassMixin):
     """If column column is considered read only."""
     unique: bool
     """Is column is to be considered unique."""
+    indexed: bool
+    """If column is indexed."""
     extra_info: ColumnExtraInfo
     """Extra info associated with custom field types like Foreign Key and
        related."""

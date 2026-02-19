@@ -10,24 +10,55 @@ class PumpwoodSentinel(ABC):
     _RETURN_VALUE: str = ""
     """Value that will be returned on dataclass to dict."""
 
+    _HELP_TEXT: str = ""
+    """Value that will be returned on dataclass to dict."""
+
     @classmethod
     def value(cls):
         """Return defult value."""
         return cls._RETURN_VALUE
+
+    @classmethod
+    def help_text(cls):
+        """Return defult value."""
+        return cls._HELP_TEXT
 
 
 class PumpwoodMissingType(PumpwoodSentinel):
     """Pumpwood Sentinel class for missing values."""
 
     _RETURN_VALUE: str = "**missing**"
-    """Value that will be returned on dataclass to dict."""
+    _HELP_TEXT: str = "Missing value"
 
 
 class PumpwoodAutoincrementType(PumpwoodSentinel):
     """Pumpwood Sentinel class for missing values."""
 
     _RETURN_VALUE: str = "**autoincrement**"
-    """Value that will be returned on dataclass to dict."""
+    _HELP_TEXT: str = "Auto-increment value, usually an integer"
+
+
+class PumpwoodAutoNowType(PumpwoodSentinel):
+    """Pumpwood Sentinel class for auto now default."""
+
+    _RETURN_VALUE: str = "**now**"
+    _HELP_TEXT: str = "Return the now time at the server"
+
+
+class PumpwoodAutoTodayType(PumpwoodSentinel):
+    """Pumpwood Sentinel class for auto now default."""
+
+    _RETURN_VALUE: str = "**today**"
+    _HELP_TEXT: str = "Return the todat date at the server"
+
+
+class PumpwoodPKType(PumpwoodSentinel):
+    """Pumpwood Sentinel class for auto now default."""
+
+    _RETURN_VALUE: str = "**pumpwood_pk**"
+    _HELP_TEXT: str = (
+        "Primary key associated with model. It is an integer if not composite "
+        "and a base64 dictionary if it is composite (more than one field)")
 
 
 MISSING: Final = PumpwoodMissingType()
@@ -36,6 +67,15 @@ MISSING: Final = PumpwoodMissingType()
 
 AUTOINCREMENT: Final = PumpwoodAutoincrementType()
 """Define the default value for auto increment fields."""
+
+NOW: Final = PumpwoodAutoNowType()
+"""Define the default auto now."""
+
+TODAY: Final = PumpwoodAutoTodayType()
+"""Define the default value for auto today."""
+
+PUMPWOOD_PK: Final = PumpwoodPKType()
+"""Define the default PK type for Pumpwood PK object."""
 
 
 class PumpwoodDataclassMixin(ABC):
