@@ -43,3 +43,4 @@ src/pumpwood_communication/type/__init__.py
 src/pumpwood_communication/type/abc.py
 src/pumpwood_communication/type/action_return.py
 src/pumpwood_communication/type/info.py
+src/pumpwood_communication/type/sentinel.py

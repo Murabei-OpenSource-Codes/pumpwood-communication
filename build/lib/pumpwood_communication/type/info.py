@@ -1,7 +1,8 @@
 """Set custom return types for information end-points."""
 from typing import Any, ClassVar
 from dataclasses import dataclass
-from .abc import PumpwoodDataclassMixin, PumpwoodSentinel, MISSING
+from .abc import PumpwoodDataclassMixin, PumpwoodSentinel
+from .sentinel import MISSING
 
 
 @dataclass
