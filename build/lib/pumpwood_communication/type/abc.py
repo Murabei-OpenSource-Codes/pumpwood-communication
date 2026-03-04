@@ -1,7 +1,7 @@
 """Set default dataclasses for pumpwood use."""
 import dataclasses
 from abc import ABC
-from typing import Final, ClassVar
+from typing import ClassVar
 
 
 class PumpwoodSentinel(ABC):
