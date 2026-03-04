@@ -1,5 +1,4 @@
 """Module to implement local cache when using Pumpwood Comunication."""
-import os
 import hashlib
 from typing import Any, Final
 from pathlib import Path
@@ -82,6 +81,11 @@ class PumpwoodCache:
         Returns:
             Return the cached value or None if not found.
         """
+        # It cache time is set to 0, than disable cache,
+        # this is usefull for testing
+        if self._expire_time == 0:
+            return None
+
         hash_str = self._generate_hash(hash_dict=hash_dict)
         return self._cache.get(hash_str)
 

@@ -9,12 +9,11 @@ import simplejson as json
 import gzip
 import pandas as pd
 import numpy as np
-from typing import Union, List, Any
+from typing import Union, List
 from multiprocessing import Pool
 from pandas import ExcelWriter
 from pumpwood_communication.exceptions import (
-    PumpWoodException, PumpWoodQueryException, PumpWoodNotImplementedError)
-from pumpwood_communication.misc import unpack_dict_columns
+    PumpWoodException, PumpWoodNotImplementedError)
 
 
 # Importing abstract classes for Micro Service
@@ -60,95 +59,6 @@ class PumpWoodMicroService(ABCPermissionMicroservice,
     It also implements parallel functions that split requests in parallel
     process to reduce processing time.
     """
-
-    def get_pks_from_unique_field(self, model_class: str, field: str,
-                                  values: List[Any]) -> pd.DataFrame:
-        """Get pk using unique fields values.
-
-        Use unique field values to retrieve pk of the objects. This end-point
-        is usefull for retrieving pks of the objects associated with unique
-        fields such as `description` (unique on most model of pumpwood).
-
-        ```python
-        # Using description to fetch pks from objects
-        data: pd.DataFrame = [data with unique description but without pk]
-        data['attribute_id'] = microservice.get_pks_from_unique_field(
-            model_class="DescriptionAttribute",
-            field="description", values=data['attribute'])['pk']
-
-        # Using a dimension key to fetch pk of the objects, dimension
-        # key must be unique
-        data['georea_id'] = microservice.get_pks_from_unique_field(
-            model_class="DescriptionGeoarea", field="dimension->city",
-            values=data['city'])['pk']
-        ```
-
-        Args:
-            model_class:
-                Model class of the objects.
-            field:
-                Unique field to fetch pk. It is possible to use dimension keys
-                as unique field, for that use `dimension->[key]` notation.
-            values:
-                List of the unique fields used to fetch primary keys.
-
-        Return:
-            Return a dataframe in same order as values with columns:
-            - **pk**: Correspondent primary key of the unique value.
-            - **[field]**: Column with same name of field argument,
-                correspondent to pk.
-
-        Raises:
-            PumpWoodQueryException:
-                Raises if field is not found on the model and it is note
-                associated with a dimension tag.
-            PumpWoodQueryException:
-                Raises if `field` does not have a unique restriction on
-                database. Dimension keys does not check for uniqueness on
-                database, be carefull not to duplicate the lines.
-        """
-        is_dimension_tag = 'dimensions->' in field
-        if not is_dimension_tag:
-            fill_options = self.fill_options(model_class=model_class)
-            field_details = fill_options.get(field)
-            if field_details is None:
-                msg = (
-                    "Field is not a dimension tag and not found on model "
-                    "fields. Field [{field}]")
-                raise PumpWoodQueryException(
-                    message=msg, payload={"field": field})
-
-            is_unique_field = field_details.get("unique", False)
-            if not is_unique_field:
-                msg = "Field [{}] to get pk from is not unique"
-                raise PumpWoodQueryException(
-                    message=msg, payload={"field": field})
-
-        filter_dict = {field + "__in": list(set(values))}
-        pk_map = None
-        if not is_dimension_tag:
-            list_results = pd.DataFrame(self.list_without_pag(
-                model_class=model_class, filter_dict=filter_dict,
-                fields=["pk", field]), columns=["pk", field])
-            pk_map = list_results.set_index(field)["pk"]
-
-        # If is dimension tag, fetch dimension and unpack it
-        else:
-            dimension_tag = field.split("->")[1]
-            list_results = pd.DataFrame(self.list_without_pag(
-                model_class=model_class, filter_dict=filter_dict,
-                fields=["pk", "dimensions"]))
-            pk_map = {}
-            if len(list_results) != 0:
-                pk_map = list_results\
-                    .pipe(unpack_dict_columns, columns=["dimensions"])\
-                    .set_index(dimension_tag)["pk"]
-
-        values_series = pd.Series(values)
-        return pd.DataFrame({
-            "pk": values_series.map(pk_map).to_numpy(),
-            field: values_series
-        })
 
     def list_actions(self, model_class: str,
                      auth_header: dict = None) -> List[dict]:
