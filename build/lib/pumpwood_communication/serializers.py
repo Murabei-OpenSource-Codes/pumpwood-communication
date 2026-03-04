@@ -16,18 +16,14 @@ from shapely.geometry import mapping
 from sqlalchemy_utils.types.choice import Choice
 from pumpwood_communication.exceptions import (
     PumpWoodException, PumpWoodNotImplementedError)
+from pumpwood_communication.type import (
+    PumpwoodSentinel, PumpwoodDataclassMixin)
 
 
 def default_encoder(obj):
     """Serialize complex objects."""
     # Return None if object is NaN
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-    if isinstance(obj, Timestamp):
-        return obj.isoformat()
-    if isinstance(obj, date):
-        return obj.isoformat()
-    if isinstance(obj, time):
+    if isinstance(obj, (datetime, Timestamp, date, time)):
         return obj.isoformat()
     if isinstance(obj, np.ndarray):
         return obj.tolist()
@@ -51,13 +47,20 @@ def default_encoder(obj):
         return obj.code
     if isinstance(obj, set):
         return list(obj)
-    if isinstance(obj, set):
-        return list(obj)
+
+    #########################################################
     # TODO: Adjust convertion of decimal to preseve precision
     # There is lost of precision when converting decimal to float,
     # but Decimal is not currently parsiable using orjson
     if isinstance(obj, Decimal):
         return float(obj)
+
+    ###################################
+    # Serialize Pumpwood expecial types
+    if isinstance(obj, PumpwoodDataclassMixin):
+        return obj.to_dict()
+    if isinstance(obj, PumpwoodSentinel):
+        return obj.value()
     else:
         raise TypeError(
             "Unserializable object {} of type {}".format(obj, type(obj)))
@@ -94,19 +97,21 @@ def pumpJsonDump(x: any, sort_keys: bool = False,  # NOQA
         return orjson.dumps(x, default=default_encoder, option=(
             orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
             orjson.OPT_SORT_KEYS | orjson.OPT_INDENT_2 |
-            orjson.OPT_SERIALIZE_NUMPY))
+            orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_PASSTHROUGH_DATACLASS))
     elif sort_keys:
         return orjson.dumps(x, default=default_encoder, option=(
             orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
-            orjson.OPT_SORT_KEYS | orjson.OPT_SERIALIZE_NUMPY))
+            orjson.OPT_SORT_KEYS | orjson.OPT_SERIALIZE_NUMPY |
+            orjson.OPT_PASSTHROUGH_DATACLASS))
     elif is_indent:
         return orjson.dumps(x, default=default_encoder, option=(
             orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
-            orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY))
+            orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY |
+            orjson.OPT_PASSTHROUGH_DATACLASS))
     else:
         return orjson.dumps(x, default=default_encoder, option=(
             orjson.OPT_NAIVE_UTC | orjson.OPT_NON_STR_KEYS |
-            orjson.OPT_SERIALIZE_NUMPY))
+            orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_PASSTHROUGH_DATACLASS))
 
 
 class CompositePkBase64Converter:

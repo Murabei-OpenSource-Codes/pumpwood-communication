@@ -10,6 +10,8 @@ from pumpwood_communication.microservice_abc.base import (
     PumpWoodMicroServiceBase)
 from pumpwood_communication.exceptions import PumpWoodException
 from pumpwood_communication.serializers import CompositePkBase64Converter
+from pumpwood_communication.microservice_abc.simple.batch.aux import (
+    AuxFlatListByChunks)
 
 
 class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
@@ -237,15 +239,17 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
         except Exception as e:
             raise Exception("Exception at flat_list_by_chunks:", str(e))
 
-    def flat_list_by_chunks(self, model_class: str, filter_dict: dict = {},
-                            exclude_dict: dict = {}, fields: List[str] = None,
+    def flat_list_by_chunks(self, model_class: str, filter_dict: dict = None,
+                            exclude_dict: dict = None,
+                            fields: List[str] = None,
                             show_deleted: bool = False,
                             auth_header: dict = None,
                             chunk_size: int = 1000000,
                             n_parallel: int = None,
                             create_composite_pk: bool = False,
                             start_date: str = None,
-                            end_date: str = None) -> pd.DataFrame:
+                            end_date: str = None,
+                            time_column: str = 'time') -> pd.DataFrame:
         """Incrementally fetch data from pivot end-point.
 
         Fetch data from pivot end-point paginating by id of chunk_size lenght.
@@ -291,6 +295,9 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
                 If true and table has a composite pk, it will create pk
                 value based on the hash on the json serialized dictionary
                 of the components of the primary key.
+            time_column (str):
+                Column that will be considered on the partitioning of data
+                fetch.
 
         Returns:
             Returns a dataframe with all information fetched.
@@ -298,167 +305,81 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
         Raises:
             No particular raise.
         """
+        # Set empty dictionary for dictionary arguments
+        filter_dict = {} if filter_dict is None else filter_dict
+        exclude_dict = {} if exclude_dict is None else exclude_dict
+        original_fields = None if fields is None else fields
+
         if n_parallel is None:
             n_parallel = PUMPWOOD_COMUNICATION__N_PARALLEL
 
-        temp_filter_dict = copy.deepcopy(filter_dict)
         fill_options = self.fill_options(
             model_class=model_class, auth_header=auth_header)
-        primary_keys = fill_options["pk"]["column"]
-        partition = fill_options["pk"].get("partition", [])
+
+        # Retrieve PK infomration about primary_key and partitions
+        primary_keys = fill_options["pk"]["extra_info"]['columns']
+        # partition = fill_options["pk"]["extra_info"]['partition']
+
+        # Add all primary keys fields to query if create_composite_pk is
+        # set true
+        if create_composite_pk and fields is not None:
+            fields = list(set(fields) | set(primary_keys))
 
         # Create a list of month and include start and end dates if not at
         # the beginning of a month
         month_sequence = None
         if (start_date is not None) and (end_date is not None):
-            start_date = pd.to_datetime(start_date)
-            end_date = pd.to_datetime(end_date)
-            list_month_sequence = pd.date_range(
-                start=start_date, end=end_date, freq='MS').tolist()
-            month_sequence = pd.Series(
-                [start_date] + list_month_sequence + [end_date]
-            ).sort_values().tolist()
-
-            month_df = pd.DataFrame({'end': month_sequence})
-            month_df['start'] = month_df['end'].shift()
-            month_df = month_df.dropna().drop_duplicates()
-            month_sequence = month_df.to_dict("records")
+            month_sequence = AuxFlatListByChunks.build_month_partitions(
+                start_date=start_date,
+                end_date=end_date)
         elif (start_date is not None) or (end_date is not None):
+            # To create the partitions is necessary to have both start and end
+            # date.
             msg = (
                 "To break query in chunks using start_date and end_date "
-                "both must be set.\n"
-                "start_date: {start_date}\n"
-                "end_date: {end_date}\n").format(
-                    start_date=start_date, end_date=end_date)
+                "both must be set.\n- start_date: {start_date}\n"
+                "- end_date: {end_date}")
             raise PumpWoodException(
                 message=msg, payload={
                     "start_date": start_date,
                     "end_date": end_date})
 
-        resp_df = pd.DataFrame()
+        pool_arguments = AuxFlatListByChunks.build_query_partitions(
+            model_class=model_class, time_partitions=month_sequence,
+            filter_dict=filter_dict, exclude_dict=exclude_dict, fields=fields,
+            time_column=time_column, show_deleted=show_deleted,
+            auth_header=auth_header, chunk_size=chunk_size)
 
-        ##########################################################
-        # If table have more than one partition, run in parallel #
-        # the {partition}__in elements along with dates          #
-        if 1 < len(partition):
-            partition_col_1st = partition[0]
-            filter_dict_keys = list(temp_filter_dict.keys())
-            partition_filter = None
-            count_partition_col_1st_filters = 0
-            for col in filter_dict_keys:
-                if partition_col_1st + "__in" == col:
-                    partition_filter = temp_filter_dict[col]
-                    del temp_filter_dict[col]
-                    count_partition_col_1st_filters = \
-                        count_partition_col_1st_filters + 1
-                elif partition_col_1st == col:
-                    partition_filter = [temp_filter_dict[col]]
-                    del temp_filter_dict[col]
-                    count_partition_col_1st_filters = \
-                        count_partition_col_1st_filters + 1
-
-            # Validating query for partitioned tables
-            if partition_filter is None:
-                msg = (
-                    "Table is partitioned with sub-partitions, running "
-                    "queries without at least first level partition will "
-                    "lead to long waiting times or hanging queries. Please "
-                    "use first partition level in filter_dict with equal "
-                    "or in operators. Table partitions: {}"
-                ).format(partition)
-                raise PumpWoodException(message=msg)
-
-            if 1 < count_partition_col_1st_filters:
-                msg = (
-                    "Please give some help for the dev here, use just one "
-                    "filter_dict entry for first partition...")
-                raise PumpWoodException(message=msg)
-
-            # Parallelizing query using partition columns
-            pool_arguments = []
-            for filter_key in partition_filter:
-                request_filter_dict = copy.deepcopy(temp_filter_dict)
-                request_filter_dict[partition_col_1st] = filter_key
-                if month_sequence is None:
-                    pool_arguments.append({
-                        "model_class": model_class,
-                        "filter_dict": request_filter_dict,
-                        "exclude_dict": exclude_dict,
-                        "fields": fields,
-                        "show_deleted": show_deleted,
-                        "auth_header": auth_header,
-                        "chunk_size": chunk_size})
-                else:
-                    for i in range(len(month_sequence)):
-                        request_filter_dict_t = copy.deepcopy(
-                            request_filter_dict)
-                        # If is not the last interval, query using open
-                        # right interval so subsequence queries does
-                        # not overlap
-                        if i != len(month_sequence) - 1:
-                            request_filter_dict_t["time__gte"] = \
-                                month_sequence[i]["start"]
-                            request_filter_dict_t["time__lt"] = \
-                                month_sequence[i]["end"]
-
-                        # At the last interval use closed right interval so
-                        # last element is also included in the interval
-                        else:
-                            request_filter_dict_t["time__gte"] = \
-                                month_sequence[i]["start"]
-                            request_filter_dict_t["time__lte"] = \
-                                month_sequence[i]["end"]
-
-                        pool_arguments.append({
-                            "model_class": model_class,
-                            "filter_dict": request_filter_dict_t,
-                            "exclude_dict": exclude_dict,
-                            "fields": fields,
-                            "show_deleted": show_deleted,
-                            "auth_header": auth_header,
-                            "chunk_size": chunk_size})
-
-            # Perform parallel calls to backend each chucked by chunk_size
-            print("## Starting parallel flat list: %s" % len(pool_arguments))
-            try:
-                with Pool(n_parallel) as p:
-                    results = p.map(
-                        self._flat_list_by_chunks_helper,
-                        pool_arguments)
-                resp_df = pd.concat(results).reset_index(drop=True)
-            except Exception as e:
-                PumpWoodException(message=str(e))
-            print("\n## Finished parallel flat list: %s" % len(pool_arguments))
-
-        ############################################
-        # If table have partition, run in parallel #
-        else:
-            try:
-                results_key_data = self._flat_list_by_chunks_helper({
-                    "model_class": model_class,
-                    "filter_dict": temp_filter_dict,
-                    "exclude_dict": exclude_dict,
-                    "fields": fields,
-                    "show_deleted": show_deleted,
-                    "auth_header": auth_header,
-                    "chunk_size": chunk_size})
-                resp_df = results_key_data
-            except Exception as e:
-                PumpWoodException(message=str(e))
-
-        if (1 < len(primary_keys)) and create_composite_pk:
-            print("## Creating composite pk")
-            if len(resp_df) != 0:
-                resp_df["pk"] = resp_df[primary_keys].apply(
-                    CompositePkBase64Converter.dump,
-                    primary_keys=primary_keys, axis=1)
+        # Perform parallel calls to backend each chucked by chunk_size
+        print("## Starting parallel flat list: %s" % len(pool_arguments))
+        resp_df = None
+        try:
+            with Pool(n_parallel) as p:
+                results = p.map(
+                    self._flat_list_by_chunks_helper,
+                    pool_arguments)
+            if len(results) != 0:
+                resp_df = pd.concat(results)\
+                    .reset_index(drop=True)
             else:
-                resp_df["pk"] = None
+                resp_df = pd.DataFrame(columns=fields)
+        except Exception as e:
+            PumpWoodException(message=str(e))
+        print("\n## Finished parallel flat list: %s" % len(pool_arguments))
 
-            if fields is not None:
-                fields = ['pk'] + fields
+        # Add the primary key as a column to the dataframe
+        resp_df = AuxFlatListByChunks.add_pk_column(
+            create_composite_pk=create_composite_pk,
+            primary_key_list=primary_keys,
+            data=resp_df)
 
-        # Adjust columns to return the columns set at fields
-        if fields is not None:
-            resp_df = pd.DataFrame(resp_df, columns=fields)
-        return resp_df
+        # Limit the return fields
+        if original_fields is not None:
+            if create_composite_pk:
+                return pd.DataFrame(
+                    resp_df, columns=['pk'] + original_fields)
+            else:
+                return pd.DataFrame(
+                    resp_df, columns=original_fields)
+        else:
+            return resp_df
