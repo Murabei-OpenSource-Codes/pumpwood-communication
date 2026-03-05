@@ -184,7 +184,11 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
             if len(pd_pivot_results) != 0:
                 fill_options = self.fill_options(
                     model_class=model_class, auth_header=auth_header)
-                primary_keys = fill_options["pk"]["column"]
+                primary_keys_data = fill_options["pk"]
+                # Allow legacy pk definition and actual that uses extra_info
+                primary_keys = primary_keys_data\
+                    .get('extra_info', {})\
+                    .get('columns', primary_keys_data['column'])
                 pd_pivot_results["pk"] = pd_pivot_results[primary_keys].apply(
                     CompositePkBase64Converter.dump,
                     primary_keys=primary_keys, axis=1)
