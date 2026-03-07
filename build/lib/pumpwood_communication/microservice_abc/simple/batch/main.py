@@ -258,7 +258,7 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
                             time_column: str = 'time') -> pd.DataFrame:
         """Incrementally fetch data from pivot end-point.
 
-        Fetch data from pivot end-point paginating by id of chunk_size lenght.
+        Fetch data from pivot end-point paginating by id of chunk_size length.
 
         If table is partitioned it will split the query acording to partition
         to facilitate query at the database.

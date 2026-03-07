@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: pumpwood-communication
-Version: 2.3.5
+Version: 2.3.6
 Summary: Package for inter Pumpwood loging and comunication
 Home-page: https://github.com/Murabei-OpenSource-Codes/pumpwood-communication
 Author: André Andrade Baceti
@@ -394,8 +394,8 @@ It is possible to use other functions, the documentation can be gatered using th
 - pivot
 - bulk_save
 - parallel_request_get
-- paralell_request_post
-- paralell_request_delete
+- parallel_request_post
+- parallel_request_delete
 - parallel_retrieve
 - parallel_list
 - parallel_list_without_pag

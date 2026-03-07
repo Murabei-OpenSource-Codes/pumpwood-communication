@@ -21,7 +21,7 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
              auth_header: dict = None, fields: list = None,
              default_fields: bool = False, limit: int = None,
              foreign_key_fields: bool = False,
-             base_filter_skip: list = None,
+             base_filter_skip: list[str] = None,
              **kwargs) -> List[dict]:
         """List objects with pagination.
 

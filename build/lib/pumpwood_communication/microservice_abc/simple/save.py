@@ -1,6 +1,7 @@
 """Module for save functions of microservice."""
 import io
 import requests
+import pandas as pd
 from abc import ABC
 from pumpwood_communication.exceptions import (
     PumpWoodException, PumpWoodObjectSavingException)
@@ -15,11 +16,11 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
     def _build_save_url(model_class):
         return "rest/%s/save/" % (model_class.lower())
 
-    def save(self, obj_dict, files: dict = None, auth_header: dict = None,
-             fields: list = None, default_fields: bool = False,
-             foreign_key_fields: bool = False,
-             related_fields: bool = False,
-             base_filter_skip: list = None) -> dict:
+    def save(self, obj_dict: dict, files: dict = None,
+             auth_header: dict = None, fields: list = None,
+             default_fields: bool = False, foreign_key_fields: bool = False,
+             related_fields: bool = False, base_filter_skip: list = None
+             ) -> dict:
         """Save or Update a new object.
 
         Function to save or update a new model_class object. If obj_dict['pk']
@@ -59,7 +60,7 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
                 dictionaries usually in a field with `_set` at end.
                 Returning related_fields consume backend resorces, use
                 carefully.
-            base_filter_skip (list):
+            base_filter_skip (list[str]):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
 
@@ -112,7 +113,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
                             auth_header: dict = None,
                             fields: list = None, default_fields: bool = False,
                             foreign_key_fields: bool = False,
-                            related_fields: bool = False) -> str:
+                            related_fields: bool = False,
+                            base_filter_skip: list = None) -> str:
         """Stream file to PumpWood.
 
         Use streaming to transfer a file content to Pumpwood storage, this
@@ -151,6 +153,9 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
                 dictionaries usually in a field with `_set` at end.
                 Returning related_fields consume backend resorces, use
                 carefully.
+            base_filter_skip (list[str]):
+                List of base query filter to be skiped, it is necessary to
+                be superuser to skip base query filters.
 
         Returns:
             Return the file name associated with data at the storage.
@@ -170,11 +175,14 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
         request_header["Content-Type"] = "application/octet-stream"
         post_url = self.server_url + self._build_save_streaming_file_url(
             model_class=model_class, pk=pk)
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
 
         parameters = {
             "fields": fields, "default_fields": default_fields,
             "foreign_key_fields": foreign_key_fields,
-            "related_fields": related_fields, "file_field": file_field}
+            "related_fields": related_fields, "file_field": file_field,
+            "base_filter_skip": base_filter_skip}
         if file_name is not None:
             parameters["file_name"] = file_name
 
@@ -196,3 +204,56 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
                     template.format(
                         json_response["bytes_uploaded"], file_last_bite))
         return json_response["file_path"]
+
+    @staticmethod
+    def _build_bulk_save_url(model_class: str):
+        return "rest/%s/bulk-save/" % (model_class.lower(),)
+
+    def bulk_save(self, model_class: str, data_to_save: list | pd.DataFrame,
+                  auth_header: dict = None,
+                  base_filter_skip: list = None) -> dict:
+        """Save a list of objects with one request.
+
+        It is used with a unique call save many objects at the same time. It
+        is necessary that the end-point is able to receive bulk save requests
+        and all objects been of the same model class.
+
+        Args:
+            model_class:
+                Data model class.
+            data_to_save:
+                A list of objects to be saved.
+            base_filter_skip (list[str]):
+                List of base query filter to be skiped, it is necessary to
+                be superuser to skip base query filters.
+            auth_header:
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
+
+        Returns:
+            A dictinary with `saved_count` as key indicating the number of
+            objects that were saved in database.
+
+        Raises:
+            PumpWoodException:
+                'Expected columns and data columns do not match: Expected
+                columns: {expected} Data columns: {data_cols}'. Indicates
+                that the expected fields of the object were not met at the
+                objects passed to save.
+            PumpWoodException:
+                Other sqlalchemy and psycopg2 errors not associated with
+                IntegrityError.
+            PumpWoodException:
+                'Bulk save not avaiable.'. Indicates that Bulk save end-point
+                was not configured for this model_class.
+            PumpWoodIntegrityError:
+                Raise integrity errors from sqlalchemy and psycopg2. Usually
+                associated with uniqueness of some column.
+        """
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
+        url_str = self._build_bulk_save_url(model_class=model_class)
+        return self.request_post(
+            url=url_str, data=data_to_save,
+            parameters={"base_filter_skip": base_filter_skip},
+            auth_header=auth_header)

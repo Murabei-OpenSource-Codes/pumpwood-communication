@@ -58,7 +58,7 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             disk_cache_expire (int):
                 Time in seconds to expire the cache, it None it will
                 use de default set be PumpwoodCache.
-            base_filter_skip (list):
+            base_filter_skip (list[str]):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
 
@@ -290,7 +290,7 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                                 auth_header: dict = None,
                                 save_path: str = "./",
                                 if_exists: str = "fail",
-                                base_filter_skip: list = None):
+                                base_filter_skip: list = None) -> str:
         """Retrieve a file from PumpWood using streaming to retrieve content.
 
         This funcion uses file streaming to retrieve file content, it should be
