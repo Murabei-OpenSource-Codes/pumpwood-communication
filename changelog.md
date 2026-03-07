@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - No removes
 
+## [2.3.5] - 2026-03-05
+### Added
+- No adds.
+
+### Changed
+- Pivot function breaking with new fill_options return, it was made compatible
+  with both actual and legacy.
+
+### Removed
+- No removes
+
 ## [2.3.2] - 2026-02-17
 ### Added
 - No adds.
