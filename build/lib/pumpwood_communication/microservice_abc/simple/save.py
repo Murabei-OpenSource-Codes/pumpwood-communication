@@ -250,6 +250,9 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
                 Raise integrity errors from sqlalchemy and psycopg2. Usually
                 associated with uniqueness of some column.
         """
+        if len(data_to_save) == 0:
+            return False
+
         base_filter_skip = (
             [] if base_filter_skip is None else base_filter_skip)
         url_str = self._build_bulk_save_url(model_class=model_class)

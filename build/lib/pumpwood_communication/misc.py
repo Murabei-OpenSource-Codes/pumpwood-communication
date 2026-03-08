@@ -1,4 +1,5 @@
 """Miscelaneus function to help in development."""
+import math
 import copy
 import pandas as pd
 import numpy as np
@@ -89,4 +90,7 @@ def break_in_chunks(df_to_break: pd.DataFrame,
         Return a list dataframes with length chunksize of data from
         `df_to_break`.
     """
-    return np.array_split(df_to_break, chunksize)
+    return [
+        df_to_break.iloc[i : i + chunksize]
+        for i in range(0, len(df_to_break), chunksize)
+    ]
