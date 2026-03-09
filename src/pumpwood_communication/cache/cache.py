@@ -16,21 +16,23 @@ class PumpwoodCache:
 
     def __init__(self):
         """__init__."""
-        self._create_cache_object()
-
-    def _create_cache_object(self):
+        self._cache = None
         self._size_limit = CACHE_LIMIT_MB
         self._expire_time = CACHE_DEFAULT_EXPIRE
         self._transaction_timeout = CACHE_TRANSACTION_TIMEOUT
         self._n_shards = CACHE_N_SHARDS
         self._enable = CACHE_ENABLE
-        cache_path = (
+        self._cache_path = (
             Path('/tmp/pumpwood_cache/') /
             CACHE_BASE_PATH)
-        self._cache = FanoutCache(
-            directory=cache_path, cache_size=self._size_limit,
-            tag_index=True, timeout=self._transaction_timeout,
-            shards=self._n_shards)
+        self._cache = None
+
+    def _create_cache_object(self):
+        if self._cache is None:
+            self._cache = FanoutCache(
+                directory=self._cache_path, cache_size=self._size_limit,
+                tag_index=True, timeout=self._transaction_timeout,
+                shards=self._n_shards)
 
     @classmethod
     def _generate_hash(cls, hash_dict: dict) -> str:
@@ -55,6 +57,7 @@ class PumpwoodCache:
         Returns:
             True is ok.
         """
+        self._create_cache_object()
         return self._cache.clear()
 
     def evict(self, tag_dict: dict) -> bool:
@@ -64,6 +67,8 @@ class PumpwoodCache:
             True is ok.
         """
         from pumpwood_communication.exceptions import PumpWoodCacheError
+        self._create_cache_object()
+
         if tag_dict is None:
             msg = (
                 "At pumpwood_communication cache.evict tag_dict should not be "
@@ -82,6 +87,7 @@ class PumpwoodCache:
         Returns:
             Return the cached value or None if not found.
         """
+        self._create_cache_object()
         if not self._enable:
             logger.info("Get cache not enable")
             return None
@@ -112,6 +118,7 @@ class PumpwoodCache:
         Returns:
             Return a boolean value
         """
+        self._create_cache_object()
         if not self._enable:
             logger.info("Set cache not enable")
             return True
