@@ -155,7 +155,7 @@ class CompositePkBase64Converter:
                 behaviour.
                 - **str:** It will return the value associated with object
                     attribute.
-                - **List[str]:** If list has lenght equal to 1, it will have
+                - **List[str]:** If list has length equal to 1, it will have
                     same behaviour as str. If greater than 1, it will be
                     returned a base64 encoded dictionary with the keys at
                     primary_keys.

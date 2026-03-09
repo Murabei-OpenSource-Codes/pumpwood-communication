@@ -5,7 +5,7 @@ from pathlib import Path
 from diskcache import FanoutCache, Timeout
 from pumpwood_communication.config import (
     CACHE_BASE_PATH, CACHE_LIMIT_MB, CACHE_DEFAULT_EXPIRE,
-    CACHE_TRANSACTION_TIMEOUT, CACHE_N_SHARDS)
+    CACHE_TRANSACTION_TIMEOUT, CACHE_N_SHARDS, CACHE_ENABLE)
 from pumpwood_communication.serializers import pumpJsonDump
 from pumpwood_communication.exceptions import PumpWoodCacheError
 from loguru import logger
@@ -23,6 +23,7 @@ class PumpwoodCache:
         self._expire_time = CACHE_DEFAULT_EXPIRE
         self._transaction_timeout = CACHE_TRANSACTION_TIMEOUT
         self._n_shards = CACHE_N_SHARDS
+        self._enable = CACHE_ENABLE
         cache_path = (
             Path('/tmp/pumpwood_cache/') /
             CACHE_BASE_PATH)
@@ -81,6 +82,10 @@ class PumpwoodCache:
         Returns:
             Return the cached value or None if not found.
         """
+        if not self._enable:
+            logger.info("Get cache not enable")
+            return None
+
         # It cache time is set to 0, than disable cache,
         # this is usefull for testing
         if self._expire_time == 0:
@@ -107,6 +112,10 @@ class PumpwoodCache:
         Returns:
             Return a boolean value
         """
+        if not self._enable:
+            logger.info("Set cache not enable")
+            return True
+
         if hash_dict is None:
             msg = (
                 "At pumpwood_communication cache.set hash_dict should not be "

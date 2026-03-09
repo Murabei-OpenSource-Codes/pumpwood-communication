@@ -1,6 +1,8 @@
 """Miscelaneus function to help in development."""
-import pandas as pd
+import math
 import copy
+import pandas as pd
+import numpy as np
 from typing import List, Literal
 from pumpwood_communication.exceptions import PumpWoodException
 
@@ -74,3 +76,21 @@ def extract_dict_subset(data: dict, keys: List[str],
         else:
             return_dict[key] = copy.deepcopy(temp_data)
     return return_dict
+
+
+def break_in_chunks(df_to_break: pd.DataFrame,
+                    chunksize: int = 1000) -> List[pd.DataFrame]:
+    """Break a dataframe in chunks of chunksize.
+
+    Args:
+        df_to_break: Dataframe to be break in chunks of `chunksize` size.
+        chunksize: Length of each chuck of the breaks of `df_to_break`.
+
+    Returns:
+        Return a list dataframes with length chunksize of data from
+        `df_to_break`.
+    """
+    return [
+        df_to_break.iloc[i : i + chunksize]
+        for i in range(0, len(df_to_break), chunksize)
+    ]

@@ -12,7 +12,8 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
         return "rest/%s/delete/%s/" % (model_class.lower(), pk)
 
     def delete(self, model_class: str, pk: int,
-               auth_header: dict = None) -> dict:
+               auth_header: dict = None,
+               base_filter_skip: list[str] | None = None) -> dict:
         """Send delete request to a PumpWood object.
 
         Delete (or whatever the PumpWood system have been implemented) the
@@ -30,6 +31,9 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+            base_filter_skip (list[str]):
+                List of base query filter to be skiped, it is necessary to
+                be superuser to skip base query filters.
 
         Returns:
             Returns delete object.
@@ -39,15 +43,20 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
                 'Requested object {model_class}[{pk}] not found.' This
                 indicates that the pk was not found in database.
         """
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
         url_str = self._build_delete_request_url(model_class, pk)
-        return self.request_delete(url=url_str, auth_header=auth_header)
+        return self.request_delete(
+            url=url_str, auth_header=auth_header,
+            parameters={"base_filter_skip": base_filter_skip})
 
     @staticmethod
     def _build_remove_file_field(model_class, pk):
         return "rest/%s/remove-file-field/%s/" % (model_class.lower(), pk)
 
     def delete_file(self, model_class: str, pk: int, file_field: str,
-                    auth_header: dict = None) -> bool:
+                    auth_header: dict = None,
+                    base_filter_skip: list[str] | None = None) -> bool:
         """Send delete request to a PumpWood object.
 
         Delete (or whatever the PumpWood system have been implemented) the
@@ -67,6 +76,9 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+            base_filter_skip (list[str]):
+                List of base query filter to be skiped, it is necessary to
+                be superuser to skip base query filters.
 
         Returns:
             Return True is file was successful removed
@@ -87,10 +99,14 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
                 it should not occur. It might have been some manual update
                 of the database or at the storage level.
         """
+        base_filter_skip = (
+            [] if base_filter_skip is None else base_filter_skip)
         url_str = self._build_remove_file_field(model_class, pk)
         return self.request_delete(
             url=url_str, auth_header=auth_header,
-            parameters={"file-field": file_field})
+            parameters={
+                "file-field": file_field,
+                "base_filter_skip": base_filter_skip})
 
     # Create an alias for backward compatibility.
     remove_file_field = delete_file
@@ -101,7 +117,8 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
 
     def delete_many(self, model_class: str, filter_dict: None | dict = None,
                     exclude_dict: None | dict = None,
-                    auth_header: dict = None) -> bool:
+                    auth_header: dict = None,
+                    base_filter_skip: list[str] = None) -> bool:
         """Remove many objects using query to retrict removal.
 
         CAUTION It is not possible to undo this operation, model_class
@@ -118,6 +135,9 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+            base_filter_skip (list):
+                List of base query filter to be skiped, it is necessary to
+                be superuser to skip base query filters.
 
         Returns:
             True if delete is ok.
@@ -133,5 +153,6 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
         url_str = self._build_delete_many_request_url(model_class)
         return self.request_post(
             url=url_str,
+            parameters={'base_filter_skip': base_filter_skip},
             data={'filter_dict': filter_dict, 'exclude_dict': exclude_dict},
             auth_header=auth_header)
