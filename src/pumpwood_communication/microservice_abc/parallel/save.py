@@ -5,6 +5,7 @@ from pumpwood_communication.exceptions import PumpWoodException
 from pumpwood_communication.microservice_abc.parallel.base import (
     ABCParallelBaseMicroservice)
 from pumpwood_communication.misc import break_in_chunks
+from pumpwood_communication.config import PARALLEL_CHUNK_SIZE
 
 
 class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
@@ -139,7 +140,7 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
 
     def parallel_bulk_save(self, model_class: str,
                            data_to_save: pd.DataFrame | list[dict],
-                           n_parallel: int = None, chunksize: int = 1000,
+                           n_parallel: int = None, chunksize: int = None,
                            base_filter_skip: list[str] | list[list[str]] = None, # NOQA
                            auth_header: dict = None):
         """Break data_to_save in many parallel bulk_save requests.
@@ -150,7 +151,9 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
             data_to_save:
                 Data that will be saved
             chunksize:
-                Length of each parallel bulk save chunk.
+                Length of each parallel bulk save chunk. If not set it will
+                use env variable `PUMPWOOD_COMUNICATION__PARALLEL_CHUNK_SIZE`
+                with default as `50000`.
             n_parallel:
                 Number of simultaneus get requests, if not set
                 get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
@@ -168,6 +171,9 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
         n_parallel = self.get_n_parallel(n_parallel=n_parallel)
         if type(data_to_save) is list:
             data_to_save = pd.DataFrame(data_to_save)
+
+        chunksize = (
+            PARALLEL_CHUNK_SIZE if chunksize is None else chunksize)
 
         # Break dataframe in chunks to
         chunks = break_in_chunks(
