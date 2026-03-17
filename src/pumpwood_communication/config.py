@@ -37,5 +37,5 @@ N_PARALLEL = n_parallel = int(os.getenv(
 """N parallel calls that will be done on parallel calls."""
 
 PARALLEL_CHUNK_SIZE = n_parallel = int(os.getenv(
-    "PUMPWOOD_COMUNICATION__PARALLEL_CHUNK_SIZE", 1000))
+    "PUMPWOOD_COMUNICATION__PARALLEL_CHUNK_SIZE", 10000))
 """Size of each chuck that will be posted in parallel at parallel bulk save."""
