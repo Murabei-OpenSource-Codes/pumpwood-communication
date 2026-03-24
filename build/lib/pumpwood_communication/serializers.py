@@ -23,6 +23,10 @@ from pumpwood_communication.type import (
 def default_encoder(obj):
     """Serialize complex objects."""
     # Return None if object is NaN
+    if not isinstance(obj, (pd.DataFrame, pd.Series, np.ndarray, list, dict)):
+        if pd.isna(obj):
+            return None
+
     if isinstance(obj, (datetime, Timestamp, date, time)):
         return obj.isoformat()
     if isinstance(obj, np.ndarray):
@@ -30,7 +34,6 @@ def default_encoder(obj):
     if isinstance(obj, pd.DataFrame):
         return obj.to_dict('records')
     if isinstance(obj, pd.Series):
-        obj.dtype == Timestamp
         return obj.tolist()
     if isinstance(obj, np.generic):
         return obj.item()
@@ -41,8 +44,6 @@ def default_encoder(obj):
             return None
         else:
             return mapping(obj)
-    if isinstance(obj, BaseGeometry):
-        return mapping(obj)
     if isinstance(obj, Choice):
         return obj.code
     if isinstance(obj, set):
@@ -155,7 +156,7 @@ class CompositePkBase64Converter:
                 behaviour.
                 - **str:** It will return the value associated with object
                     attribute.
-                - **List[str]:** If list has lenght equal to 1, it will have
+                - **List[str]:** If list has length equal to 1, it will have
                     same behaviour as str. If greater than 1, it will be
                     returned a base64 encoded dictionary with the keys at
                     primary_keys.

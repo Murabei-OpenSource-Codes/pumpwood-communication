@@ -3,6 +3,7 @@ import sys
 import copy
 import pandas as pd
 from abc import ABC
+from loguru import logger
 from typing import List, Union, Dict, Any
 from multiprocessing import Pool
 from pumpwood_communication.config import PUMPWOOD_COMUNICATION__N_PARALLEL
@@ -26,8 +27,22 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
     def aggregate(self, model_class: str, group_by: List[str] | str, agg: dict,
                   filter_dict: None | dict = None, exclude_dict: dict = None,
                   order_by: List[str] = None, auth_header: dict = None,
-                  limit: int = None) -> pd.DataFrame:
+                  limit: int = None, as_dataframe: bool = False
+                  ) -> pd.DataFrame:
         """Save a list of objects with one request.
+
+        Avaiable aggregate functions:
+            - **sum:** Sum.
+            - **mean:** Mean.
+            - **count:** Count.
+            - **min:** Minimum.
+            - **max:** Maximum.
+            - **stddev_pop:** Population standard deviation.
+            - **stddev_samp:** Sample standard deviation.
+            - **var_pop:** Population variance.
+            - **var_samp:** Sample variance.
+            - **std:** Sample standard deviation.
+            - **var:** Sample variance.
 
         Args:
             model_class (str):
@@ -53,6 +68,10 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
                 Authentication header used to impersonation of user.
             limit (int):
                 Limit number of returned row at aggregation query.
+            as_dataframe (bool):
+                If result should be returned as a dataframe. The columns
+                will be set to match the group_by and agg arguments, this
+                way empty dataframe with respect the columns.
 
         Returns:
             Return a DataFrame with aggregation results.
@@ -77,14 +96,25 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
         if not isinstance(group_by, (list, tuple, set)):
             error_msg = "Argument `group_by` must be list, tuple, set or str."
             raise TypeError(error_msg)
+        if not isinstance(agg, (dict)):
+            error_msg = "Argument `agg` must be dict."
+            raise TypeError(error_msg)
 
         url_str = self._build_aggregate_url(model_class=model_class)
         data = {
             'agg': agg, 'group_by': group_by, 'filter_dict': filter_dict,
             'exclude_dict': exclude_dict, 'order_by': order_by,
             'limit': limit}
-        return self.request_post(
+        return_data = self.request_post(
             url=url_str, data=data, auth_header=auth_header)
+        if not as_dataframe:
+            return return_data
+        else:
+            # Return the results as a dataframe using the group_by columns
+            # and the columns created at aggregation to ensure that
+            # even empty results would have the correct columns
+            return_columns = group_by + list(agg.keys())
+            return pd.DataFrame(return_data, columns=return_columns)
 
     @staticmethod
     def _build_pivot_url(model_class):
@@ -93,7 +123,8 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
     def pivot(self, model_class: str, columns: None | List[str] = None,
               format: str = 'list', filter_dict: dict = None,
               exclude_dict: dict = None, order_by: List[str] = None,
-              variables: List[str] = None, show_deleted: bool = False,
+              variables: List[str] = None, fields: List[str] = None,
+              show_deleted: bool = False,
               add_pk_column: bool = False, auth_header: dict = None,
               as_dataframe: bool = False
               ) -> Union[List[dict], Dict[str, list], pd.DataFrame]:
@@ -117,9 +148,13 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
                 Same as list function.
             order_by (List[str]):
                  Same as list function.
+            fields (List[str]):
+                List of the fields to be returned, if None, the default
+                variables will be returned. Same as fields on list functions.
             variables (List[str]):
                 List of the fields to be returned, if None, the default
                 variables will be returned. Same as fields on list functions.
+                **DEPRECTED** use fields.
             show_deleted (bool):
                 Fields with deleted column will have objects with deleted=True
                 omited from results. show_deleted=True will return this
@@ -160,6 +195,14 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
                 to pivot dataframe.". Indicates that data does not have a value
                 column, it must have it to populate pivoted table.
         """
+        # Deprect variables argument
+        if variables is not None:
+            msg = (
+                "Deprecation Warning: pivot variable is deprected, "
+                "you should use fields instead")
+            logger.warning(msg)
+        fields = fields if fields is None else variables
+
         filter_dict = {} if filter_dict is None else filter_dict
         exclude_dict = {} if exclude_dict is None else exclude_dict
         order_by = [] if order_by is None else order_by
@@ -176,11 +219,15 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
 
         if not add_pk_column:
             if as_dataframe:
-                return pd.DataFrame(pivot_results)
+                # If passed, set the fields as columns to ensure empty
+                # dataframes to have the correct fields
+                return pd.DataFrame(pivot_results, columns=fields)
             else:
                 return pivot_results
         else:
-            pd_pivot_results = pd.DataFrame(pivot_results)
+            # If passed, set the fields as columns to ensure empty
+            # dataframes to have the correct fields
+            pd_pivot_results = pd.DataFrame(pivot_results, columns=fields)
             if len(pd_pivot_results) != 0:
                 fill_options = self.fill_options(
                     model_class=model_class, auth_header=auth_header)
@@ -258,7 +305,7 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
                             time_column: str = 'time') -> pd.DataFrame:
         """Incrementally fetch data from pivot end-point.
 
-        Fetch data from pivot end-point paginating by id of chunk_size lenght.
+        Fetch data from pivot end-point paginating by id of chunk_size length.
 
         If table is partitioned it will split the query acording to partition
         to facilitate query at the database.

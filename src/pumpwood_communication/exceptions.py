@@ -21,10 +21,14 @@ class PumpWoodException(Exception): # NOQA
     """Message associated with raise."""
 
     payload: dict
-    """
-    Dictionary payload that will be returned by to_dict funcion and format
-    message string.
-    """
+    """Dictionary payload that will be returned by to_dict funcion and format
+       message string."""
+
+    translate: bool
+    """If message will be translated or not."""
+
+    parallel: bool
+    """If error was raised on a parallel request."""
 
     def __repr__(self):
         """@private."""
@@ -48,7 +52,9 @@ class PumpWoodException(Exception): # NOQA
             message_fmt=message_fmt,
             payload=self.payload)
 
-    def __init__(self, message: str, payload: dict = {}, status_code=None):
+    def __init__(self, message: str, payload: dict = {},
+                 status_code: int = None, translate: bool = False,
+                 parallel: bool = False):
         """__init__.
 
         Args:
@@ -60,12 +66,18 @@ class PumpWoodException(Exception): # NOQA
                 in payload at `to_dict` funcion and used to format message.
             status_code:
                 Change the default status code of the exception.
+            translate (bool):
+                Set if message should be translated or not.
+            parallel (bool):
+                Error on a parallel request.
         """
         Exception.__init__(self)
         self.message = message
         if status_code is not None:
             self.status_code = status_code
         self.payload = payload
+        self.translate = translate
+        self.parallel = parallel
 
     def format_message(self) -> str:
         """Format exception message using payload data.
@@ -76,10 +88,16 @@ class PumpWoodException(Exception): # NOQA
             Return a string of message with placeholders substituted with
             payload data.
         """
-        try:
-            return self.message.format(**self.payload)
-        except Exception:
-            return self.message + "\n** format error **"
+        if self.translate:
+            try:
+                return self.message.format(**self.payload)
+            except Exception:
+                return self.message + "\n** format error **"
+        else:
+            try:
+                return self.message.format(**self.payload)
+            except Exception:
+                return self.message + "\n** format error **"
 
     def to_dict(self) -> dict:
         """Serialize Exception object to return as reponse.
@@ -97,7 +115,8 @@ class PumpWoodException(Exception): # NOQA
             "payload": self.payload,
             "type": self.__class__.__name__,
             "message_not_fmt": self.message,
-            "message": message_fmt}
+            "message": message_fmt,
+            "parallel": self.parallel}
         return rv
 
 
@@ -214,40 +233,18 @@ class PumpWoodOtherException(PumpWoodException):
 
     status_code = 500
 
-    def __repr__(self):
-        """__repr__."""
-        template = "{class_name}[status_code={status_code}]: " + \
-            "{message}\nerror payload={payload}"
-        return template.format(
-            class_name=self.__class__.__name__,
-            status_code=self.status_code, message=self.message,
-            payload=self.payload,)
-
-    def __str__(self):
-        """__str__."""
-        template = "{class_name}[status_code={status_code}]: " + \
-            "{message}\nerror payload={payload}"
-        return template.format(
-            class_name=self.__class__.__name__,
-            status_code=self.status_code, message=self.message,
-            payload=self.payload,)
-
-    def __init__(self, message: str, payload: dict = {}, status_code=None):
+    def __init__(self, message: str, payload: dict = {}, status_code=None,
+                 parallel: bool = False):
         """__init__."""
         Exception.__init__(self)
+
         # Limit size of the error
         self.message = message[:1000]
         if status_code is not None:
             self.status_code = status_code
         self.payload = payload
-
-    def to_dict(self):
-        """Serialize exception to dictionary."""
-        rv = {
-            "payload": self.payload,
-            "type": self.__class__.__name__,
-            "message": self.message}
-        return rv
+        self.translate = False
+        self.parallel = parallel
 
 
 class AirflowMicroServiceException(PumpWoodException):

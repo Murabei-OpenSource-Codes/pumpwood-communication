@@ -24,8 +24,14 @@ src/pumpwood_communication/microservice_abc/__init__.py
 src/pumpwood_communication/microservice_abc/base/__init__.py
 src/pumpwood_communication/microservice_abc/base/base.py
 src/pumpwood_communication/microservice_abc/parallel/__init__.py
+src/pumpwood_communication/microservice_abc/parallel/action.py
+src/pumpwood_communication/microservice_abc/parallel/base.py
+src/pumpwood_communication/microservice_abc/parallel/delete.py
+src/pumpwood_communication/microservice_abc/parallel/list.py
 src/pumpwood_communication/microservice_abc/parallel/retrieve.py
+src/pumpwood_communication/microservice_abc/parallel/save.py
 src/pumpwood_communication/microservice_abc/simple/__init__.py
+src/pumpwood_communication/microservice_abc/simple/action.py
 src/pumpwood_communication/microservice_abc/simple/delete.py
 src/pumpwood_communication/microservice_abc/simple/dimensions.py
 src/pumpwood_communication/microservice_abc/simple/info.py

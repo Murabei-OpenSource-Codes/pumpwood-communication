@@ -355,8 +355,8 @@ It is possible to use other functions, the documentation can be gatered using th
 - pivot
 - bulk_save
 - parallel_request_get
-- paralell_request_post
-- paralell_request_delete
+- parallel_request_post
+- parallel_request_delete
 - parallel_retrieve
 - parallel_list
 - parallel_list_without_pag

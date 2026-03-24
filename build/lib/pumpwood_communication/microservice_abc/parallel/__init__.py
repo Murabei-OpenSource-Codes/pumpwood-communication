@@ -1,11 +1,18 @@
-"""
-Facilitate communication with Pumpowood backend.
+"""Module for parallel requests."""
+from .action import ABCParallelActionMicroservice
+from .delete import ABCParallelDeleteMicroservice
+from .list import ABCParallelListMicroservice
+from .retrieve import ABCParallelRetriveMicroservice
+from .save import ABCParallelSaveMicroservice
 
-This packages facilitates the communication with end-points with Pumpwood
-pattern and helps with authentication.
-
-Source-code at Github:<br>
-https://github.com/Murabei-OpenSource-Codes/pumpwood-communication
-"""
 
 __docformat__ = "google"
+
+
+__all__ = [
+    ABCParallelActionMicroservice,
+    ABCParallelDeleteMicroservice,
+    ABCParallelListMicroservice,
+    ABCParallelRetriveMicroservice,
+    ABCParallelSaveMicroservice
+]

@@ -27,3 +27,15 @@ CACHE_TRANSACTION_TIMEOUT = float(os.getenv(
 CACHE_N_SHARDS = int(os.getenv(
     'PUMPWOOD_COMUNICATION__CACHE_N_SHARDS', 8))
 """Number of shards that will be used to split the cache."""
+CACHE_ENABLE = os.getenv(
+    'PUMPWOOD_COMUNICATION__CACHE_ENABLE', "TRUE") == "TRUE"
+"""Number of shards that will be used to split the cache."""
+
+# Parallel operations associated env. variables
+N_PARALLEL = n_parallel = int(os.getenv(
+    "PUMPWOOD_COMUNICATION__N_PARALLEL", 4))
+"""N parallel calls that will be done on parallel calls."""
+
+PARALLEL_CHUNK_SIZE = n_parallel = int(os.getenv(
+    "PUMPWOOD_COMUNICATION__PARALLEL_CHUNK_SIZE", 10000))
+"""Size of each chuck that will be posted in parallel at parallel bulk save."""

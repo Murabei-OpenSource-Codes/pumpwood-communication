@@ -9,14 +9,20 @@ https://github.com/Murabei-OpenSource-Codes/pumpwood-communication
 """
 
 __docformat__ = "google"
+
+
 from .batch import ABCSimpleBatchMicroservice
 from .retrieve import ABCSimpleRetriveMicroservice
 from .delete import ABCSimpleDeleteMicroservice
 from .save import ABCSimpleSaveMicroservice
 from .list import ABCSimpleListMicroservice
 from .dimensions import ABCSimpleDimensionMicroservice
+from .action import ABCSimpleActionMicroservice
+from .info import ABCSimpleInfoMicroservice
+
 
 __all__ = [
     ABCSimpleBatchMicroservice, ABCSimpleRetriveMicroservice,
     ABCSimpleDeleteMicroservice, ABCSimpleSaveMicroservice,
-    ABCSimpleListMicroservice, ABCSimpleDimensionMicroservice]
+    ABCSimpleListMicroservice, ABCSimpleDimensionMicroservice,
+    ABCSimpleActionMicroservice, ABCSimpleInfoMicroservice]
