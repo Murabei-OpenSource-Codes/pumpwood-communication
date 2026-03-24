@@ -22,6 +22,7 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
              default_fields: bool = False, limit: int = None,
              foreign_key_fields: bool = False,
              base_filter_skip: list[str] = None,
+             as_dataframe: bool = False,
              **kwargs) -> List[dict]:
         """List objects with pagination.
 
@@ -180,6 +181,9 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
             base_filter_skip (list):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            as_dataframe (bool):
+                Return data as dataframe and set the columns acording to
+                fields if set.
             **kwargs:
                 Other parameters for compatibility.
 
@@ -202,16 +206,23 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
             'limit': limit, 'foreign_key_fields': foreign_key_fields}
         if fields is not None:
             post_data["fields"] = fields
-        return self.request_post(
+        return_data = self.request_post(
             url=url_str, data=post_data,
             parameters={'base_filter_skip': base_filter_skip},
             auth_header=auth_header)
+        if not as_dataframe:
+            return return_data
+        else:
+            # Return the results as a dataframe using the group_by columns
+            # and the columns created at aggregation to ensure that
+            # even empty results would have the correct columns
+            return pd.DataFrame(return_data, columns=fields)
 
     def list_by_chunks(self, model_class: str, filter_dict: dict = None,
                        exclude_dict: dict = None, auth_header: dict = None,
                        fields: list = None, default_fields: bool = False,
                        chunk_size: int = 50000, base_filter_skip: list = None,
-                       **kwargs) -> List[dict]:
+                       as_dataframe: bool = False, **kwargs) -> List[dict]:
         """List object fetching them by chucks using pk to paginate.
 
         List data by chunck to load by datasets without breaking the backend
@@ -241,6 +252,9 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
             base_filter_skip (list):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            as_dataframe (bool):
+                Return data as dataframe and set the columns acording to
+                fields if set.
             **kwargs:
                 Other parameters for compatibility.
 
@@ -276,6 +290,13 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
             max_order_col = temp_results[-1]["pk"]
             list_all_results.extend(temp_results)
 
+        if not as_dataframe:
+            return list_all_results
+        else:
+            # Return the results as a dataframe using the group_by columns
+            # and the columns created at aggregation to ensure that
+            # even empty results would have the correct columns
+            return pd.DataFrame(list_all_results, columns=fields)
         return list_all_results
 
     @staticmethod
@@ -284,11 +305,14 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
 
     def list_without_pag(self, model_class: str, filter_dict: dict = None,
                          exclude_dict: dict = None, order_by: list = None,
-                         auth_header: dict = None, return_type: str = 'list',
-                         convert_geometry: bool = True, fields: list = None,
+                         auth_header: dict = None,
+                         convert_geometry: bool = True,
+                         fields: list = None,
                          default_fields: bool = False,
                          foreign_key_fields: bool = False,
-                         base_filter_skip: list = None, **kwargs
+                         base_filter_skip: list = None,
+                         as_dataframe: bool = False,
+                         **kwargs
                          ) -> List[dict]:
         """List object without pagination.
 
@@ -330,12 +354,12 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
             convert_geometry (bool):
                 If geometry columns should be convert to shapely geometry.
                 Fields with key 'geometry' will be considered geometry.
-            return_type (str):
-                Set return type to list of dictinary `list` or to a pandas
-                dataframe `dataframe`.
             base_filter_skip (list):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            as_dataframe (bool):
+                Return data as dataframe and set the columns acording to
+                fields if set.
             **kwargs:
                 Other unused arguments for compatibility.
 
@@ -376,13 +400,15 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
                     geometry_in_results = True
         ##################################################
 
-        if return_type == 'list':
+        if not as_dataframe:
             return results
-        elif return_type == 'dataframe':
-            if (model_class.lower() == "descriptiongeoarea") and \
-                    geometry_in_results:
-                return geopd.GeoDataFrame(results, geometry='geometry')
-            else:
-                return pd.DataFrame(results)
         else:
-            raise Exception("return_type must be 'list' or 'dataframe'")
+            convert_to_geopandas = (
+                (model_class.lower() == "descriptiongeoarea") and
+                geometry_in_results)
+            if convert_to_geopandas:
+                return geopd.GeoDataFrame(
+                    results, geometry='geometry', columns=fields)
+            else:
+                return pd.DataFrame(
+                    results, columns=fields)
