@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [2.4.12] - 2026-03-25
+### Added
+- No adds.
+
+### Changed
+- Fix cripto object not correct error raise.
+
+### Removed
+- No removes
+
+
 ## [2.4.11] - 2026-03-24
 ### Added
 - Add `as_dataframe` argument to list and pivot function to return
