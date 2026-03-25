@@ -12,7 +12,7 @@ from pumpwood_communication.serializers import pumpJsonDump
 class PumpwoodCryptography:
     """Pumpwood data encryption class."""
 
-    _fernet_object: Fernet
+    _fernet_object: Fernet = None
     """Fernet object."""
 
     def __init__(self, fernet_key: str = None):
