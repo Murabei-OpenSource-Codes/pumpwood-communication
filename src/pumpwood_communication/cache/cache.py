@@ -41,6 +41,24 @@ class PumpwoodCache:
         It will use pumpJsonDump function from serializers to dump correctly
         any complex data such as date, geometry and numpy.
 
+        Expose _generate_hash
+
+        Args:
+            hash_dict (dict):
+                A dictonary with information that will be used on hash.
+
+        Returns:
+            Return a hash that will be used as cache.
+        """
+        return cls._generate_hash(hash_dict=hash_dict)
+
+    @classmethod
+    def _generate_hash(cls, hash_dict: dict) -> str:
+        """Generate a hash to be used to storage and retrieve cache.
+
+        It will use pumpJsonDump function from serializers to dump correctly
+        any complex data such as date, geometry and numpy.
+
         Args:
             hash_dict (dict):
                 A dictonary with information that will be used on hash.
