@@ -4,7 +4,8 @@ from .abc import PumpwoodSentinel, PumpwoodDataclassMixin
 from .sentinel import (
     PumpwoodMissingType, PumpwoodAutoincrementType, PumpwoodAutoNowType,
     PumpwoodAutoTodayType, PumpwoodPKType, PumpwoodLoggedUserType,
-    MISSING, AUTOINCREMENT, NOW, TODAY, PUMPWOOD_PK, LOGGED_USER)
+    PumpwoodAutoFillType, MISSING, AUTOINCREMENT, NOW, TODAY, PUMPWOOD_PK,
+    LOGGED_USER, AUTO_FILL)
 from .info import (
     ForeignKeyColumnExtraInfo, RelatedColumnExtraInfo,
     FileColumnExtraInfo, OptionsColumnExtraInfo,
@@ -18,4 +19,4 @@ __all__ = [
     ActionReturnFile, ForeignKeyColumnExtraInfo, RelatedColumnExtraInfo,
     FileColumnExtraInfo, OptionsColumnExtraInfo,
     ColumnInfo, ColumnExtraInfo, PrimaryKeyExtraInfo,
-    PumpwoodLoggedUserType, LOGGED_USER]
+    PumpwoodLoggedUserType, LOGGED_USER, PumpwoodAutoFillType, AUTO_FILL]
