@@ -5,6 +5,7 @@ pyproject.toml
 setup.py
 src/pumpwood_communication/__init__.py
 src/pumpwood_communication/airflow.py
+src/pumpwood_communication/aux.py
 src/pumpwood_communication/config.py
 src/pumpwood_communication/exceptions.py
 src/pumpwood_communication/hash.py
@@ -50,3 +51,4 @@ src/pumpwood_communication/type/abc.py
 src/pumpwood_communication/type/action_return.py
 src/pumpwood_communication/type/info.py
 src/pumpwood_communication/type/sentinel.py
+src/pumpwood_communication/type/views.py

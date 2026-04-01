@@ -10,6 +10,8 @@ from .info import (
     ForeignKeyColumnExtraInfo, RelatedColumnExtraInfo,
     FileColumnExtraInfo, OptionsColumnExtraInfo,
     ColumnInfo, ColumnExtraInfo, PrimaryKeyExtraInfo)
+from .views import (
+    BulkSaveMicroserviceAutoFillField, BulkSaveLocalAutoFillField)
 
 
 __all__ = [
@@ -19,4 +21,5 @@ __all__ = [
     ActionReturnFile, ForeignKeyColumnExtraInfo, RelatedColumnExtraInfo,
     FileColumnExtraInfo, OptionsColumnExtraInfo,
     ColumnInfo, ColumnExtraInfo, PrimaryKeyExtraInfo,
-    PumpwoodLoggedUserType, LOGGED_USER, PumpwoodAutoFillType, AUTO_FILL]
+    PumpwoodLoggedUserType, LOGGED_USER, PumpwoodAutoFillType, AUTO_FILL,
+    BulkSaveMicroserviceAutoFillField, BulkSaveLocalAutoFillField]
