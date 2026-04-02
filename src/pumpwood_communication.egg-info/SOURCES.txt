@@ -48,7 +48,7 @@ src/pumpwood_communication/microservice_abc/system/general.py
 src/pumpwood_communication/microservice_abc/system/permission.py
 src/pumpwood_communication/type/__init__.py
 src/pumpwood_communication/type/abc.py
-src/pumpwood_communication/type/action_return.py
+src/pumpwood_communication/type/action.py
 src/pumpwood_communication/type/info.py
 src/pumpwood_communication/type/sentinel.py
 src/pumpwood_communication/type/views.py
