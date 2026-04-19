@@ -201,7 +201,7 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
                 "Deprecation Warning: pivot variable is deprected, "
                 "you should use fields instead")
             logger.warning(msg)
-        fields = fields if fields is None else variables
+        fields = fields if fields is not None else variables
 
         filter_dict = {} if filter_dict is None else filter_dict
         exclude_dict = {} if exclude_dict is None else exclude_dict

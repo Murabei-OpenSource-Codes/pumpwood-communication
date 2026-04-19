@@ -29,7 +29,8 @@ class BulkSaveLocalAutoFillField(PumpwoodDataclassMixin):
     field: str
     """Name of the field that will be filled on bulk save."""
     fill_model_class: str
-    """String associated with model class to fetch information from."""
+    """String or SQLAlchemy class associated with model class to fetch
+       information from."""
     fill_col: str
     """Column of the foreign object that will be used to fill the data."""
     object_fk_column: str | None
