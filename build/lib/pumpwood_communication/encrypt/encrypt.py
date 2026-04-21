@@ -78,6 +78,11 @@ class PumpwoodCryptography:
             Key.
         """
         self._check_if_configured()
+
+        # None objects should not be encripted
+        if value is None:
+            return None
+
         encoded_value = None
         # If type is bytes, convert to a dictinary that will be used when
         # decrypting data to convert information back to bytes again
