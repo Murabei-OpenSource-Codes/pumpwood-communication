@@ -35,6 +35,24 @@ class PumpwoodCache:
                 shards=self._n_shards)
 
     @classmethod
+    def generate_hash(cls, hash_dict: dict) -> str:
+        """Generate a hash to be used to storage and retrieve cache.
+
+        It will use pumpJsonDump function from serializers to dump correctly
+        any complex data such as date, geometry and numpy.
+
+        Expose _generate_hash
+
+        Args:
+            hash_dict (dict):
+                A dictonary with information that will be used on hash.
+
+        Returns:
+            Return a hash that will be used as cache.
+        """
+        return cls._generate_hash(hash_dict=hash_dict)
+
+    @classmethod
     def _generate_hash(cls, hash_dict: dict) -> str:
         """Generate a hash to be used to storage and retrieve cache.
 
@@ -74,7 +92,7 @@ class PumpwoodCache:
                 "At pumpwood_communication cache.evict tag_dict should not be "
                 "'None'. To envict all databse use clear function.")
             raise PumpWoodCacheError(msg)
-        hash_str = self._generate_hash(hash_dict=tag_dict)
+        hash_str = self.generate_hash(hash_dict=tag_dict)
         return self._cache.evict(hash_str)
 
     def get(self, hash_dict: dict) -> Any:
@@ -97,7 +115,7 @@ class PumpwoodCache:
         if self._expire_time == 0:
             return None
 
-        hash_str = self._generate_hash(hash_dict=hash_dict)
+        hash_str = self.generate_hash(hash_dict=hash_dict)
         return self._cache.get(hash_str)
 
     def set(self, hash_dict: dict, value: Any, expire: int = None,
@@ -133,10 +151,10 @@ class PumpwoodCache:
         if expire_time == 0:
             return True
 
-        hash_str = self._generate_hash(hash_dict=hash_dict)
+        hash_str = self.generate_hash(hash_dict=hash_dict)
         tag_str = None
         if tag_dict is not None:
-            tag_str = self._generate_hash(hash_dict=tag_dict)
+            tag_str = self.generate_hash(hash_dict=tag_dict)
 
         try:
             return self._cache.set(

@@ -49,6 +49,15 @@ class PumpwoodLoggedUserType(PumpwoodSentinel):
         "user.")
 
 
+class PumpwoodAutoFillType(PumpwoodSentinel):
+    """Pumpwood Sentinel class auto fill fields on serializer."""
+
+    _RETURN_VALUE: str = "**autofill**"
+    _HELP_TEXT: str = (
+        "Use autentication header to fill field with id of the logged "
+        "user.")
+
+
 MISSING: Final = PumpwoodMissingType()
 """Create a default missing object to not be mixed with None which might be
    a valid value on dataclass."""
@@ -67,3 +76,6 @@ PUMPWOOD_PK: Final = PumpwoodPKType()
 
 LOGGED_USER: Final = PumpwoodLoggedUserType()
 """Type to be used for ID retrieved from logged user."""
+
+AUTO_FILL: Final = PumpwoodAutoFillType()
+"""Setinel object for auto filled fields on Pumpwood serializers."""

@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [2.4.19] - 2026-04-16
+### Added
+- No adds.
+
+### Changed
+- Fixed the fields argument on pivot that was not working.
+
+### Removed
+- No removes
+
+
+## [2.4.18] - 2026-04-16
+### Added
+- No adds.
+
+### Changed
+- Fixed the `CompositePkBase64Converter` to convert dictionary with only
+  `{"id": value}` to return just the `value` without base64 conversion.
+
+### Removed
+- No removes
+
+
+## [2.4.17] - 2026-03-30
+### Added
+- Add types for return of action parameters and information.
+
+### Changed
+- No changes.
+
+### Removed
+- No removes
+
+
+## [2.4.15] - 2026-03-30
+### Added
+- Sentinel class for autofill fields.
+
+### Changed
+- No changes.
+
+### Removed
+- No removes
+
+## [2.4.12] - 2026-03-25
+### Added
+- No adds.
+
+### Changed
+- Fix cripto object not correct error raise.
+
+### Removed
+- No removes
+
+
 ## [2.4.11] - 2026-03-24
 ### Added
 - Add `as_dataframe` argument to list and pivot function to return

@@ -14,10 +14,9 @@ from pandas import Timestamp
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry import mapping
 from sqlalchemy_utils.types.choice import Choice
-from pumpwood_communication.exceptions import (
-    PumpWoodException, PumpWoodNotImplementedError)
+from pumpwood_communication.exceptions import PumpWoodException
 from pumpwood_communication.type import (
-    PumpwoodSentinel, PumpwoodDataclassMixin)
+    PumpwoodSentinel, PumpwoodDataclassMixin, MISSING)
 
 
 def default_encoder(obj):
@@ -132,15 +131,14 @@ class CompositePkBase64Converter:
         Return:
             Return object/dictionary value associated with attribute.
         """
-        temp_pk_value = None
         if type(obj) is dict:
-            temp_pk_value = obj[att]
+            return obj.get(att, MISSING)
         else:
-            temp_pk_value = getattr(obj, att)
-        return temp_pk_value
+            return getattr(obj, att, MISSING)
 
     @classmethod
-    def dump(cls, obj, primary_keys: Union[str, List[str], Dict[str, str]]
+    def dump(cls, obj: object | dict,
+             primary_keys: Union[str, List[str], Dict[str, str]]
              ) -> Union[str, int]:
         """Convert primary keys and composite to a single value.
 
@@ -150,7 +148,8 @@ class CompositePkBase64Converter:
 
         Args:
             obj:
-                SQLAlchemy object.
+                SQLAlchemy object or dictionary with data to build the
+                forenging key.
             primary_keys (Union[str, List[str], Dict[str, str]):
                 As string, a list or a dictionary leading to different
                 behaviour.
@@ -169,60 +168,69 @@ class CompositePkBase64Converter:
             key, if is have more than one column as primary key, return
             a dictionary of the primary keys encoded as base64 url safe.
         """
-        if type(primary_keys) is str:
-            return getattr(obj, primary_keys)
+        if obj is None:
+            return None
 
-        elif type(primary_keys) is list:
-            if len(primary_keys) == 1:
-                return getattr(obj, primary_keys[0])
+        missing_keys = []
+        return_value = None
+        if isinstance(primary_keys, str):
+            key_value = cls.get_attribute(obj, primary_keys)
+            if key_value != MISSING:
+                return_value = key_value
             else:
-                # Will return a None value if all composite primary keys are
-                # None
-                is_all_none = False
+                missing_keys.append(primary_keys)
+
+        elif isinstance(primary_keys, list):
+            if len(primary_keys) == 1:
+                key_value = cls.get_attribute(obj, primary_keys[0])
+                if key_value != MISSING:
+                    return key_value
+                else:
+                    missing_keys.append(primary_keys[0])
+            else:
                 composite_pk_dict = {}
                 for pk_col in primary_keys:
-                    temp_pk_value = cls.get_attribute(obj, pk_col)
-                    is_all_none = is_all_none or (temp_pk_value is None)
-                    composite_pk_dict[pk_col] = temp_pk_value
-                if is_all_none:
-                    return None
-
-                # If not all primary keys are None, them serialize it and
-                # convert to a base64 dictionary to be used as PK
-                composite_pk_str = pumpJsonDump(composite_pk_dict)
-                return base64.urlsafe_b64encode(composite_pk_str)\
-                    .decode()
+                    key_value = cls.get_attribute(obj, pk_col)
+                    if key_value == MISSING:
+                        missing_keys.append(primary_keys)
+                    else:
+                        composite_pk_dict[pk_col] = key_value
+                return_value = composite_pk_dict
 
         # Map object values to other, this is used when builds forenging
         # key references and request related field using microservice.
-        elif type(primary_keys) is dict:
-            # Will return a None value if all composite primary keys are
-            # None
-            is_all_none = False
+        elif isinstance(primary_keys, dict):
+            # Treat the case when the dictinary is only an id->value
             composite_pk_dict = {}
             for key, value in primary_keys.items():
-                temp_pk_value = cls.get_attribute(obj, key)
-                is_all_none = is_all_none or (temp_pk_value is None)
-                composite_pk_dict[value] = temp_pk_value
-            if is_all_none:
-                return None
+                key_value = cls.get_attribute(obj, key)
+                if key_value == MISSING:
+                    missing_keys.append(primary_keys)
+                else:
+                    composite_pk_dict[value] = key_value
+            return_value = composite_pk_dict
 
-            # If not all primary keys are None, them serialize it and
-            # convert to a base64 dictionary to be used as PK. Using
-            # dictionary will map values before converting to base64
-            # dictionary
-            composite_pk_str = pumpJsonDump(composite_pk_dict)
+        # Check if some missing keys are there
+        if len(missing_keys) != 0:
+            msg = (
+                "Some keys were not found on object/dict to create "
+                "the composite forenging key. "
+                "Primary Keys: [{primary_keys}]; "
+                "Missing keys: [{missing_keys}]")
+            raise PumpWoodException(msg, payload={
+                "primary_keys": primary_keys,
+                "missing_keys": missing_keys})
+
+        if isinstance(return_value, dict):
+            if {'id'} == set(return_value.keys()):
+                return return_value['id']
+
+            composite_pk_str = pumpJsonDump(return_value)
             base64_composite_pk = base64.urlsafe_b64encode(composite_pk_str)\
                 .decode()
             return base64_composite_pk
-
-        # This will raise error if primary_keys type is not implemented
         else:
-            msg = (
-                "CompositePkBase64Converter.dump argument primary_keys "
-                "is not a list of strings or a map dictionary. Type "
-                "[{arg_type}]").format(arg_type=type(primary_keys))
-            raise PumpWoodNotImplementedError(message=msg)
+            return return_value
 
     @staticmethod
     def load(value: Union[str, int]) -> Union[int, dict]:
@@ -252,7 +260,7 @@ class CompositePkBase64Converter:
         # If not possible, try to decode a base64 JSON dictionary
         except Exception as e1:
             try:
-                return json.loads(base64.b64decode(value))
+                return json.loads(base64.urlsafe_b64decode(value))
             except Exception as e2:
                 msg = (
                     "[{value}] value is not an integer and could no be "
