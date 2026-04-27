@@ -300,8 +300,6 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
         list_base_filter_skip = self.convert_to_list(
             argument=base_filter_skip, length=len(list_pk),
             force_replicate=True)
-        list_n_parallel = self.convert_to_list(
-            argument=n_parallel, length=len(list_pk))
 
         column_arg = {
             'model_class': list_model_class,
@@ -312,15 +310,14 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
             'save_path': list_save_path,
             'file_name': list_file_name,
             'if_exists': list_if_exists,
-            'base_filter_skip': list_base_filter_skip,
-            'n_parallel': list_n_parallel}
+            'base_filter_skip': list_base_filter_skip}
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
             function=self.retrieve_file, function_args=function_args,
             n_parallel=n_parallel)
 
     def parallel_retrieve_streaming_file(self, model_class: str,
-                                         list_pk: int | list[int],
+                                         list_pk: list[int],
                                          file_field: str | list[str],
                                          file_name: str | list[str],
                                          auth_header: dict | list[dict] = None,
@@ -343,7 +340,7 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
         Args:
             model_class:
                 Class of the model to retrieve file.
-            list_pk:
+            list_pk (list):
                 Pk of the object associeted file.
             file_field:
                 Field of the file to be downloaded.

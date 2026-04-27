@@ -132,6 +132,7 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
             'foreign_key_fields': list_foreign_key_fields,
             'related_fields': list_related_fields,
             'base_filter_skip': list_base_filter_skip,
+            'files': list_files
         }
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
