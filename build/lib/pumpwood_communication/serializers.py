@@ -191,10 +191,10 @@ class CompositePkBase64Converter:
                 composite_pk_dict = {}
                 for pk_col in primary_keys:
                     key_value = cls.get_attribute(obj, pk_col)
-                    if key_value == MISSING:
-                        missing_keys.append(primary_keys)
-                    else:
+                    if key_value != MISSING:
                         composite_pk_dict[pk_col] = key_value
+                    else:
+                        missing_keys.append(pk_col)
                 return_value = composite_pk_dict
 
         # Map object values to other, this is used when builds forenging
@@ -204,10 +204,10 @@ class CompositePkBase64Converter:
             composite_pk_dict = {}
             for key, value in primary_keys.items():
                 key_value = cls.get_attribute(obj, key)
-                if key_value == MISSING:
-                    missing_keys.append(primary_keys)
-                else:
+                if key_value != MISSING:
                     composite_pk_dict[value] = key_value
+                else:
+                    missing_keys.append(key)
             return_value = composite_pk_dict
 
         # Check if some missing keys are there
@@ -215,10 +215,10 @@ class CompositePkBase64Converter:
             msg = (
                 "Some keys were not found on object/dict to create "
                 "the composite forenging key. "
-                "Primary Keys: [{primary_keys}]; "
-                "Missing keys: [{missing_keys}]")
+                "Primary Keys: {primary_keys}; "
+                "Missing keys: {missing_keys}")
             raise PumpWoodException(msg, payload={
-                "primary_keys": primary_keys,
+                "primary_keys": list(primary_keys.keys()),
                 "missing_keys": missing_keys})
 
         if isinstance(return_value, dict):

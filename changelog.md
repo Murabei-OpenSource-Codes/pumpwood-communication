@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.4.23] - 2026-04-27
+### Added
+- No adds.
+
+### Changed
+- Fixed `CompositePkBase64Converter.dump` logic to correctly identify and report 
+  individual missing keys in composite primary keys (previously it was 
+  appending the entire key collection instead of the specific missing field).
+- Improved error messaging for missing composite keys to include a 
+  clearer list of the failing attributes.
+- Fixed parallel save operation: ensured the `files` argument is correctly 
+  mapped and passed during parallel execution.
+- Refactored parallel retrieval: removed redundant parameter conversions for 
+  `n_parallel` and enforced explicit list types for primary keys in 
+  streaming file operations to improve batch reliability.
+
+### Removed
+- No removes.
+
+
 ## [2.4.19] - 2026-04-16
 ### Added
 - No adds.
