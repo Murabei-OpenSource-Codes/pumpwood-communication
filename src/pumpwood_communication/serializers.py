@@ -14,7 +14,8 @@ from pandas import Timestamp
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry import mapping
 from sqlalchemy_utils.types.choice import Choice
-from pumpwood_communication.exceptions import PumpWoodException
+from pumpwood_communication.exceptions import (
+    PumpWoodException, PumpWoodNotImplementedError)
 from pumpwood_communication.type import (
     PumpwoodSentinel, PumpwoodDataclassMixin, MISSING)
 
@@ -223,14 +224,48 @@ class CompositePkBase64Converter:
 
         if isinstance(return_value, dict):
             if {'id'} == set(return_value.keys()):
-                return return_value['id']
-
-            composite_pk_str = pumpJsonDump(return_value)
-            base64_composite_pk = base64.urlsafe_b64encode(composite_pk_str)\
-                .decode()
-            return base64_composite_pk
+                return return_value['id']            
+            return cls.dump_dict(primary_key_dict=return_value)
         else:
             return return_value
+
+    @classmethod
+    def validate_primary_key_dict(cls, primary_key_dict: dict):
+        """."""
+        if not isinstance(primary_key_dict, dict):
+            msg = "primary_key_dict must be a dictionary. Received: {type}"
+            raise PumpWoodNotImplementedError(
+                msg, payload={'type': type(primary_key_dict).__name__})
+
+        for key, value in primary_key_dict.items():
+            if isinstance(value, (dict, list, tuple)):
+                msg = (
+                    "primary_key_dict must be flat dictionary. "
+                    "Nested type[{type}] found at key [{key}]")
+                raise PumpWoodException(
+                    msg.format(),
+                    payload={
+                        'primary_key_dict': primary_key_dict,
+                        'type': type(value).__name__,
+                        'key': key})
+
+    @classmethod
+    def dump_dict(cls, primary_key_dict: dict) -> str:
+        """Dump a primary key dictionary to base64 url safe string.
+
+        Args:
+            primary_key_dict (dict):
+                Dictionary with the primary key values.
+
+        Returns:
+            str:
+                Base64 url safe string of the primary key dictionary.
+        """
+        cls.validate_primary_key_dict(primary_key_dict=primary_key_dict)
+        composite_pk_str = pumpJsonDump(primary_key_dict)
+        base64_composite_pk = base64.urlsafe_b64encode(composite_pk_str)\
+            .decode()
+        return base64_composite_pk
 
     @staticmethod
     def load(value: Union[str, int]) -> Union[int, dict]:

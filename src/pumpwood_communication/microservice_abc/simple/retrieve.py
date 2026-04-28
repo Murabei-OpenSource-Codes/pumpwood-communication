@@ -1,11 +1,15 @@
 """Module for retrieve functions of microservice."""
 import os
 import requests
+import numbers
+import numpy as np
+from decimal import Decimal
 from abc import ABC
 from werkzeug.utils import secure_filename
 from pumpwood_communication.exceptions import PumpWoodException
 from pumpwood_communication.microservice_abc.base import (
     PumpWoodMicroServiceBase)
+from pumpwood_communication.serializers import CompositePkBase64Converter
 
 
 class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
@@ -85,7 +89,7 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
     def _build_retrieve_url(model_class: str, pk: int):
         return "rest/%s/retrieve/%s/" % (model_class.lower(), pk)
 
-    def retrieve(self, model_class: str, pk: int,
+    def retrieve(self, model_class: str, pk: int | str | dict,
                  default_fields: bool = False,
                  foreign_key_fields: bool = False,
                  related_fields: bool = False,
@@ -96,54 +100,93 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                  base_filter_skip: list = None) -> dict:
         """Retrieve an object from PumpWood.
 
-        Function to get object serialized by retrieve end-point
-        (more detailed data).
+        Function to get an object serialized by the retrieve endpoint (more
+        detailed data). It will fetch information for a single object
+        based on the primary key, which may be a simple ID, a composite key
+        passed as a dictionary, or a base64 URL-safe string.
+
+        It is also possible to retrieve single objects using unique fields,
+        such as codes or multiple column uniqueness constraints. This can
+        be done by passing the argument as a base64 string or a dictionary
+        containing the filtering clauses.
+
+        Example:
+            ```python
+            microservice.retrieve(
+                model_class="ModelClassWithUniqueCode",
+                pk={'code': 'unique code for object'})
+
+            microservice.retrieve(
+                model_class="ModelClassWithCompositeUniqueConstraint",
+                pk={'time': '2026-01-01', 'attribute_id': 1})
+            ```
 
         Args:
-            model_class:
-                Model class of the end-point
-            pk:
-                Object pk
-            auth_header:
-                Auth header to substitute the microservice original
-                at the request (user impersonation).
-            fields:
-                Set the fields to be returned by the list end-point.
-            default_fields:
-                Boolean, if true and fields arguments None will return the
-                default fields set for list by the backend.
-            foreign_key_fields:
-                Return forenging key objects. It will return the fk
-                corresponding object. Ex: `created_by_id` reference to
-                a user `model_class` the correspondent to User will be
-                returned at `created_by`.
-            related_fields:
-                Return related fields objects. Related field objects are
-                objects that have a forenging key associated with this
-                model_class, results will be returned as a list of
-                dictionaries usually in a field with `_set` at end.
-                Returning related_fields consume backend resorces, use
-                carefully.
+            model_class (str):
+                Model class of the endpoint.
+            pk (Union[int, str, dict]):
+                The primary key or unique identifier for the object.
+            auth_header (dict, optional):
+                Authentication header to substitute the microservice's original
+                credentials (used for user impersonation). Defaults to None.
+            fields (list, optional):
+                Set of fields to be returned by the endpoint.
+            default_fields (bool):
+                If True and 'fields' is None, will return the default fields
+                defined by the backend. Defaults to False.
+            foreign_key_fields (bool):
+                If True, returns full objects for foreign keys instead of just
+                their IDs. For example, 'created_by_id' will also return the
+                user object at 'created_by'. Defaults to False.
+            related_fields (bool):
+                If True, returns related objects (those that have a foreign key
+                pointing to this model). Results are typically returned as a
+                list of dictionaries in a field with a '_set' suffix.
+                Warning: Using this may consume significant backend resources.
+                Defaults to False.
             use_disk_cache (bool):
-                If set true, get request will use local cache to reduce
-                the requests to the backend.
-            disk_cache_expire (int):
-                Time in seconds to expire the cache, it None it will
-                use de default set be PumpwoodCache.
-            base_filter_skip (list):
-                List of base query filter to be skiped, it is necessary to
-                be superuser to skip base query filters.
+                If True, the GET request will use a local disk cache to reduce
+                backend load. Defaults to False.
+            disk_cache_expire (int, optional):
+                TTL in seconds for the cache. If None, uses the default
+                PumpwoodCache settings. Defaults to None.
+            base_filter_skip (list, optional):
+                List of base query filters to skip. Requires superuser
+                privileges. Defaults to None.
 
         Returns:
-            Return object with the correspondent pk.
+            dict: The object matching the provided primary key/identifier.
 
         Raises:
             PumpWoodObjectDoesNotExist:
-                If pk not found on database.
+                If the PK is not found in the database.
+            PumpWoodException:
+                For other errors during retrieval or communication.
         """
+        # Type checking and complex default values
+        is_allowed_types = isinstance(
+            pk, (numbers.Number, np.number, Decimal, str, dict))
+        if not is_allowed_types:
+            msg = (
+                "Retrieve pk must be a number, string or dict,"
+                " got type [{type}]")
+            raise PumpWoodException(
+                msg, payload={"type": type(pk).__name__})
         base_filter_skip = (
             [] if base_filter_skip is None else base_filter_skip)
-        url_str = self._build_retrieve_url(model_class=model_class, pk=pk)
+
+        # Convert to base64 dict unique queries
+        serialized_pk = None
+        if isinstance(pk, dict):
+            # Use the correct keyword argument 'primary_key_dict'
+            serialized_pk = CompositePkBase64Converter.dump_dict(
+                primary_key_dict=pk)
+        else:
+            serialized_pk = pk
+
+        # Fetch information from Pumpwood
+        url_str = self._build_retrieve_url(
+            model_class=model_class, pk=serialized_pk)
         return self.request_get(
             url=url_str, parameters={
                 "fields": fields, "default_fields": default_fields,
