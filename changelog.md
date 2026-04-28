@@ -6,24 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [2.4.24] - 2026-04-27
+## [2.4.25] - 2026-04-28
 ### Added
-- No adds.
+- New `validate_primary_key_dict` method in `CompositePkBase64Converter` to enforce 
+  data integrity on composite keys (ensures flat dictionaries with no nesting).
+- Support for `numpy` numeric types and `decimal.Decimal` in the `retrieve` method 
+  type validation.
 
 ### Changed
-- Fixed `CompositePkBase64Converter.dump` logic to correctly identify and report 
-  individual missing keys in composite primary keys (previously it was 
-  appending the entire key collection instead of the specific missing field).
-- Improved error messaging for missing composite keys to include a 
-  clearer list of the failing attributes.
-- Fixed parallel save operation: ensured the `files` argument is correctly 
-  mapped and passed during parallel execution.
-- Refactored parallel retrieval: removed redundant parameter conversions for 
-  `n_parallel` and enforced explicit list types for primary keys in 
-  streaming file operations to improve batch reliability.
+- Refactored `retrieve()` method:
+    - Automatically handles dictionary-based primary keys (composite or unique 
+      constraints) by serializing them to base64.
+    - Improved robustness of type checking using `numbers.Number` and `np.number`.
+    - Significantly enhanced docstrings with detailed implementation examples.
+- Updated `dump_dict()` to use centralized validation logic and fixed a keyword 
+  argument mismatch (`primary_key_dict`).
 
-### Removed
-- No removes.
+### Fixed
+- Corrected potential "ghost" variable issues by using `serialized_pk` during 
+  URL construction in the retrieval pipeline.
 
 
 ## [2.4.19] - 2026-04-16
