@@ -2,6 +2,7 @@
 import io
 import requests
 import pandas as pd
+from typing import Any
 from abc import ABC
 from pumpwood_communication.exceptions import (
     PumpWoodException, PumpWoodObjectSavingException)
@@ -19,8 +20,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
     def save(self, obj_dict: dict, files: dict = None,
              auth_header: dict = None, fields: list = None,
              default_fields: bool = False, foreign_key_fields: bool = False,
-             related_fields: bool = False, base_filter_skip: list = None
-             ) -> dict:
+             related_fields: bool = False, base_filter_skip: list = None,
+             upsert: bool = False) -> dict[str, Any]:
         """Save or Update a new object.
 
         Function to save or update a new model_class object. If obj_dict['pk']
@@ -63,6 +64,9 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
             base_filter_skip (list[str]):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            upsert (bool):
+                Perform an upsert operation, if the object associated with the
+                pk is not found, it will be inserted on the database.
 
         Returns:
             Return updated/created object data.
@@ -98,7 +102,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
             "fields": fields, "default_fields": default_fields,
             "foreign_key_fields": foreign_key_fields,
             "related_fields": related_fields,
-            "base_filter_skip": base_filter_skip}
+            "base_filter_skip": base_filter_skip,
+            "upsert": upsert}
         return self.request_post(
             url=url_str, data=obj_dict, parameters=parameters, files=files,
             auth_header=auth_header)
