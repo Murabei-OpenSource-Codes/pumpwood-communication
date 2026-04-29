@@ -96,6 +96,7 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                  fields: list = None,
                  auth_header: dict = None,
                  use_disk_cache: bool = False,
+                 use_app_cache: bool = False,
                  disk_cache_expire: int = None,
                  base_filter_skip: list = None) -> dict:
         """Retrieve an object from PumpWood.
@@ -192,7 +193,8 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                 "fields": fields, "default_fields": default_fields,
                 "foreign_key_fields": foreign_key_fields,
                 "related_fields": related_fields,
-                "base_filter_skip": base_filter_skip},
+                "base_filter_skip": base_filter_skip,
+                "use_cache": use_app_cache},
             auth_header=auth_header, use_disk_cache=use_disk_cache,
             disk_cache_expire=disk_cache_expire)
 

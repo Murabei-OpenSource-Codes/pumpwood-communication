@@ -4,6 +4,7 @@ Define PumpWood exceptions to be treated as API errors.
 Define especific errors for PumpWood plataform. These errors will be treated
 and will not result in default 500 errors
 """
+from typing import Any
 
 
 class PumpWoodException(Exception): # NOQA
@@ -99,7 +100,7 @@ class PumpWoodException(Exception): # NOQA
             except Exception:
                 return self.message + "\n** format error **"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize Exception object to return as reponse.
 
         Returns:
