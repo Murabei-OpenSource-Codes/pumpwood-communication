@@ -14,9 +14,10 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
                           fields: list[str] | list[list[str]] = None,
                           auth_header: dict | list[dict] = None,
                           use_disk_cache: bool | list[bool] = False,
+                          use_app_cache: bool | list[bool] = False,
                           disk_cache_expire: int | list[int] = None,
                           base_filter_skip: list[str] | list[list[str]] = None,
-                          n_parallel: int | None = None
+                          n_parallel: int | None = None,
                           ) -> list[dict]:
         """Retrieve an object from PumpWood.
 
@@ -51,6 +52,9 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
             use_disk_cache (bool):
                 If set true, get request will use local cache to reduce
                 the requests to the backend.
+            use_app_cache (bool):
+                If True, the GET request will use the cache of the application.
+                Defaults to False.
             disk_cache_expire (int):
                 Time in seconds to expire the cache, it None it will
                 use de default set be PumpwoodCache.
@@ -84,11 +88,14 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
             argument=auth_header, length=len(list_pk))
         list_use_disk_cache = self.convert_to_list(
             argument=use_disk_cache, length=len(list_pk))
+        list_use_app_cache = self.convert_to_list(
+            argument=use_app_cache, length=len(list_pk))
         list_disk_cache_expire = self.convert_to_list(
             argument=disk_cache_expire, length=len(list_pk))
         list_base_filter_skip = self.convert_to_list(
             argument=base_filter_skip, length=len(list_pk),
             force_replicate=True)
+
         column_arg = {
             'model_class': list_model_class,
             'pk': list_pk,
@@ -98,6 +105,7 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
             'fields': list_fields,
             'auth_header': list_auth_header,
             'use_disk_cache': list_use_disk_cache,
+            'use_app_cache': list_use_app_cache,
             'disk_cache_expire': list_disk_cache_expire,
             'base_filter_skip': list_base_filter_skip}
 
@@ -114,6 +122,7 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
                           fields: list[str] | list[list[str]] = None,
                           auth_header: dict | list[dict] = None,
                           use_disk_cache: bool | list[bool] = False,
+                          use_app_cache: bool | list[bool] = False,
                           disk_cache_expire: int | list[int] = None,
                           base_filter_skip: list[str] | list[list[str]] = None,
                           n_parallel: int | None = None
@@ -151,6 +160,9 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
             use_disk_cache (bool):
                 If set true, get request will use local cache to reduce
                 the requests to the backend.
+            use_app_cache (bool):
+                If True, the GET request will use the cache of the application.
+                Defaults to False.
             disk_cache_expire (int):
                 Time in seconds to expire the cache, it None it will
                 use de default set be PumpwoodCache.
@@ -184,11 +196,14 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
             argument=auth_header, length=len(list_pk))
         list_use_disk_cache = self.convert_to_list(
             argument=use_disk_cache, length=len(list_pk))
+        list_use_app_cache = self.convert_to_list(
+            argument=use_app_cache, length=len(list_pk))
         list_disk_cache_expire = self.convert_to_list(
             argument=disk_cache_expire, length=len(list_pk))
         list_base_filter_skip = self.convert_to_list(
             argument=base_filter_skip, length=len(list_pk),
             force_replicate=True)
+
         column_arg = {
             'model_class': list_model_class,
             'pk': list_pk,
@@ -198,6 +213,7 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
             'fields': list_fields,
             'auth_header': list_auth_header,
             'use_disk_cache': list_use_disk_cache,
+            'use_app_cache': list_use_app_cache,
             'disk_cache_expire': list_disk_cache_expire,
             'base_filter_skip': list_base_filter_skip}
 

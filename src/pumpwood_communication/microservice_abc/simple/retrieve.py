@@ -22,7 +22,7 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
     def list_one(self, model_class: str, pk: int, fields: list = None,
                  default_fields: bool = True, foreign_key_fields: bool = False,
                  related_fields: bool = False, auth_header: dict = None,
-                 use_disk_cache: bool = False,
+                 use_disk_cache: bool = False, use_app_cache: bool = False,
                  disk_cache_expire: int = None,
                  base_filter_skip: list = None) -> dict:
         """Retrieve an object using list serializer (simple).
@@ -59,6 +59,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             use_disk_cache (bool):
                 If set true, get request will use local cache to reduce
                 the requests to the backend.
+            use_app_cache (bool):
+                If True, the GET request will use the cache of the application.
+                Defaults to False.
             disk_cache_expire (int):
                 Time in seconds to expire the cache, it None it will
                 use de default set be PumpwoodCache.
@@ -81,7 +84,8 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                 "fields": fields, "default_fields": default_fields,
                 "foreign_key_fields": foreign_key_fields,
                 "related_fields": related_fields,
-                "base_filter_skip": base_filter_skip},
+                "base_filter_skip": base_filter_skip,
+                "use_cache": use_app_cache},
             auth_header=auth_header, use_disk_cache=use_disk_cache,
             disk_cache_expire=disk_cache_expire)
 
@@ -148,6 +152,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             use_disk_cache (bool):
                 If True, the GET request will use a local disk cache to reduce
                 backend load. Defaults to False.
+            use_app_cache (bool):
+                If True, the GET request will use the cache of the application.
+                Defaults to False.
             disk_cache_expire (int, optional):
                 TTL in seconds for the cache. If None, uses the default
                 PumpwoodCache settings. Defaults to None.
