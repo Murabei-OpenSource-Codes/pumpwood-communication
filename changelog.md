@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.4.27] - 2026-04-30
+### Added
+- `use_app_cache` parameter to `retrieve`, `list_one`, and their parallel 
+  counterparts. This enables application-level caching for individual object
+  retrieval.
+- `upsert` parameter to `save` and `parallel_save` methods. This allows
+  creating  objects when a primary key is provided but doesn't exist on the
+  database.
+
+### Changed
+- Improved type hints across `retrieve.py`, `save.py`, and parallel
+  implementation modules.
+- Replicated `use_app_cache` and `upsert` arguments in `parallel_retrieve`, `parallel_list_one`, and `parallel_save` to maintain consistency across the API.
+- Updated `PumpWoodException.to_dict()` with a more specific return type hint.
+
+### Removed
+- No removes.
+
+
 ## [2.4.25] - 2026-04-28
 ### Added
 - New `validate_primary_key_dict` method in `CompositePkBase64Converter` to enforce 
