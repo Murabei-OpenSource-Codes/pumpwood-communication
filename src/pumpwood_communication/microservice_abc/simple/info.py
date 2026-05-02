@@ -142,11 +142,15 @@ class ABCSimpleInfoMicroservice(ABC, PumpWoodMicroServiceBase):
         if field is not None:
             url_str = url_str + field
 
-        # Check if parameters passed on the request are empty, this will
-        # make it possible to use the cache
-        auth_header = self._check_auth_header(auth_header=auth_header)
+        # The auth header os set as temp to be used locally on this function,
+        # if it substitute the auth_header of the call it will cause
+        # error due to microservice logged and auth_header provided.
+        temp_auth_header = self._check_auth_header(auth_header=auth_header)
         hash_dict = FillOptionsNoDataCacheHash(
-                authorization=auth_header, model_class=model_class)
+            authorization=temp_auth_header, model_class=model_class)
+
+        # Check if parameters passed on the request are empty, this will
+        # make it possible to use the cache.
         are_parameters_empty = not parcial_obj_dict and field is None
         if are_parameters_empty and use_disk_cache:
             cache_value = default_cache.get(hash_dict)
