@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.4.28] - 2026-05-02
+### Added
+- Implemented `use_disk_cache` parameter in `fill_options` alongside the `FillOptionsNoDataCacheHash` to optimize schema retrieval.
+- Introduced `authorization` to the cache hash to ensure strict cross-tenant data isolation and prevent metadata leakage.
+
+### Changed
+- Fixed mutable default argument bug in `fill_validation` endpoint.
+- Standardized docstrings across `ABCSimpleInfoMicroservice` to comply with the Google Style format.
+- Resolved typo issues and improved overall PEP-8 compliance in the module.
+
+### Removed
+- No removes.
+
+
 ## [2.4.27] - 2026-04-30
 ### Added
 - `use_app_cache` parameter to `retrieve`, `list_one`, and their parallel 
