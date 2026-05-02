@@ -10,6 +10,7 @@ import datetime
 import requests
 import time
 import pandas as pd
+from dataclasses import dataclass
 from loguru import logger
 from requests import Response
 from typing import Any
@@ -19,6 +20,21 @@ from pumpwood_communication.exceptions import (
     PumpWoodForbidden, PumpWoodOtherException)
 from pumpwood_communication.serializers import pumpJsonDump
 from pumpwood_communication.cache import default_cache
+from pumpwood_communication.type import PumpwoodDataclassMixin
+
+
+@dataclass
+class RequestGetCacheHash(PumpwoodDataclassMixin):
+    """Dictionary to create cache hash dict for attribute options."""
+
+    authorization: dict
+    """Authorization header to be used in request."""
+    parameters: dict
+    """Get request URL parametes user on cache."""
+    url: str
+    """URL associated with the attribute to be cached."""
+    context: str = 'pumpwood-communication--request_get'
+    """Context to help differentiate the cache keys."""
 
 
 class PumpWoodMicroServiceBase:
@@ -837,11 +853,12 @@ class PumpWoodMicroServiceBase:
         # database
         hash_dict = None
         if use_disk_cache:
-            hash_dict = {
-                'context': 'pumpwood_communication-request_get',
-                'authorization': request_header['Authorization'],
-                'parameters': parameters,
-                'url': url}
+            hash_dict = RequestGetCacheHash(
+                context='pumpwood_communication-request_get',
+                authorization=request_header['Authorization'],
+                parameters=parameters,
+                url=url)
+
             cache_results = default_cache.get(hash_dict=hash_dict)
             if cache_results is not None:
                 msg = "get from cache url[{url}]".format(url=url)

@@ -2,6 +2,21 @@
 from abc import ABC
 from pumpwood_communication.microservice_abc.base import (
     PumpWoodMicroServiceBase)
+from dataclasses import dataclass
+from pumpwood_communication.cache import default_cache
+from pumpwood_communication.type import PumpwoodDataclassMixin
+
+
+@dataclass
+class FillOptionsNoDataCacheHash(PumpwoodDataclassMixin):
+    """Hash used to cache fill options without any objetct data or fields."""
+
+    authorization: dict
+    """Authorization header to be used in request."""
+    model_class: str
+    """Model class of the clear fill options data."""
+    context: str = 'pumpwood-communication--fill-options-clear'
+    """Content of the file that will be returned at the action."""
 
 
 class ABCSimpleInfoMicroservice(ABC, PumpWoodMicroServiceBase):
@@ -11,20 +26,20 @@ class ABCSimpleInfoMicroservice(ABC, PumpWoodMicroServiceBase):
                        auth_header: dict = None) -> dict:
         """Return search options.
 
-        DEPRECTED Use `list_options` function instead.
+        DEPRECATED Use `list_options` function instead.
 
-        Return information of the fields including avaiable options for
+        Return information of the fields including available options for
         options fields and model associated with the foreign key.
 
         Args:
-            model_class:
-                Model class to check search parameters
-            auth_header:
+            model_class (str):
+                Model class to check search parameters.
+            auth_header (dict, optional):
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
 
         Returns:
-            Return a dictonary with field names as keys and information of
+            Return a dictionary with field names as keys and information of
             them as values. Information at values:
             - **primary_key [bool]:**: Boolean indicating if field is part
                 of model_class primary key.
@@ -42,8 +57,8 @@ class ABCSimpleInfoMicroservice(ABC, PumpWoodMicroServiceBase):
                 save end-poin.
             - **unique [bool]:** If the there is a constrain in database
                 setting this field to be unique.
-            - **extra_info:** Some extra infomations used to pass associated
-                model class for forenging key and related fields.
+            - **extra_info:** Some extra informations used to pass associated
+                model class for foreign key and related fields.
             - **in [dict]:** At options fields, have their options listed in
                 `in` keys. It will return the values as key and de description
                 and description__verbose (translated by Pumpwood I8s)
@@ -60,29 +75,34 @@ class ABCSimpleInfoMicroservice(ABC, PumpWoodMicroServiceBase):
         url_str = "rest/%s/options/" % (model_class.lower(), )
         return self.request_get(url=url_str, auth_header=auth_header)
 
-    def fill_options(self, model_class, parcial_obj_dict: dict = {},
-                     field: str = None, auth_header: dict = None):
+    def fill_options(self, model_class, parcial_obj_dict: dict = None,
+                     field: str = None, auth_header: dict = None,
+                     use_disk_cache: bool = True):
         """Return options for object fields.
 
-        DEPRECTED Use `fill_validation` function instead.
+        DEPRECATED Use `fill_validation` function instead.
 
         This function send partial object data and return options to finish
-        object fillment.
+        object filling.
 
         Args:
-            model_class:
-                Model class to check search parameters
-            auth_header:
+            model_class (str):
+                Model class to check search parameters.
+            auth_header (dict, optional):
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
-            parcial_obj_dict:
+            parcial_obj_dict (dict, optional):
                 Partial object that is sent to backend for validation and
-                update fill options acording to values passed for each field.
-            field:
-                Retrict validation for an especific field if implemented.
+                update fill options according to values passed for each field.
+            field (str, optional):
+                Restrict validation for a specific field if implemented.
+            use_disk_cache (bool):
+                If it will use the disk cache to retrieve information
+                from fill options if it was not passed partial object
+                data (`parcial_obj_dict=None`) or field (`field=None`).
 
         Returns:
-            Return a dictonary with field names as keys and information of
+            Return a dictionary with field names as keys and information of
             them as values. Information at values:
             - **primary_key [bool]:**: Boolean indicating if field is part
                 of model_class primary key.
@@ -100,8 +120,8 @@ class ABCSimpleInfoMicroservice(ABC, PumpWoodMicroServiceBase):
                 save end-poin.
             - **unique [bool]:** If the there is a constrain in database
                 setting this field to be unique.
-            - **extra_info:** Some extra infomations used to pass associated
-                model class for forenging key and related fields.
+            - **extra_info:** Some extra informations used to pass associated
+                model class for foreign key and related fields.
             - **in [dict]:** At options fields, have their options listed in
                 `in` keys. It will return the values as key and de description
                 and description__verbose (translated by Pumpwood I8s)
@@ -115,23 +135,43 @@ class ABCSimpleInfoMicroservice(ABC, PumpWoodMicroServiceBase):
         Raises:
             No particular raises.
         """
+        parcial_obj_dict = (
+            parcial_obj_dict if parcial_obj_dict is not None else {})
+
         url_str = "rest/%s/options/" % (model_class.lower(), )
-        if (field is not None):
+        if field is not None:
             url_str = url_str + field
-        return self.request_post(
+
+        # Check if parameters passed on the request are empty, this will
+        # make it possible to use the cache
+        auth_header = self._check_auth_header(auth_header=auth_header)
+        hash_dict = FillOptionsNoDataCacheHash(
+                authorization=auth_header, model_class=model_class)
+        are_parameters_empty = not parcial_obj_dict and field is None
+        if are_parameters_empty and use_disk_cache:
+            cache_value = default_cache.get(hash_dict)
+            if cache_value is not None:
+                return cache_value
+
+        return_value = self.request_post(
             url=url_str, data=parcial_obj_dict,
             auth_header=auth_header)
+
+        # If cache is to be used, than set it for the next call.
+        if are_parameters_empty and use_disk_cache:
+            default_cache.set(hash_dict=hash_dict, value=return_value)
+        return return_value
 
     def list_options(self, model_class: str, auth_header: dict) -> dict:
         """Return options to render list views.
 
         This function send partial object data and return options to finish
-        object fillment.
+        object filling.
 
         Args:
-            model_class:
+            model_class (str):
                 Model class to check search parameters.
-            auth_header:
+            auth_header (dict):
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
 
@@ -156,22 +196,22 @@ class ABCSimpleInfoMicroservice(ABC, PumpWoodMicroServiceBase):
 
         Return information of the field sets that can be used to create
         frontend site. It also return a `verbose_field` which can be used
-        to create the tittle of the page substituing the values with
+        to create the title of the page substituing the values with
         information of the object.
 
         Args:
-          model_class:
-              Model class to check search parameters.
-          auth_header:
-              Auth header to substitute the microservice original
-              at the request (user impersonation).
+            model_class (str):
+                Model class to check search parameters.
+            auth_header (dict, optional):
+                Auth header to substitute the microservice original
+                at the request (user impersonation).
 
         Returns:
-            Return a dictinary with keys:
-            - **verbose_field:** String sugesting how the tittle of the
+            Return a dictionary with keys:
+            - **verbose_field:** String sugesting how the title of the
                 retrieve might be created. It will use Python format
                 information ex.: `'{pk} | {description}'`.
-            - **fieldset:** An dictinary with organization of data,
+            - **fieldset:** An dictionary with organization of data,
                 setting field sets that could be grouped toguether in
                 tabs.
 
@@ -183,32 +223,32 @@ class ABCSimpleInfoMicroservice(ABC, PumpWoodMicroServiceBase):
         return self.request_get(
             url=url_str, auth_header=auth_header)
 
-    def fill_validation(self, model_class: str, parcial_obj_dict: dict = {},
+    def fill_validation(self, model_class: str, parcial_obj_dict: dict = None,
                         field: str = None, auth_header: dict = None,
                         user_type: str = 'api') -> dict:
         """Return options for object fields.
 
         This function send partial object data and return options to finish
-        object fillment.
+        object filling.
 
         Args:
-            model_class:
+            model_class (str):
                 Model class to check search parameters.
-            auth_header:
+            auth_header (dict, optional):
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
-            parcial_obj_dict:
+            parcial_obj_dict (dict, optional):
                 Partial object data to be validated by the backend.
-            field:
-                Set an especific field to be validated if implemented.
-            user_type:
+            field (str, optional):
+                Set a specific field to be validated if implemented.
+            user_type (str):
                 Set the type of user is requesting fill validation. It is
                 possible to set `api` and `gui`. Gui user_type will return
                 fields listed in gui_readonly as read-only fields to
-                facilitate navegation.
+                facilitate navigation.
 
         Returns:
-            Return a dictinary with keys:
+            Return a dictionary with keys:
             - **field_descriptions:** Same of fill_options, but setting as
                 read_only=True fields listed on gui_readonly if
                 user_type='gui'.
@@ -218,6 +258,9 @@ class ABCSimpleInfoMicroservice(ABC, PumpWoodMicroServiceBase):
         Raises:
             No particular raises.
         """
+        parcial_obj_dict = (
+            parcial_obj_dict if parcial_obj_dict is not None else {})
+
         url_str = "rest/{basename}/retrieve-options/".format(
             basename=model_class.lower())
         params = {"user_type": user_type}
