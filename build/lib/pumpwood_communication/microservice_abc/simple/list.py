@@ -2,11 +2,13 @@
 import copy
 import pandas as pd
 import geopandas as geopd
+from loguru import logger
 from abc import ABC
 from shapely import geometry
 from typing import List
 from pumpwood_communication.microservice_abc.base import (
     PumpWoodMicroServiceBase)
+from pumpwood_communication.serializers import CompositePkBase64Converter
 
 
 class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
@@ -221,7 +223,8 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
     def list_by_chunks(self, model_class: str, filter_dict: dict = None,
                        exclude_dict: dict = None, auth_header: dict = None,
                        fields: list = None, default_fields: bool = False,
-                       chunk_size: int = 50000, base_filter_skip: list = None,
+                       chunk_size: int = 50000, limit: int = None,
+                       base_filter_skip: list = None,
                        as_dataframe: bool = False, **kwargs) -> List[dict]:
         """List object fetching them by chucks using pk to paginate.
 
@@ -229,6 +232,9 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
         or receive server timeout. It load chunks orderring the results using
         id of the tables, it can be changed but it should be unique otherwise
         unexpected results may occur.
+
+        It is not possible to order the results, it will be retrieved acording
+        to id column.
 
         Args:
             model_class:
@@ -252,6 +258,8 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
             base_filter_skip (list):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            limit (list):
+                Limit the max number of records that will be returned.
             as_dataframe (bool):
                 Return data as dataframe and set the columns acording to
                 fields if set.
@@ -264,31 +272,57 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
         Raises:
           No especific raises.
         """
-        filter_dict = {} if filter_dict is None else filter_dict
-        exclude_dict = {} if exclude_dict is None else exclude_dict
+        filter_dict = (
+            {} if filter_dict is None else filter_dict)
+        exclude_dict = (
+            {} if exclude_dict is None else exclude_dict)
         base_filter_skip = (
             [] if base_filter_skip is None else base_filter_skip)
-        base_filter_skip = [] if base_filter_skip is None else base_filter_skip
 
         copy_filter_dict = copy.deepcopy(filter_dict)
         list_all_results = []
         max_order_col = 0
+        results_count = 0
+        info_msg = (
+            "# Fetching chunk: results_count[{results_count}] | "
+            "min_id [{max_order_col}] | limit[{limit}]")
         while True:
-            print("- fetching chunk [{}]".format(max_order_col))
-            copy_filter_dict["pk__gt"] = max_order_col
+            logger.info(
+                info_msg, results_count=results_count,
+                max_order_col=max_order_col, limit=limit)
+            copy_filter_dict["id__gt"] = max_order_col
             temp_results = self.list(
                 model_class=model_class, filter_dict=copy_filter_dict,
-                exclude_dict=exclude_dict, order_by=["pk"],
+                exclude_dict=exclude_dict, order_by=["id"],
                 auth_header=auth_header, fields=fields,
                 default_fields=default_fields, limit=chunk_size,
                 base_filter_skip=base_filter_skip)
+            results_count = results_count + len(temp_results)
 
             # Break if results is empty
             if len(temp_results) == 0:
                 break
 
-            max_order_col = temp_results[-1]["pk"]
+            # Extend the list of objects retrieved
             list_all_results.extend(temp_results)
+
+            # If limit of objects is set, the counter will limit the number
+            # of objects fetched
+            if limit is not None:
+                records_to_fetch = limit - results_count
+                chunk_size = min(records_to_fetch, chunk_size)
+                # Do not request an empty list
+                if chunk_size == 0:
+                    break
+
+            # Get the last object id. If pk is an string the pk is a base64
+            # object that will contain the id columns in it.
+            last_pk = temp_results[-1]["pk"]
+            if isinstance(last_pk, str):
+                loaded_pk_dict = CompositePkBase64Converter.load(last_pk)
+                max_order_col = loaded_pk_dict["id"]
+            else:
+                max_order_col = temp_results[-1]["pk"]
 
         if not as_dataframe:
             return list_all_results

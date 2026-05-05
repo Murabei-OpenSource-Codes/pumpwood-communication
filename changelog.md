@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.4.29] - 2026-05-02
+### Added
+- No adds.
+
+### Changed
+- Set `use_disk_cache=True` as the default behavior in `fill_options` for optimized schema retrieval.
+- Fixed a bug in `fill_options` where substituting the request's `auth_header` caused conflicts with the microservice login. Introduced a localized `temp_auth_header` specifically for securely generating the cache hash without side-effects.
+
+### Removed
+- No removes.
+
+
 ## [2.4.28] - 2026-05-02
 ### Added
 - Implemented `use_disk_cache` parameter in `fill_options` alongside the `FillOptionsNoDataCacheHash` to optimize schema retrieval.
