@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.4.30] - 2026-05-05
+### Added
+- No adds.
+
+### Changed
+- **Fixed `list_by_chunks` logic**: Improved the pagination mechanism to correctly handle base64 encoded primary keys. It now extracts the `id` from composite keys to ensure seamless fetching of data chunks.
+- **Documentation Standardization**: Completed the migration to Google Style docstrings and added comprehensive type hints across `ABCSimpleListMicroservice`, `ABCSimpleBatchMicroservice`, and the base classes.
+- **Enhanced Serializers**: 
+    - Updated `pumpJsonDump` to support the `indent` argument, allowing for human-readable JSON output.
+    - Improved `CompositePkBase64Converter.dump` to return the raw value instead of a base64 string when a single-field primary key (e.g., `{"id": value}`) is used.
+- **Deprecation**: Added a deprecation warning for the `variables` argument in the `pivot` method, encouraging the use of `fields` for consistency.
+
+### Removed
+- No removes.
+
+
 ## [2.4.29] - 2026-05-02
 ### Added
 - No adds.
