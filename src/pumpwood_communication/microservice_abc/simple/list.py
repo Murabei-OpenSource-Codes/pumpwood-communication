@@ -5,7 +5,7 @@ import geopandas as geopd
 from loguru import logger
 from abc import ABC
 from shapely import geometry
-from typing import List
+from typing import List, Union
 from pumpwood_communication.microservice_abc.base import (
     PumpWoodMicroServiceBase)
 from pumpwood_communication.serializers import CompositePkBase64Converter
@@ -225,52 +225,47 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
                        fields: list = None, default_fields: bool = False,
                        chunk_size: int = 50000, limit: int = None,
                        base_filter_skip: list = None,
-                       as_dataframe: bool = False, **kwargs) -> List[dict]:
-        """List object fetching them by chucks using pk to paginate.
+                       as_dataframe: bool = False, **kwargs
+                       ) -> Union[List[dict], pd.DataFrame]:
+        """List objects by fetching them in chunks using PK to paginate.
 
-        List data by chunck to load by datasets without breaking the backend
-        or receive server timeout. It load chunks orderring the results using
-        id of the tables, it can be changed but it should be unique otherwise
-        unexpected results may occur.
-
-        It is not possible to order the results, it will be retrieved acording
-        to id column.
+        Fetch data in chunks to handle large datasets without causing backend
+        timeouts or memory issues. Results are ordered by the 'id' column
+        to ensure consistent pagination. Note that custom ordering is not
+        supported in this method.
 
         Args:
-            model_class:
-                Model class of the end-point
-            filter_dict:
-                Filter dict to be used at the query. Filter elements from query
-                return that satifies all statements of the dictonary.
-            exclude_dict:
-                Exclude dict to be used at the query. Remove elements from
-                query return that satifies all statements of the dictonary.
-            auth_header:
-                Auth header to substitute the microservice original
-                at the request (user impersonation).
-            fields:
-                Set the fields to be returned by the list end-point.
-            default_fields:
-                Boolean, if true and fields arguments None will return the
-                default fields set for list by the backend.
-            chunk_size:
-                Number of objects to be fetched each query.
+            model_class (str):
+                Model class of the end-point.
+            filter_dict (dict):
+                Filter dictionary for the query.
+            exclude_dict (dict):
+                Exclude dictionary for the query.
+            auth_header (dict):
+                Authentication header for user impersonation.
+            fields (list):
+                List of fields to be returned.
+            default_fields (bool):
+                If True and fields is None, return default backend fields.
+            chunk_size (int):
+                Number of objects to fetch per query. Defaults to 50000.
             base_filter_skip (list):
-                List of base query filter to be skiped, it is necessary to
-                be superuser to skip base query filters.
-            limit (list):
-                Limit the max number of records that will be returned.
+                List of base query filters to skip (requires superuser).
+            limit (int):
+                Maximum number of records to return.
             as_dataframe (bool):
-                Return data as dataframe and set the columns acording to
-                fields if set.
+                If True, returns the results as a pandas DataFrame.
             **kwargs:
-                Other parameters for compatibility.
+                Additional arguments for compatibility.
 
         Returns:
-          Containing objects serialized by list Serializer.
+            Union[List[dict], pd.DataFrame]:
+                A list of dictionaries or a pandas DataFrame containing the
+                serialized objects.
 
         Raises:
-          No especific raises.
+            PumpWoodException:
+                If there is an error during the request or data processing.
         """
         filter_dict = (
             {} if filter_dict is None else filter_dict)
@@ -281,7 +276,7 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
 
         copy_filter_dict = copy.deepcopy(filter_dict)
         list_all_results = []
-        max_order_col = 0
+        max_order_col = None
         results_count = 0
         info_msg = (
             "# Fetching chunk: results_count[{results_count}] | "
@@ -290,7 +285,12 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
             logger.info(
                 info_msg, results_count=results_count,
                 max_order_col=max_order_col, limit=limit)
-            copy_filter_dict["id__gt"] = max_order_col
+
+            # It is necessary to keep the initial query id__gt in case of
+            # this parameter being passed as argument.
+            if max_order_col is not None:
+                copy_filter_dict["id__gt"] = max_order_col
+
             temp_results = self.list(
                 model_class=model_class, filter_dict=copy_filter_dict,
                 exclude_dict=exclude_dict, order_by=["id"],
@@ -315,7 +315,7 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
                 if chunk_size == 0:
                     break
 
-            # Get the last object id. If pk is an string the pk is a base64
+            # Get the last object id. If pk is a string the pk is a base64
             # object that will contain the id columns in it.
             last_pk = temp_results[-1]["pk"]
             if isinstance(last_pk, str):
@@ -324,9 +324,7 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
             else:
                 max_order_col = temp_results[-1]["pk"]
 
-        if not as_dataframe:
-            return list_all_results
-        else:
+        if as_dataframe:
             # Return the results as a dataframe using the group_by columns
             # and the columns created at aggregation to ensure that
             # even empty results would have the correct columns
