@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.4.31] - 2026-05-06
+
+### Added
+- No adds.
+
+### Changed
+- Standardized `list_by_chunks` docstrings to Google Format for better
+  readability and tool compatibility.
+- Updated `list_by_chunks` return type hints to include `pd.DataFrame` and
+  `List[dict]` using `Union`.
+- Refactored `list_by_chunks` return logic to remove unreachable code and
+  improve structure.
+- Corrected typos in comments and documentation within `list.py`.
+- Fixed the pagination on `list_by_chunks` when the id__gt was passed
+  as argument on filter_dict parameter.
+
+### Removed
+- No removes.
+
+
+
 ## [2.4.30] - 2026-05-05
 ### Added
 - No adds.
