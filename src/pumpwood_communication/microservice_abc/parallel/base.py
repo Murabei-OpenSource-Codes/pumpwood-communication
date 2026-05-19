@@ -73,20 +73,26 @@ class ABCParallelBaseMicroservice(ABC):
         return n_parallel or N_PARALLEL
 
     @staticmethod
-    def flatten_parallel(parallel_result: list):
+    def flatten_parallel(parallel_result: list,
+                         as_dataframe: bool = False) -> list[dict[str, Any]] | pd.DataFrame:  # NOQA
         """Concat all parallel return to one list.
 
         Args:
             parallel_result:
                 A list of lists to be flated (concatenate
                 all lists into one).
+            as_dataframe (bool):
+                If True, return a dataframe instead of a list.
 
         Returns:
             A list with all sub list itens.
         """
-        return [
-            item for sublist in parallel_result
-            for item in sublist]
+        if not as_dataframe:
+            return [
+                item for sublist in parallel_result
+                for item in sublist]
+        else:
+            return pd.concat(parallel_result)
 
     @classmethod
     def expand_list_args(cls, list_args: list[dict],
