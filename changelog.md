@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.33] - 2026-05-19
+
+### Added
+- No adds.
+
+### Changed
+- **Docstring Refactoring**: Updated and standardized `parallel_pivot`
+  docstrings to follow Google Style guidelines with a strict 80-character
+  maximum width limit.
+
+### Fixed
+- **Parallel Pivot Replication Bug**: Added `force_replicate=True` to the
+  `columns` argument in `parallel_pivot` to prevent incorrect unpacking
+  across parallel tasks when the number of columns matched the number of
+  arguments.
+
 ## [2.4.32] - 2026-05-08
 ### Added
 - No adds.
