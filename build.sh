@@ -8,12 +8,20 @@ sed -i "s/^VERSION=.*/VERSION=$new_version/" "$VERSION_FILE"
 echo "Updated version to $new_version"
 
 source VERSION
-sed -e 's#{VERSION}#'"${VERSION}"'#g' setup_template.py > setup.py
+
+# Detecta branch atual e adiciona -beta se não for main/master
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [[ "$CURRENT_BRANCH" != "main" && "$CURRENT_BRANCH" != "master" ]]; then
+  VERSION="${VERSION}-b.0"
+fi
+
+sed -e 's#{VERSION}#'"${VERSION}"'#g' pyproject_template.toml > pyproject.toml
 
 rm -R build/
-python3 setup.py build sdist bdist_wheel
 
-# pdoc --docformat="google" src/pumpwood_communication -o ./docs
+poetry build
+
+pdoc --docformat="google" src/pumpwood_communication -o ./docs
 
 git add --all
 git commit -m "Building a new version ${VERSION}"
