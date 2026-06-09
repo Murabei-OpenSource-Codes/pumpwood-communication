@@ -48,7 +48,7 @@ jobs:
           
           pdoc --docformat="google" src/pumpwood_communication -o ./docs
           
-          # poetry publish --username __token__ --password "$PYPI_API_TOKEN"
+          poetry publish --username __token__ --password "$PYPI_API_TOKEN"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
