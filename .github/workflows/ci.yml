@@ -41,7 +41,7 @@ jobs:
           export VERSION=$(grep -E '^VERSION=' VERSION | cut -d'=' -f2-)
           sed -e 's#{VERSION}#'"${VERSION}"'#g' pyproject_template.toml > pyproject.toml
           
-          poetry install
+          poetry install --with docs
 
           python -m poetry build
           

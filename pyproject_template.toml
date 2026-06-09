@@ -3,7 +3,7 @@ name = "pumpwood-communication"
 version = "{VERSION}"
 description = "Package for inter Pumpwood loging and comunication"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.6,<4.0"
 license = { text = "BSD-3-Clause License" }
 authors = [
     {name = "André Andrade Baceti", email = "a.baceti@murabei.com"}
@@ -26,8 +26,7 @@ dependencies = [
     "Werkzeug>=1.0.1",
     "diskcache==5.6.3",
     "orjson>=3.11.3",
-    "loguru>=0.7.3",
-    "pdoc"
+    "loguru>=0.7.3"
 ]
 
 [tool.poetry]
@@ -82,5 +81,6 @@ no-sections = true
 
 [dependency-groups]
 docs = [
-    "mkdocs (>=1.6.1,<2.0.0)"
+    "mkdocs (>=1.6.1,<2.0.0)",
+    "pdoc>=16.0.0"
 ]
