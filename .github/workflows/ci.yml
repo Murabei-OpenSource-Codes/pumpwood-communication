@@ -44,7 +44,7 @@ jobs:
 
           python -m poetry build
           
-          pdoc --docformat="google" src/pumpwood_communication -o ./docs
+          # pdoc --docformat="google" src/pumpwood_communication -o ./docs
           
           poetry publish --username __token__ --password "$PYPI_API_TOKEN"
 
