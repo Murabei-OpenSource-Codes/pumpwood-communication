@@ -21,7 +21,7 @@ rm -R build/
 
 poetry build
 
-# pdoc --docformat="google" src/pumpwood_communication -o ./docs
+pdoc --docformat="google" src/pumpwood_communication -o ./docs
 
 git add --all
 git commit -m "Building a new version ${VERSION}"
