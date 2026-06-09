@@ -1,6 +1,6 @@
 [project]
 name = "pumpwood-communication"
-version = "2.4.34-b.0"
+version = "2.4.35-b.0"
 description = "Package for inter Pumpwood loging and comunication"
 readme = "README.md"
 requires-python = ">=3.6"
