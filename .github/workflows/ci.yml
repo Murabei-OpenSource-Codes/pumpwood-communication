@@ -2,11 +2,11 @@ name: CI
 
 on:
   push:
-    # branches:
-    #   - main
+    branches:
+      - main
   pull_request:
-    # branches:
-    #   - main
+    branches:
+      - main
 
 jobs:
   publish:
@@ -15,7 +15,7 @@ jobs:
       pages: write
       contents: write
       id-token: write
-    # if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     
     environment:
@@ -43,13 +43,11 @@ jobs:
           pdoc --docformat="google" src/pumpwood_communication -o ./docs
           poetry publish --username __token__ --password "$PYPI_API_TOKEN"
 
-      # Atualizado para v3
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./docs
 
-      # Atualizado para v4 e adicionado um ID para pegar a URL do site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
