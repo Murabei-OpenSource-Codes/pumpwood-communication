@@ -13,7 +13,6 @@ jobs:
     name: Build and publish package
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    needs: lint
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
