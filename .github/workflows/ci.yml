@@ -36,16 +36,14 @@ jobs:
           PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           python -m pip install --upgrade pip
-          pip install poetry
+          pip install poetry pdocs pandas
           
           export VERSION=$(grep -E '^VERSION=' VERSION | cut -d'=' -f2-)
           sed -e 's#{VERSION}#'"${VERSION}"'#g' pyproject_template.toml > pyproject.toml
-          
-          poetry install --with docs
 
           python -m poetry build
           
-          poetry run pdoc --docformat="google" src/pumpwood_communication -o ./docs
+          pdoc --docformat="google" src/pumpwood_communication -o ./docs
           
           poetry publish --username __token__ --password "$PYPI_API_TOKEN"
 
