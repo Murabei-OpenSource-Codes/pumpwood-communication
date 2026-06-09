@@ -5,12 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.4.35] - 2026-06-10
-
-### Changed
-- Updated `pyproject_template.toml` to align packaging metadata, dependencies, and package discovery with `setup_template.py`.
-- Using poetry as build backend and pip for installation to ensure compatibility with modern Python packaging standards.
-
 ## [2.4.33] - 2026-05-19
 
 ### Added
