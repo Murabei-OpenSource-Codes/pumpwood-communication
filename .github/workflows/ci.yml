@@ -43,6 +43,8 @@ jobs:
           sed -e 's#{VERSION}#'"${VERSION}"'#g' pyproject_template.toml > pyproject.toml
 
           python -m poetry build
+
+          echo "VERSION=${VERSION}"
           
           pdoc --docformat="google" src/pumpwood_communication -o ./docs
           
