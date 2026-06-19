@@ -1,5 +1,4 @@
 """Module with classes and functions associated with data encryption."""
-import os
 import base64
 import orjson
 from loguru import logger
@@ -7,27 +6,32 @@ from cryptography.fernet import Fernet
 from pumpwood_communication.exceptions import (
     PumpWoodOtherException, PumpWoodNotImplementedError)
 from pumpwood_communication.serializers import pumpJsonDump
+from pumpwood_communication.config import CRYPTO_FERNET_KEY
 
 
 class PumpwoodCryptography:
-    """Pumpwood data encryption class."""
+    """Encrypt and decrypt PumpWood data using Fernet."""
 
     _fernet_object: Fernet = None
-    """Fernet object."""
+    """Configured Fernet instance, or None when no key is set."""
 
     def __init__(self, fernet_key: str = None):
-        """__init__.
+        """Initialize cryptography helper.
+
+        Args:
+            fernet_key (str):
+                Optional Fernet key. When omitted, reads
+                ``CRYPTO_FERNET_KEY`` from configuration.
 
         Raises:
             PumpWoodOtherException:
-                Raise PumpWoodOtherException error if Fernet object could not
-                be correctly configured.
+                If the Fernet key is invalid.
         """
         if fernet_key is None:
-            fernet_key = os.getenv('PUMPWOOD_COMUNICATION__CRYPTO_FERNET_KEY')
+            fernet_key = CRYPTO_FERNET_KEY
             if fernet_key is None:
                 log_msg = (
-                    'PUMPWOOD_COMUNICATION__CRYPTO_FERNET_KEY is not set, '
+                    'PUMPWOOD_COMMUNICATION__CRYPTO_FERNET_KEY is not set, '
                     'PumpwoodCryptography encription is disable and will '
                     'raise error if used')
                 logger.info(log_msg)
@@ -47,18 +51,18 @@ class PumpwoodCryptography:
         """Check if PumpwoodCryptography is configured.
 
         Returns:
-            Returns true.
+            bool:
+                True when Fernet is configured.
 
         Raises:
             PumpWoodOtherException:
-                Raise PumpWoodOtherException if object was not configured
-                (Fernet key was not set).
+                If the Fernet key was not configured.
         """
         if self._fernet_object is None:
             msg = (
                 'PumpwoodCryptography is not configured, fernet key was not '
                 'passed as argument on object creation and env variable '
-                '`PUMPWOOD_COMUNICATION__CRYPTO_FERNET_KEY` was not set')
+                '`PUMPWOOD_COMMUNICATION__CRYPTO_FERNET_KEY` was not set')
             raise PumpWoodOtherException(message=msg)
         return True
 

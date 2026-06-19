@@ -169,9 +169,9 @@ class ABCParallelBaseMicroservice(ABC):
                 parameter. If not set, empty dictionary will be passed to all
                 request as default.
             n_parallel:
-                Number of simultaneus get requests, if not set
-                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 4 will be considered.
+                Number of simultaneous requests. If not set, uses
+                ``PUMPWOOD_COMMUNICATION__N_PARALLEL`` env variable
+                (legacy spelling supported), default 4.
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
@@ -241,9 +241,9 @@ class ABCParallelBaseMicroservice(ABC):
             parameters:
                 URL paramenters to make the post requests.
             n_parallel:
-                Number of simultaneus get requests, if not set
-                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 4 will be considered.
+                Number of simultaneous requests. If not set, uses
+                ``PUMPWOOD_COMMUNICATION__N_PARALLEL`` env variable
+                (legacy spelling supported), default 4.
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
@@ -314,9 +314,10 @@ class ABCParallelBaseMicroservice(ABC):
                 List of urls to make get requests.
             parameters:
                 URL paramenters to make the post requests.
-            n_parallel (int): Number of simultaneus get requests, if not set
-                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 4 will be considered.
+            n_parallel (int):
+                Number of simultaneous requests. If not set, uses
+                ``PUMPWOOD_COMMUNICATION__N_PARALLEL`` env variable
+                (legacy spelling supported), default 4.
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).

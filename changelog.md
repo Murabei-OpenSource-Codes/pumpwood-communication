@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.39] - 2026-06-19
+
+### Added
+- Cache retry settings: ``PUMPWOOD_COMMUNICATION__CACHE_RETRY_ATTEMPTS``
+  and ``PUMPWOOD_COMMUNICATION__CACHE_RETRY_DELAY``.
+
+### Changed
+- **Environment variables**: prefer ``PUMPWOOD_COMMUNICATION__*`` spelling.
+  Legacy ``PUMPWOOD_COMUNICATION__*`` names remain supported as fallback
+  via config ``_getenv``.
+- **Exception serialization**: ``to_dict`` / ``raise_from_dict`` round-trip
+  with ``type``, ``status_code``, ``translate``, and ``parallel``.
+- **Error propagation**: ``error_handler`` rehydrates from
+  ``message_not_fmt`` instead of the formatted message.
+- **Encryption config**: ``PumpwoodCryptography`` reads
+  ``CRYPTO_FERNET_KEY`` from centralized config.
+- Docstrings updated across exceptions, config, parallel, and permission
+  modules.
+
+### Fixed
+- **Cache SQLite lock errors**: thread-safe ``FanoutCache`` initialization
+  and retry with backoff on read/write under parallel workers.
+- ``PumpWoodOtherException`` fallback no longer raises ``TypeError`` on
+  unknown exception names.
+- ``exceptions_dict`` registry now includes ``PumpWoodJSONLoadError`` and
+  ``PumpWoodCacheError``.
+- Config syntax errors and ``n_parallel`` alias overwrite on
+  ``PARALLEL_CHUNK_SIZE``.
+
+## [2.4.38] - 2026-06-19
+
+### Changed
+- Version bump for exception handling and environment variable refactor
+  included in the ``2.4.39`` release notes above.
+
 ## [2.4.33] - 2026-05-19
 
 ### Added

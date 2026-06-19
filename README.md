@@ -92,27 +92,48 @@ raise PumpWoodException(
   })
 ```
 
-## Enviroment variables
-- **PUMPWOOD_COMUNICATION__N_PARALLEL:** Define the number of parallel
-  requests. Default is `4`.
-- **PUMPWOOD_COMUNICATION__CACHE_LIMIT_MB:** Set a limit for caching data
-  using disk cache. Default `250`(Mb).
-- **PUMPWOOD_COMUNICATION__CACHE_DEFAULT_EXPIRE:** Set expiry for caching data.
-  Default 60s.
-- **PUMPWOOD_COMUNICATION__CACHE_TRANSACTION_TIMEOUT:** Set transaction
-  timeout for setting cache. Default `0.1`(s).
-- **PUMPWOOD_COMUNICATION__N_SHARDS:** PumpwoodCache uses diskcache FanoutCache
-  this enviroment variable define the number os shards used. Default `8`.
-- **PUMPWOOD_COMUNICATION__CRYPTO_FERNET_KEY:** Define the fernet key that will
-  be used to encrypt data using PumpwoodCache. No default and if not set
-  will raise error on PumpwoodCache encrypt and decrypt functions.
-- **PUMPWOOD_COMUNICATION__DEFAULT_TIMEOUT:** Define a default timeout for
-  requests. Default '60' (s).
-- **PUMPWOOD_COMUNICATION__DEBUG:** If on debug mode, pumpwood communication
-  will refresh token at each request. Default 'FALSE', if set must be in
-  [`"TRUE"`, `"FALSE"`].
-- **PUMPWOOD_COMUNICATION__VERIFY_SSL:** Set if requests will validate server
-  certificates. Default `TRUE`, if set must be in [`"TRUE"`, `"FALSE"`].
+## Environment variables
+
+Correct spelling is ``PUMPWOOD_COMMUNICATION__*``. Legacy typo spelling
+``PUMPWOOD_COMUNICATION__*`` is still supported as fallback when the
+correct name is not set.
+
+### Parallel and requests
+- **PUMPWOOD_COMMUNICATION__N_PARALLEL:** Number of parallel requests.
+  Default ``4``.
+- **PUMPWOOD_COMMUNICATION__PARALLEL_CHUNK_SIZE:** Chunk size for parallel
+  bulk save. Default ``10000``.
+- **PUMPWOOD_COMMUNICATION__DEFAULT_TIMEOUT:** Default HTTP request
+  timeout in seconds. Default ``60``.
+- **PUMPWOOD_COMMUNICATION__DEBUG:** Refresh token on each request when
+  ``TRUE``. Default ``FALSE``.
+- **PUMPWOOD_COMMUNICATION__VERIFY_SSL:** Validate server certificates
+  when ``TRUE``. Default ``TRUE``.
+
+### Cache
+- **PUMPWOOD_COMMUNICATION__CACHE_ENABLE:** Enable disk cache. Default
+  ``TRUE``.
+- **PUMPWOOD_COMMUNICATION__CACHE_BASE_PATH:** Sub-path under
+  ``/tmp/pumpwood_cache/``. Default empty string.
+- **PUMPWOOD_COMMUNICATION__CACHE_LIMIT_MB:** Disk cache size limit in
+  megabytes. Default ``250``.
+- **PUMPWOOD_COMMUNICATION__CACHE_DEFAULT_EXPIRE:** Default cache entry
+  TTL in seconds. Default ``60``.
+- **PUMPWOOD_COMMUNICATION__CACHE_TRANSACTION_TIMEOUT:** SQLite
+  transaction timeout in seconds. Default ``0.1``. Use ``5`` or higher
+  under heavy parallel load.
+- **PUMPWOOD_COMMUNICATION__CACHE_N_SHARDS:** Number of FanoutCache
+  shards. Default ``8``.
+- **PUMPWOOD_COMMUNICATION__CACHE_RETRY_ATTEMPTS:** Retries on SQLite
+  lock contention. Default ``5``.
+- **PUMPWOOD_COMMUNICATION__CACHE_RETRY_DELAY:** Base delay in seconds
+  between cache retries. Default ``0.05``.
+- **PUMPWOOD_COMMUNICATION__AUTHORIZATION_CACHE_TIMEOUT:** TTL for
+  authorization and row-permission cache. Default ``60``.
+
+### Encryption
+- **PUMPWOOD_COMMUNICATION__CRYPTO_FERNET_KEY:** Fernet key for
+  ``PumpwoodCryptography``. No default; encrypt/decrypt raise when unset.
 
 ## Basic usage
 ### List and list without pagination

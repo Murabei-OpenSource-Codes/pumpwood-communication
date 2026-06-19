@@ -1,18 +1,17 @@
 """Define PumpWood exceptions to be treated as API errors.
 
-Define especific errors for PumpWood plataform. These errors will be treated
-and will not result in default 500 errors
+Define specific errors for the PumpWood platform. These errors are handled
+explicitly and do not result in default 500 responses.
 """
 from typing import Any
 from loguru import logger
 
 
 class PumpWoodException(Exception): # NOQA
-    """Special exception used in Pumpowod Systems.
+    """Special exception used in PumpWood systems.
 
-    It permits treatment of raises on applications serializing response
-    using to_dict function and return status code as `status_code`
-    attribute value.
+    It permits handling raises in applications by serializing responses
+    with ``to_dict`` and exposing the HTTP status as ``status_code``.
     """
 
     status_code: int = 400
@@ -22,8 +21,8 @@ class PumpWoodException(Exception): # NOQA
     """Message associated with raise."""
 
     payload: dict
-    """Dictionary payload that will be returned by to_dict funcion and format
-       message string."""
+    """Dictionary payload returned by ``to_dict`` and used to format
+       the message string."""
 
     translate: bool
     """If message will be translated or not."""
@@ -60,20 +59,20 @@ class PumpWoodException(Exception): # NOQA
 
         Args:
             message (str):
-                Message that will be formated using payload
-                information using `{key}` to replace information.
+                Message formatted with payload data using ``{key}``
+                placeholders.
             payload (dict):
-                Payload data passed as a dictionary, it will be returned
-                in payload at `to_dict` funcion and used to format message.
+                Payload data passed as a dictionary. Returned in
+                ``to_dict`` and used to format the message.
                 Defaults to None.
             status_code (int):
-                Change the default status code of the exception.
-                Defaults to None.
+                HTTP status code override. Defaults to None.
             translate (bool):
-                Set if message should be translated or not.
+                Whether the message should be translated.
                 Defaults to False.
             parallel (bool):
-                Error on a parallel request. Defaults to False.
+                Whether the error occurred during parallel work.
+                Defaults to False.
         """
         Exception.__init__(self)
 
@@ -94,8 +93,8 @@ class PumpWoodException(Exception): # NOQA
         Substitute placeholders at exception message with payload.
 
         Returns:
-            Return a string of message with placeholders substituted with
-            payload data.
+            str:
+                Message with placeholders substituted from payload data.
         """
         if self.translate:
             try:
@@ -109,15 +108,21 @@ class PumpWoodException(Exception): # NOQA
                 return self.message + "\n** format error **"
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize Exception object to return as reponse.
+        """Serialize exception object for API response.
 
         Returns:
-            Return a dictionary with keys:
-            - **payload [dict]:** Payload associated with raise.
-            - **type [str]:** Return name of the class of the Exception.
-            - **message_not_fmt [str]:** Return msg without replacemnt of the
-                msg with payload information.
-            - **message [str]:** Return msg formated with payload information.
+            dict[str, Any]:
+                Dictionary with keys:
+            - **payload [dict]:** Payload associated with the raise.
+            - **type [str]:** Name of the exception class.
+            - **message_not_fmt [str]:** Message without payload
+                substitution.
+            - **message [str]:** Message formatted with payload data.
+            - **status_code [int]:** HTTP status code for the exception.
+            - **translate [bool]:** Whether the message should be
+                translated.
+            - **parallel [bool]:** Whether the error was from parallel
+                work.
         """
         message_fmt = self.format_message()
         rv = {
@@ -126,6 +131,8 @@ class PumpWoodException(Exception): # NOQA
             "payload": self.payload,
             "message_not_fmt": self.message,
             "message": message_fmt,
+            "status_code": self.status_code,
+            "translate": self.translate,
             "parallel": self.parallel}
         return rv
 
@@ -155,19 +162,19 @@ class PumpWoodDataTransformationException(PumpWoodException):
 
 
 class PumpWoodWrongParameters(PumpWoodException):
-    """Raise for errors in object deserialization."""
+    """Invalid or missing request parameters."""
 
     pass
 
 
 class PumpWoodObjectSavingException(PumpWoodException):
-    """Raise for errors in object deserialization."""
+    """Problem when saving object data."""
 
     pass
 
 
 class PumpWoodObjectDeleteException(PumpWoodException):
-    """Raise for errors in object deserialization."""
+    """Problem when deleting object data."""
 
     pass
 
@@ -179,13 +186,13 @@ class PumpWoodActionArgsException(PumpWoodException):
 
 
 class PumpWoodUnauthorized(PumpWoodException):
-    """User Unauthorized to perform action."""
+    """User is unauthorized to perform the action."""
 
     status_code = 401
 
 
 class PumpWoodForbidden(PumpWoodException):
-    """Action not permited."""
+    """Action is not permitted."""
 
     status_code = 403
 
@@ -209,13 +216,13 @@ class PumpWoodIntegrityError(PumpWoodException):
 
 
 class PumpWoodNotImplementedError(PumpWoodException):
-    """Problem when saving data due to NotImplementedError."""
+    """Feature or operation is not implemented."""
 
     pass
 
 
 class PumpWoodMicroserviceUnavailableError(PumpWoodException):
-    """Problem when trying to use a microservice that was not deployied."""
+    """Microservice is unavailable or was not deployed."""
 
     pass
 
@@ -227,39 +234,40 @@ class PumpWoodMFAError(PumpWoodException):
 
 
 class PumpWoodJSONLoadError(PumpWoodException):
-    """Problem loading json data from request."""
+    """Problem loading JSON data from a request."""
 
     pass
 
 
 class PumpWoodCacheError(PumpWoodException):
-    """Problem using pumpwood cache."""
+    """Problem using the PumpWood cache."""
 
     pass
 
 
 class PumpWoodOtherException(PumpWoodException):
-    """Other untreated error on server."""
+    """Unhandled or unmapped server error."""
 
     status_code = 500
 
     def __init__(self, message: str, payload: dict = None,
                  status_code: int = None, parallel: bool = False):
-        """Initialize the PumpWoodOtherException.
+        """Initialize PumpWoodOtherException.
 
         Args:
             message (str):
-                Message that will be formated using payload
-                information using `{key}` to replace information.
+                Message formatted with payload data using ``{key}``
+                placeholders. Truncated to 1000 characters.
             payload (dict):
-                Payload data passed as a dictionary, it will be returned
-                in payload at `to_dict` funcion and used to format message.
+                Payload data passed as a dictionary. Returned in
+                ``to_dict`` and used to format the message.
                 Defaults to None.
             status_code (int):
                 Change the default status code of the exception.
                 Defaults to None.
             parallel (bool):
-                Error on a parallel request. Defaults to False.
+                Whether the error occurred during parallel work.
+                Defaults to False.
         """
         Exception.__init__(self)
 
@@ -277,7 +285,7 @@ class PumpWoodOtherException(PumpWoodException):
 
 
 class AirflowMicroServiceException(PumpWoodException):
-    """Raises from AirflowMicroService."""
+    """Exception raised from AirflowMicroService."""
 
     pass
 
@@ -300,13 +308,16 @@ exceptions_dict = {
     "PumpWoodMicroserviceUnavailableError":
         PumpWoodMicroserviceUnavailableError,
     "PumpWoodMFAError": PumpWoodMFAError,
+    "PumpWoodJSONLoadError": PumpWoodJSONLoadError,
+    "PumpWoodCacheError": PumpWoodCacheError,
     "PumpWoodOtherException": PumpWoodOtherException,
     "AirflowMicroServiceException": AirflowMicroServiceException,
     "PumpWoodUniqueDatabaseError": PumpWoodUniqueDatabaseError
 }
 """
-Dictionary used by backends/microservice to treat Pumpwood exceptions and
-re-raise them exception.
+Dictionary mapping exception class names to types.
+
+Used by backends and microservices to re-raise PumpWood exceptions.
 """
 
 
@@ -332,13 +343,14 @@ def raise_pumpwood_exception(exception_name: str, message: str,
             Defaults to False.
 
     Returns:
-        None: This function does not return as it always raises an exception.
+        None:
+            This function does not return; it always raises an exception.
 
     Raises:
         PumpWoodOtherException:
-            If the specified exception_name is not found in the registry.
+            If ``exception_name`` is not found in the registry.
         PumpWoodException:
-            The specific exception mapped to the exception_name.
+            The specific exception mapped to ``exception_name``.
     """
     # Initialize payload to avoid mutable default issues
     if payload is None:
@@ -354,10 +366,46 @@ def raise_pumpwood_exception(exception_name: str, message: str,
         raise PumpWoodOtherException(
             msg.format(exception_name=exception_name),
             payload=payload, status_code=status_code,
-            translate=translate, parallel=parallel)
+            parallel=parallel)
     else:
         raise pumpwood_exception(
             message=message, payload=payload, status_code=status_code,
             translate=translate, parallel=parallel)
 
 
+def raise_from_dict(exception_dict: dict):
+    """Raise a PumpWood exception from a serialized error dict.
+
+    Accepts output from `PumpWoodException.to_dict()` or compatible
+    payloads using `type` as the exception class name.
+
+    Args:
+        exception_dict (dict):
+            Serialized exception data. Expected keys are `type` (or
+            legacy `exception_name`), `message_not_fmt`, `payload`,
+            `status_code`, `translate`, and `parallel`.
+
+    Returns:
+        None:
+            This function does not return as it always raises an
+            exception.
+
+    Raises:
+        PumpWoodOtherException:
+            If the specified exception type is not found in the
+            registry.
+        PumpWoodException:
+            The specific exception mapped to the exception type.
+    """
+    exception_name = exception_dict.get("type") or exception_dict.get(
+        "exception_name")
+    message_not_fmt = exception_dict.get("message_not_fmt")
+    payload = exception_dict.get("payload")
+    status_code = exception_dict.get("status_code")
+    translate = exception_dict.get("translate", False)
+    parallel = exception_dict.get("parallel", False)
+
+    raise_pumpwood_exception(
+        exception_name=exception_name,
+        message=message_not_fmt, payload=payload, status_code=status_code,
+        translate=translate, parallel=parallel)
