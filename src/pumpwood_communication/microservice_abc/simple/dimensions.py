@@ -39,8 +39,9 @@ class ABCSimpleDimensionMicroservice(ABC, PumpWoodMicroServiceBase):
             List of keys avaiable in results from the query dict.
         """
         url_str = self._build_list_dimensions(model_class)
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
+
         post_data = {'filter_dict': filter_dict, 'exclude_dict': exclude_dict}
         return self.request_post(
             url=url_str, data=post_data,
@@ -84,9 +85,9 @@ class ABCSimpleDimensionMicroservice(ABC, PumpWoodMicroServiceBase):
             are returned with `filter_dict` and `exclude_dict`.
         """
         url_str = self._build_list_dimension_values(model_class)
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
-        base_filter_skip = None
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
+
         post_data = {
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
             'key': key}

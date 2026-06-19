@@ -198,8 +198,9 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
         filter_dict = {} if filter_dict is None else filter_dict
         exclude_dict = {} if exclude_dict is None else exclude_dict
         order_by = [] if order_by is None else order_by
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
 
         url_str = self._build_list_url(model_class)
         post_data = {
@@ -271,8 +272,9 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
             {} if filter_dict is None else filter_dict)
         exclude_dict = (
             {} if exclude_dict is None else exclude_dict)
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
 
         copy_filter_dict = copy.deepcopy(filter_dict)
         list_all_results = []
@@ -403,11 +405,10 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
         """
         filter_dict = {} if filter_dict is None else filter_dict
         exclude_dict = {} if exclude_dict is None else exclude_dict
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
-        base_filter_skip = [] if base_filter_skip is None else base_filter_skip
-
         url_str = self._build_list_without_pag_url(model_class)
+
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
 
         post_data = {
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,

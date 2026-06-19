@@ -93,8 +93,9 @@ class ABCSimpleActionMicroservice(ABC, PumpWoodMicroServiceBase):
                 indicate that pk associated with model class was not found
                 on database.
         """
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
+
         url_str = self._build_execute_action_url(
             model_class=model_class, action=action, pk=pk)
         return self.request_post(

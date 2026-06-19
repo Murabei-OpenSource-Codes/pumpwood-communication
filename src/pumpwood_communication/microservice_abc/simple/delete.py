@@ -43,8 +43,9 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
                 'Requested object {model_class}[{pk}] not found.' This
                 indicates that the pk was not found in database.
         """
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
+
         url_str = self._build_delete_request_url(model_class, pk)
         return self.request_delete(
             url=url_str, auth_header=auth_header,
@@ -99,8 +100,9 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
                 it should not occur. It might have been some manual update
                 of the database or at the storage level.
         """
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
+
         url_str = self._build_remove_file_field(model_class, pk)
         return self.request_delete(
             url=url_str, auth_header=auth_header,
@@ -149,6 +151,8 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
         """
         filter_dict = {} if filter_dict is None else filter_dict
         exclude_dict = {} if exclude_dict is None else exclude_dict
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
 
         url_str = self._build_delete_many_request_url(model_class)
         return self.request_post(

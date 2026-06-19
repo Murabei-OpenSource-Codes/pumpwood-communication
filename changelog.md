@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.40] - 2026-06-19
+
+### Changed
+- **``base_filter_skip`` default**: centralized in
+  ``_resolve_base_filter_skip``. When omitted, superusers receive
+  ``['ALL']``; other users receive ``[]``. Applied to all simple and
+  parallel endpoints that accept the parameter.
+- **Logout**: ``logout`` and ``logout_all`` clear token, auth header, and
+  cached user via ``_evict_auth_state``.
+
+### Fixed
+- **``is_superuser()``**: read ``self.__user`` directly instead of
+  ``getattr(self, "__user")``, which failed due to Python name mangling
+  and always returned ``False``.
+
 ## [2.4.39] - 2026-06-19
 
 ### Added

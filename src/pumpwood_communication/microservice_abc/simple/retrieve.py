@@ -76,8 +76,8 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             PumpWoodObjectDoesNotExist:
                 If pk not found on database.
         """
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
         url_str = self._build_list_one_url(model_class, pk)
         return self.request_get(
             url=url_str, parameters={
@@ -180,8 +180,9 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                 " got type [{type}]")
             raise PumpWoodException(
                 msg, payload={"type": type(pk).__name__})
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
 
         # Convert to base64 dict unique queries
         serialized_pk = None
@@ -274,8 +275,8 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                 update at the model_class table or manual removal/rename of
                 files on storage.
         """
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
 
         if if_exists not in ["fail", "change_name", "overwrite", "skip"]:
             raise PumpWoodException(
@@ -401,8 +402,8 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
                 update at the model_class table or manual removal/rename of
                 files on storage.
         """
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
 
         request_header = self._check_auth_header(auth_header)
 

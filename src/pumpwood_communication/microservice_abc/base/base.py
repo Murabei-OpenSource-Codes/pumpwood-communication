@@ -396,6 +396,16 @@ class PumpWoodMicroServiceBase:
             # Token is not expired or envicted, them keep same token
             return None
 
+    def _evict_auth_state(self) -> None:
+        """Clear local authentication state after logout.
+
+        Resets token expiry, auth header, and cached user information so
+        ``is_superuser`` and ``login`` behave correctly after logout.
+        """
+        self.__token_expiry = None
+        self.__auth_header = None
+        self.__user = None
+
     def logout(self, auth_header: dict = None) -> bool:
         """Logout token.
 
@@ -409,8 +419,7 @@ class PumpWoodMicroServiceBase:
         resp = self.request_post(
             url='rest/registration/logout/',
             data={}, auth_header=auth_header)
-        # Set expiry to None to envict the token
-        self.__token_expiry = None
+        self._evict_auth_state()
         return resp is None
 
     def logout_all(self, auth_header: dict = None) -> bool:
@@ -426,8 +435,7 @@ class PumpWoodMicroServiceBase:
         resp = self.request_post(
             url='rest/registration/logoutall/',
             data={}, auth_header=auth_header)
-        # Set expiry to None to envict the token
-        self.__token_expiry = None
+        self._evict_auth_state()
         return resp is None
 
     def get_auth_header(self) -> dict:
@@ -466,6 +474,37 @@ class PumpWoodMicroServiceBase:
         self.__token_expiry = token_expiry
         self.__user = user
         return True
+    
+    def is_superuser(self) -> bool:
+        """Check if is superuser.
+
+        Args:
+            No Args.
+
+        Returns:
+            Return True if is superuser.
+        """
+        user = self.__user
+        if user is None:
+            return False
+        return user.get("is_superuser", False)
+    
+    def _resolve_base_filter_skip(self, base_filter_skip):
+        """Resolve base filter skip.
+
+        Args:
+            base_filter_skip:
+                Base filter skip to be resolved.
+
+        Returns:
+            Return base filter skip resolved.
+        """
+        if base_filter_skip is None:
+            if self.is_superuser():
+                base_filter_skip = ['ALL']
+            else:
+                base_filter_skip = []
+        return base_filter_skip
 
     def _check_auth_header(self, auth_header: dict,
                            multipart: bool = False) -> dict:
@@ -945,3 +984,34 @@ class PumpWoodMicroServiceBase:
         # Re-raise Pumpwood Exceptions
         self.error_handler(response)
         return self.angular_json(response)
+
+    def get_user_info(self, auth_header: dict = None,
+                      use_disk_cache: bool = False,
+                      disk_cache_expire: int = None) -> dict:
+        """Get user info.
+
+        Args:
+            auth_header (dict): = None
+                AuthHeader to substitute the microservice original at
+                request. If not passed, microservice object auth_header
+                will be used.
+            use_disk_cache (bool):
+                It possible use disk cache.
+            disk_cache_expire (int):
+                Set a time to expire the cache. If not passed env variable
+                ``PUMPWOOD_COMMUNICATION__AUTHORIZATION_CACHE_TIMEOUT``
+                env variable (legacy spelling supported), default 60 s.
+
+        Returns:
+            A serialized user object with information of the logged user.
+        """
+        url = "rest/registration/retrieveauthenticateduser/"
+        temp_disk_cache_expire = (
+            disk_cache_expire
+            if disk_cache_expire is not None else
+            AUTHORIZATION_CACHE_TIMEOUT)
+
+        user_info = self.request_get(
+            url=url, auth_header=auth_header, use_disk_cache=use_disk_cache,
+            disk_cache_expire=temp_disk_cache_expire)
+        return user_info
