@@ -2,7 +2,6 @@
 
 This module contain base implementation with Pumpwood Backend information.
 """
-import os
 import re
 import copy
 import orjson
@@ -20,6 +19,7 @@ from pumpwood_communication.exceptions import (
     PumpWoodForbidden, PumpWoodOtherException)
 from pumpwood_communication.serializers import pumpJsonDump
 from pumpwood_communication.cache import default_cache
+from pumpwood_communication.config import DEBUG, DEFAULT_TIMEOUT, VERIFY_SSL
 from pumpwood_communication.type import PumpwoodDataclassMixin
 
 
@@ -40,13 +40,15 @@ class RequestGetCacheHash(PumpwoodDataclassMixin):
 class PumpWoodMicroServiceBase:
     """Base class for Pumpwood MicroService.
 
-    Enviroment variables can be used to set MicroService parameters:
-    - **PUMPWOOD_COMUNICATION__DEFAULT_TIMEOUT:** Default requests timeout in
-        seconds.
-    - **PUMPWOOD_COMUNICATION__DEBUG:** If object will be initiated using
+    Environment variables can be used to set MicroService parameters.
+    Correct spelling is ``PUMPWOOD_COMMUNICATION__*``; legacy typo
+    ``PUMPWOOD_COMUNICATION__*`` is still supported as fallback:
+    - **PUMPWOOD_COMMUNICATION__DEFAULT_TIMEOUT:** Default requests timeout
+        in seconds.
+    - **PUMPWOOD_COMMUNICATION__DEBUG:** If object will be initiated using
         debug parameter. It will have more verbosity and login at each
         request. Options 'TRUE', 'FALSE'.
-    - **PUMPWOOD_COMUNICATION__VERIFY_SSL:** If requests will validate SSL
+    - **PUMPWOOD_COMMUNICATION__VERIFY_SSL:** If requests will validate SSL
         certificate.
     """
 
@@ -172,22 +174,19 @@ class PumpWoodMicroServiceBase:
         self.server_url = self._adjust_server_url(server_url)
         """Pumpwood server URL."""
 
-        # Set parameter using arguments or enviroment variables
+        # Set parameter using arguments or environment variables
         if default_timeout is None:
-            self._default_timeout = int(os.getenv(
-                'PUMPWOOD_COMUNICATION__DEFAULT_TIMEOUT', 60))
+            self._default_timeout = DEFAULT_TIMEOUT
         else:
             self._default_timeout = default_timeout
 
         if debug is None:
-            self._debug = os.getenv(
-                'PUMPWOOD_COMUNICATION__DEBUG', 'FALSE') == 'TRUE'
+            self._debug = DEBUG
         else:
             self._debug = debug
 
         if verify_ssl is None:
-            self._verify_ssl = os.getenv(
-                'PUMPWOOD_COMUNICATION__VERIFY_SSL', 'TRUE') == 'TRUE'
+            self._verify_ssl = VERIFY_SSL
         else:
             self._verify_ssl = verify_ssl
 
@@ -586,14 +585,18 @@ class PumpWoodMicroServiceBase:
             # Propagate error #
             # get exception using 'type' key at response data and get the
             # exception from exceptions_dict at exceptions
-            exception_message = response_dict.get("message", "")
+            exception_message = response_dict.get(
+                "message_not_fmt", response_dict.get("message", ""))
             exception_type = response_dict.get("type", None)
             TempPumpwoodException = exceptions_dict.get(exception_type)
             if TempPumpwoodException is not None:
                 raise TempPumpwoodException(
                     message=exception_message,
-                    status_code=response.status_code,
-                    payload=payload)
+                    status_code=response_dict.get(
+                        "status_code", response.status_code),
+                    payload=payload,
+                    translate=response_dict.get("translate", False),
+                    parallel=response_dict.get("parallel", False))
             else:
                 # If token is invalid is at response, return a
                 # PumpWoodUnauthorized error

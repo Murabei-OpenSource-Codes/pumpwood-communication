@@ -45,8 +45,8 @@ class ABCPermissionMicroservice(ABC, PumpWoodMicroServiceBase):
                 It possible use disk cache.
             disk_cache_expire (int):
                 Set a time to expire the cache. If not passed env variable
-                `PUMPWOOD_COMUNICATION__AUTHORIZATION_CACHE_TIMEOUT` will
-                be used with 60 seconds as default.
+                ``PUMPWOOD_COMMUNICATION__AUTHORIZATION_CACHE_TIMEOUT``
+                env variable (legacy spelling supported), default 60 s.
 
         Returns:
             A serialized user object with information of the logged user.
@@ -120,8 +120,8 @@ class ABCPermissionMicroservice(ABC, PumpWoodMicroServiceBase):
                 It possible use disk cache.
             disk_cache_expire (int):
                 Set a time to expire the cache. If not passed env variable
-                `PUMPWOOD_COMUNICATION__AUTHORIZATION_CACHE_TIMEOUT` will
-                be used with 60 seconds as default.
+                ``PUMPWOOD_COMMUNICATION__AUTHORIZATION_CACHE_TIMEOUT``
+                env variable (legacy spelling supported), default 60 s.
             return_ids (bool):
                 Return only the ids of the row permissions.
 

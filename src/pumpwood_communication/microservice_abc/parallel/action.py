@@ -31,9 +31,9 @@ class ABCParallelActionMicroservice(ABCParallelBaseMicroservice):
                 Parameters used to perform actions
                 or a single dict to be used in all actions.
             n_parallel:
-                Number of simultaneus get requests, if not set
-                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 4 will be considered.
+                Number of simultaneous requests. If not set, uses
+                ``PUMPWOOD_COMMUNICATION__N_PARALLEL`` env variable
+                (legacy spelling supported), default 4.
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).

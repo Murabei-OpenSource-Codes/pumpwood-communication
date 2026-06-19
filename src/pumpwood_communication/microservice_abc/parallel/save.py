@@ -159,13 +159,13 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
             data_to_save:
                 Data that will be saved
             chunksize:
-                Length of each parallel bulk save chunk. If not set it will
-                use env variable `PUMPWOOD_COMUNICATION__PARALLEL_CHUNK_SIZE`
-                with default as `50000`.
+                Length of each parallel bulk save chunk. If not set,
+                uses ``PUMPWOOD_COMMUNICATION__PARALLEL_CHUNK_SIZE`` env
+                variable (legacy spelling supported), default 10000.
             n_parallel:
-                Number of simultaneus get requests, if not set
-                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 4 will be considered.
+                Number of simultaneous requests. If not set, uses
+                ``PUMPWOOD_COMMUNICATION__N_PARALLEL`` env variable
+                (legacy spelling supported), default 4.
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).

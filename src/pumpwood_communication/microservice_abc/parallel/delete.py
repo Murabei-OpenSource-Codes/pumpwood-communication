@@ -19,9 +19,9 @@ class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
             list_pk:
                 List of the pks to list one.
             n_parallel:
-                Number of simultaneus get requests, if not set
-                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 4 will be considered.
+                Number of simultaneous requests. If not set, uses
+                ``PUMPWOOD_COMMUNICATION__N_PARALLEL`` env variable
+                (legacy spelling supported), default 4.
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
@@ -71,9 +71,9 @@ class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
             list_args (list):
                 A list of list request args (filter_dict, exclude_dict).
             n_parallel:
-                Number of simultaneus get requests, if not set
-                get from PUMPWOOD_COMUNICATION__N_PARALLEL env variable, if
-                not set then 4 will be considered.
+                Number of simultaneous requests. If not set, uses
+                ``PUMPWOOD_COMMUNICATION__N_PARALLEL`` env variable
+                (legacy spelling supported), default 4.
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
