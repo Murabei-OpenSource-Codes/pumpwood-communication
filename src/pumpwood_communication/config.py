@@ -61,6 +61,14 @@ CACHE_ENABLE = _getenv(
     "PUMPWOOD_COMMUNICATION__CACHE_ENABLE",
     "PUMPWOOD_COMUNICATION__CACHE_ENABLE", "TRUE") == "TRUE"
 """Whether cache is enabled. Options ``TRUE`` or ``FALSE``."""
+CACHE_RETRY_ATTEMPTS = int(_getenv(
+    "PUMPWOOD_COMMUNICATION__CACHE_RETRY_ATTEMPTS",
+    "PUMPWOOD_COMUNICATION__CACHE_RETRY_ATTEMPTS", 5))
+"""Number of retries on SQLite lock contention."""
+CACHE_RETRY_DELAY = float(_getenv(
+    "PUMPWOOD_COMMUNICATION__CACHE_RETRY_DELAY",
+    "PUMPWOOD_COMUNICATION__CACHE_RETRY_DELAY", 0.05))
+"""Base delay in seconds between cache lock retries."""
 
 
 # Parallel operations associated env. variables
