@@ -17,10 +17,7 @@ fi
 sed -e 's#{VERSION}#'"${VERSION}"'#g' pyproject_template.toml > pyproject.toml
 
 rm -R build/
-
 poetry build
-
-# pdoc --docformat="google" src/pumpwood_communication -o ./docs
 
 git add --all
 git commit -m "Building a new version ${VERSION}"
