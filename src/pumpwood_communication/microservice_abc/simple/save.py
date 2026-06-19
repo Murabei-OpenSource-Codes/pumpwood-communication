@@ -90,8 +90,9 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
                 Return error at object validation on de-serializing the
                 object or files with unexpected extensions.
         """
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
+
         model_class = obj_dict.get('model_class')
         if model_class is None:
             raise PumpWoodObjectSavingException(
@@ -180,8 +181,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
         request_header["Content-Type"] = "application/octet-stream"
         post_url = self.server_url + self._build_save_streaming_file_url(
             model_class=model_class, pk=pk)
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
 
         parameters = {
             "fields": fields, "default_fields": default_fields,
@@ -258,8 +259,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
         if len(data_to_save) == 0:
             return False
 
-        base_filter_skip = (
-            [] if base_filter_skip is None else base_filter_skip)
+        base_filter_skip = self._resolve_base_filter_skip(
+            base_filter_skip)
         url_str = self._build_bulk_save_url(model_class=model_class)
         return self.request_post(
             url=url_str, data=data_to_save,
