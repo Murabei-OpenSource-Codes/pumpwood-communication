@@ -251,7 +251,8 @@ class PumpWoodOtherException(PumpWoodException):
     status_code = 500
 
     def __init__(self, message: str, payload: dict = None,
-                 status_code: int = None, parallel: bool = False):
+                 status_code: int = None, translate: bool = False,
+                 parallel: bool = False):
         """Initialize PumpWoodOtherException.
 
         Args:
@@ -262,6 +263,10 @@ class PumpWoodOtherException(PumpWoodException):
                 Payload data passed as a dictionary. Returned in
                 ``to_dict`` and used to format the message.
                 Defaults to None.
+            translate (bool):
+                It is a placeholder to keep the same behavior as
+                PumpWoodException, but PumpWoodOtherException are never
+                translated.
             status_code (int):
                 Change the default status code of the exception.
                 Defaults to None.
@@ -280,7 +285,7 @@ class PumpWoodOtherException(PumpWoodException):
         if status_code is not None:
             self.status_code = status_code
         self.payload = payload
-        self.translate = False
+        self.translate = translate
         self.parallel = parallel
 
 
