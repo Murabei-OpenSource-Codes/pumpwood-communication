@@ -5,8 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.4.40] - 2026-06-19
+## [2.4.41] - 2026-06-19
+### Fixed
+- **``PumpWoodOtherException``**: accept ``translate`` in ``__init__`` so
+  the fallback path in ``raise_pumpwood_exception`` (unknown exception
+  name) no longer raises ``TypeError``. The flag is stored for API
+  parity with ``PumpWoodException``; other exceptions are never
+  translated.
 
+## [2.4.40] - 2026-06-19
 ### Changed
 - **``base_filter_skip`` default**: centralized in
   ``_resolve_base_filter_skip``. When omitted, superusers receive
