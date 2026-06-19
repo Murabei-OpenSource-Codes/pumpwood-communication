@@ -92,6 +92,22 @@ raise PumpWoodException(
   })
 ```
 
+## Base query filters and superuser
+
+Many endpoints accept ``base_filter_skip`` to skip backend base query
+filters (row-level restrictions). When the argument is omitted:
+
+- **Superusers** (after ``login``) default to ``['ALL']``.
+- **Other users** default to ``[]`` (no filters skipped).
+
+Superuser status comes from the ``user`` object returned at login and
+stored on the microservice instance. Explicit values are always passed
+through unchanged.
+
+``logout`` and ``logout_all`` clear the cached user, token, and auth
+header so ``is_superuser()`` and ``base_filter_skip`` defaults reset
+correctly.
+
 ## Environment variables
 
 Correct spelling is ``PUMPWOOD_COMMUNICATION__*``. Legacy typo spelling
