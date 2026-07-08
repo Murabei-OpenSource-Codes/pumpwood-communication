@@ -75,6 +75,15 @@ class PumpwoodCache:
                 error=last_error))
         return None
 
+    def refresh_cache(self) -> bool:
+        """Refresh cache.
+
+        Returns:
+            True if cache is refreshed.
+        """
+        self._cache = self._build_fanout_cache()
+        return True
+    
     def _create_cache_object(self) -> None:
         """Create FanoutCache once in a thread-safe way."""
         if self._cache is not None:
