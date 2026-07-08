@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.45] - 2026-07-08
+
+### Added
+- **``PumpwoodCache.refresh_cache``**: rebuilds the underlying
+  ``FanoutCache`` via ``_build_fanout_cache`` and returns ``True``.
+
 ## [2.4.44] - 2026-07-07
 ### Added
 - **Bulk save field types**: ``BulkSaveDefaultField`` to declare a static

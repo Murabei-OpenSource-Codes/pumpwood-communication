@@ -404,19 +404,15 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
         """
         base_filter_skip = self._resolve_base_filter_skip(
             base_filter_skip)
-
         request_header = self._check_auth_header(auth_header)
 
-        # begin Args check
         if if_exists not in ["fail", "change_name", "overwrite"]:
             raise PumpWoodException(
                 "if_exists must be in ['fail', 'change_name', 'overwrite']")
-
         if not os.path.exists(save_path):
             raise PumpWoodException(
                 "Path to save retrieved file [{}] does not exist".format(
                     save_path))
-        # end Args check
 
         file_path = os.path.join(save_path, file_name)
         if os.path.isfile(file_path) and if_exists == "change_name":
@@ -444,11 +440,13 @@ class ABCSimpleRetriveMicroservice(ABC, PumpWoodMicroServiceBase):
             model_class=model_class, pk=pk)
 
         get_url = self.server_url + url_str
+        get_params = {
+            "file-field": file_field,
+            "base_filter_skip": base_filter_skip}
+        dumped_parameters = self._dump_query_parameters(parameters=get_params)
         with requests.get(
                 get_url, verify=self._verify_ssl, headers=request_header,
-                params={
-                    "file-field": file_field,
-                    "base_filter_skip": base_filter_skip},
+                params=dumped_parameters,
                 timeout=self._default_timeout) as response:
             self.error_handler(response)
             with open(file_path, 'wb') as f:
