@@ -1,4 +1,5 @@
 """Module to define types used at Pumpwood views."""
+from typing import Any
 from functools import cached_property
 from dataclasses import dataclass
 from .abc import PumpwoodDataclassMixin
@@ -6,7 +7,12 @@ from pumpwood_communication.aux import import_function_by_string
 
 
 @dataclass
-class BulkSaveMicroserviceAutoFillField(PumpwoodDataclassMixin):
+class MixinBulkSaveField(PumpwoodDataclassMixin):
+    """Mixin to define a field to be used on bulk save."""
+
+
+@dataclass
+class BulkSaveMicroserviceAutoFillField(MixinBulkSaveField):
     """Define a field to be auto filled by microservice at bulk save."""
 
     field: str
@@ -23,7 +29,7 @@ class BulkSaveMicroserviceAutoFillField(PumpwoodDataclassMixin):
 
 
 @dataclass
-class BulkSaveLocalAutoFillField(PumpwoodDataclassMixin):
+class BulkSaveLocalAutoFillField(MixinBulkSaveField):
     """Define a field to be auto filled by local at bulk save."""
 
     field: str
@@ -45,3 +51,13 @@ class BulkSaveLocalAutoFillField(PumpwoodDataclassMixin):
         if isinstance(self.fill_model_class, str):
             return import_function_by_string(self.fill_model_class)
         return self.fill_model_class
+
+
+@dataclass
+class BulkSaveDefaultField(MixinBulkSaveField):
+    """Define a field to be auto filled by default at bulk save."""
+
+    field: str
+    """Name of the field that will be filled on bulk save by default."""
+    default: Any
+    """Default value to be used if the field is not filled."""
