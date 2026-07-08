@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.46] - 2026-07-08
+
+### Fixed
+- **``retrieve_streaming_file``**: serialize query parameters with
+  ``_dump_query_parameters`` before the streaming GET request so
+  ``base_filter_skip`` and other non-string values are encoded like
+  the rest of the API.
+
+## [2.4.45] - 2026-07-08
+
+### Added
+- **``PumpwoodCache.refresh_cache``**: rebuilds the underlying
+  ``FanoutCache`` via ``_build_fanout_cache`` and returns ``True``.
+
 ## [2.4.44] - 2026-07-07
 ### Added
 - **Bulk save field types**: ``BulkSaveDefaultField`` to declare a static
