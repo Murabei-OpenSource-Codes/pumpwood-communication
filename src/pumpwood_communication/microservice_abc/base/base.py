@@ -626,15 +626,16 @@ class PumpWoodMicroServiceBase:
             # exception from exceptions_dict at exceptions
             exception_message = response_dict.get(
                 "message_not_fmt", response_dict.get("message", ""))
-            exception_type = response_dict.get("type", None)
-            TempPumpwoodException = exceptions_dict.get(exception_type)
+            exception_type = response_dict.get("type")
+            TempPumpwoodException = exceptions_dict\
+                .get(exception_type, None)
             if TempPumpwoodException is not None:
                 raise TempPumpwoodException(
                     message=exception_message,
                     status_code=response_dict.get(
                         "status_code", response.status_code),
                     payload=payload,
-                    translate=response_dict.get("translate", False),
+                    was_translated=response_dict.get("was_translated", False),
                     parallel=response_dict.get("parallel", False))
             else:
                 # If token is invalid is at response, return a
