@@ -24,8 +24,14 @@ class PumpWoodException(Exception): # NOQA
     """Dictionary payload returned by ``to_dict`` and used to format
        the message string."""
 
-    translate: bool
-    """If message will be translated or not."""
+    i8n_object: None
+    """I8n object used to translate the message."""
+
+    was_translated: bool
+    """If the message was translated."""
+
+    tag: str
+    """Tag used to disambiguate translation context."""
 
     parallel: bool
     """If error was raised on a parallel request."""
@@ -53,8 +59,9 @@ class PumpWoodException(Exception): # NOQA
             payload=self.payload)
 
     def __init__(self, message: str, payload: dict = None,
-                 status_code: int = None, translate: bool = False,
-                 parallel: bool = False):
+                 status_code: int = None, tag: str = '',
+                 parallel: bool = False, i8n_object: None = None,
+                 was_translated: bool = False):
         """Initialize the PumpWood exception.
 
         Args:
@@ -67,9 +74,12 @@ class PumpWoodException(Exception): # NOQA
                 Defaults to None.
             status_code (int):
                 HTTP status code override. Defaults to None.
-            translate (bool):
-                Whether the message should be translated.
-                Defaults to False.
+            i8n_object (None):
+                I8n object used to translate the message.
+                Defaults to None.
+            tag (str):
+                Tag used to disambiguate translation context.
+                Defaults to empty string.
             parallel (bool):
                 Whether the error occurred during parallel work.
                 Defaults to False.
@@ -84,7 +94,9 @@ class PumpWoodException(Exception): # NOQA
         if status_code is not None:
             self.status_code = status_code
         self.payload = payload
-        self.translate = translate
+        self.i8n_object = i8n_object
+        self.was_translated = was_translated
+        self.tag = tag
         self.parallel = parallel
 
     def format_message(self) -> str:
@@ -96,16 +108,16 @@ class PumpWoodException(Exception): # NOQA
             str:
                 Message with placeholders substituted from payload data.
         """
-        if self.translate:
-            try:
-                return self.message.format(**self.payload)
-            except Exception:
-                return self.message + "\n** format error **"
-        else:
-            try:
-                return self.message.format(**self.payload)
-            except Exception:
-                return self.message + "\n** format error **"
+        try:
+            # If i8n_object is not None and was_translated is False,
+            # use it to translate the message
+            message = self.message
+            if (self.i8n_object is not None) and (not self.was_translated):
+                message = self.i8n_object.t(
+                    sentence=self.message, tag=self.tag)
+            return message.format(**self.payload)
+        except Exception:
+            return self.message + "\n** format error **"
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize exception object for API response.
@@ -121,6 +133,8 @@ class PumpWoodException(Exception): # NOQA
             - **status_code [int]:** HTTP status code for the exception.
             - **translate [bool]:** Whether the message should be
                 translated.
+            - **tag [str]:** Tag used to disambiguate translation
+                context.
             - **parallel [bool]:** Whether the error was from parallel
                 work.
         """
@@ -132,7 +146,8 @@ class PumpWoodException(Exception): # NOQA
             "message_not_fmt": self.message,
             "message": message_fmt,
             "status_code": self.status_code,
-            "translate": self.translate,
+            "was_translated": self.was_translated,
+            "tag": self.tag,
             "parallel": self.parallel}
         return rv
 
@@ -251,8 +266,8 @@ class PumpWoodOtherException(PumpWoodException):
     status_code = 500
 
     def __init__(self, message: str, payload: dict = None,
-                 status_code: int = None, translate: bool = False,
-                 parallel: bool = False):
+                 status_code: int = None, was_translated: bool = False,
+                 tag: str = '', parallel: bool = False):
         """Initialize PumpWoodOtherException.
 
         Args:
@@ -263,10 +278,11 @@ class PumpWoodOtherException(PumpWoodException):
                 Payload data passed as a dictionary. Returned in
                 ``to_dict`` and used to format the message.
                 Defaults to None.
-            translate (bool):
-                It is a placeholder to keep the same behavior as
-                PumpWoodException, but PumpWoodOtherException are never
-                translated.
+            was_translated (bool):
+                If the message was translated. Defaults to False.
+            tag (str):
+                Tag used to disambiguate translation context.
+                Defaults to empty string.
             status_code (int):
                 Change the default status code of the exception.
                 Defaults to None.
@@ -280,14 +296,27 @@ class PumpWoodOtherException(PumpWoodException):
         if payload is None:
             payload = {}
 
-        # Limit size of the error
+        # Limit size of the error, it is expected that other exceptions
+        # may have long text from kong or other between services
         self.message = message[:1000]
+
         if status_code is not None:
             self.status_code = status_code
         self.payload = payload
-        self.translate = translate
+
+        # Other exceptions are never translated are never translated
+        self.was_translated = False
+        self.tag = tag
         self.parallel = parallel
 
+    def format_message(self) -> str:
+        """Return the message without formatting.
+        
+        Other exceptions are never translated, so the message is not formatted
+        and returned as is.
+        """
+        return self.message
+    
 
 class AirflowMicroServiceException(PumpWoodException):
     """Exception raised from AirflowMicroService."""
@@ -328,7 +357,8 @@ Used by backends and microservices to re-raise PumpWood exceptions.
 
 def raise_pumpwood_exception(exception_name: str, message: str,
                              payload: dict = None, status_code: int = None,
-                             translate: bool = False, parallel: bool = False):
+                             translate: bool = False, tag: str = '',
+                             parallel: bool = False):
     """Raise a PumpWood exception based on its name.
 
     Args:
@@ -343,6 +373,9 @@ def raise_pumpwood_exception(exception_name: str, message: str,
             HTTP status code to be returned. Defaults to None.
         translate (bool):
             Whether the message should be translated. Defaults to False.
+        tag (str):
+            Tag used to disambiguate translation context.
+            Defaults to empty string.
         parallel (bool):
             If the exception happened during parallel processing.
             Defaults to False.
@@ -371,11 +404,11 @@ def raise_pumpwood_exception(exception_name: str, message: str,
         raise PumpWoodOtherException(
             msg.format(exception_name=exception_name),
             payload=payload, status_code=status_code,
-            parallel=parallel)
+            tag=tag, parallel=parallel)
     else:
         raise pumpwood_exception(
             message=message, payload=payload, status_code=status_code,
-            translate=translate, parallel=parallel)
+            translate=translate, tag=tag, parallel=parallel)
 
 
 def raise_from_dict(exception_dict: dict):
@@ -388,7 +421,7 @@ def raise_from_dict(exception_dict: dict):
         exception_dict (dict):
             Serialized exception data. Expected keys are `type` (or
             legacy `exception_name`), `message_not_fmt`, `payload`,
-            `status_code`, `translate`, and `parallel`.
+            `status_code`, `translate`, `tag`, and `parallel`.
 
     Returns:
         None:
@@ -408,9 +441,10 @@ def raise_from_dict(exception_dict: dict):
     payload = exception_dict.get("payload")
     status_code = exception_dict.get("status_code")
     translate = exception_dict.get("translate", False)
+    tag = exception_dict.get("tag", '')
     parallel = exception_dict.get("parallel", False)
 
     raise_pumpwood_exception(
         exception_name=exception_name,
         message=message_not_fmt, payload=payload, status_code=status_code,
-        translate=translate, parallel=parallel)
+        translate=translate, tag=tag, parallel=parallel)
