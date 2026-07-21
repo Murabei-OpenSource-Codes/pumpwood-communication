@@ -12,7 +12,7 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
         return "rest/%s/delete/%s/" % (model_class.lower(), pk)
 
     def delete(self, model_class: str, pk: int,
-               auth_header: dict = None,
+               auth_header: dict = None, force_delete: bool = False,
                base_filter_skip: list[str] | None = None) -> dict:
         """Send delete request to a PumpWood object.
 
@@ -22,13 +22,16 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
         Args:
             model_class:
                 Model class to delete the object
-            pk:
+            pk (int):
                 Object pk to be deleted (or whatever the PumpWood system
                 have been implemented). Some model_class with 'deleted' field
                 does not remove the entry, it will flag deleted=True at this
                 cases. Model class with delete=True will be not retrieved
                 by default on `list` and `list_without_pag` end-points.
-            auth_header:
+            force_delete (bool):
+                If True, the object will be deleted even if it is not
+                soft deleted.
+            auth_header (dict):
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
             base_filter_skip (list[str]):
@@ -49,7 +52,9 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
         url_str = self._build_delete_request_url(model_class, pk)
         return self.request_delete(
             url=url_str, auth_header=auth_header,
-            parameters={"base_filter_skip": base_filter_skip})
+            parameters={
+                "base_filter_skip": base_filter_skip,
+                "force_delete": force_delete})
 
     @staticmethod
     def _build_remove_file_field(model_class, pk):
@@ -119,6 +124,7 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
 
     def delete_many(self, model_class: str, filter_dict: None | dict = None,
                     exclude_dict: None | dict = None,
+                    force_delete: bool = False,
                     auth_header: dict = None,
                     base_filter_skip: list[str] = None) -> bool:
         """Remove many objects using query to retrict removal.
@@ -153,10 +159,15 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
         exclude_dict = {} if exclude_dict is None else exclude_dict
         base_filter_skip = self._resolve_base_filter_skip(
             base_filter_skip)
+        
+        if force_delete:
+            raise NotImplementedError("Force delete is not implemented yet.")
 
         url_str = self._build_delete_many_request_url(model_class)
         return self.request_post(
             url=url_str,
-            parameters={'base_filter_skip': base_filter_skip},
+            parameters={
+                'base_filter_skip': base_filter_skip,
+                'force_delete': force_delete},
             data={'filter_dict': filter_dict, 'exclude_dict': exclude_dict},
             auth_header=auth_header)
