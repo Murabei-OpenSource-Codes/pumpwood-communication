@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.48-b.0] - 2026-07-13
+
+### Added
+- **``tag``**: translation context disambiguation on
+  ``PumpWoodException`` and ``raise_pumpwood_exception``.
+- **``i8n_object``**: optional i18n backend attached to
+  ``PumpWoodException`` for deferred message translation.
+
+### Changed
+- **Exception translation**: ``format_message`` calls
+  ``i8n_object.t()`` when ``was_translated`` is ``False``.
+- **Serialization**: ``to_dict`` exposes ``was_translated`` and ``tag``
+  instead of ``translate``.
+- **``PumpWoodOtherException``**: ``format_message`` returns the raw
+  message without formatting.
+- **Microservice error handler**: rehydrates ``was_translated`` from
+  remote exception payloads.
+
 ## [2.4.46] - 2026-07-08
 
 ### Fixed
