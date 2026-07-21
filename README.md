@@ -1,25 +1,64 @@
 # PumpWood Communication
-This packages facilitates the communication with end-points with Pumpwood pattern and helps with authentication. This package was
-developed by Murabei Data Science and is under BSD-3-Clause license.
+
+This package facilitates communication with PumpWood-pattern endpoints
+and helps with authentication. It was developed by Murabei Data Science
+and is under the BSD-3-Clause license.
 
 <p align="center" width="60%">
   <img src="static_doc/sitelogo-horizontal.png" /> <br>
 
   <a href="https://en.wikipedia.org/wiki/Cecropia">
-    Pumpwood is a native brasilian tree
+    Pumpwood is a native Brazilian tree
   </a> which has a symbiotic relation with ants (Murabei)
 </p>
 
-## Documentation page
-Check documentation page [here](https://murabei-opensource-codes.github.io/pumpwood-communication/pumpwood_communication.html).
+## Objective and motivation
+
+Python client library for PumpWood-style REST backends: login, CRUD,
+actions, batch and parallel calls, disk cache, and typed exceptions.
+
+### Why this exists
+
+PumpWood services share a common endpoint layout (`rest/<model>/…`).
+This package centralizes HTTP calls, auth token handling, error
+rehydration, and parallel chunking so workers and scripts do not
+reimplement that wiring.
+
+### How it is used
+
+Import `PumpWoodMicroService`, configure `server_url` and credentials,
+call `login()`, then use list, save, retrieve, delete, and action
+helpers from workers, ETL jobs, notebooks, or other Murabei services.
+
+### Scope
+
+Owns the HTTP client, serializers, cache, and exception mapping.
+Backend business rules, models, and deploy live in PumpWood API
+services. See the generated docs for the full method list.
+
+## Documentation
+
+Check the documentation page
+[here](https://murabei-opensource-codes.github.io/pumpwood-communication/pumpwood_communication.html).
+
+## Install
+
+Requires Python 3.6 or newer (`requires-python` in `pyproject.toml`).
+
+```bash
+pip install pumpwood-communication
+```
+
+For local development, install from the repository root with Poetry or
+pip in editable mode.
 
 ## Quick start
-The main class in package is PumpWoodMicroService and it abstract
-all end-point communication using functions. It is possible to
-set the credentials when initializing the object or after using the
-init method.
 
-```
+The main class in the package is `PumpWoodMicroService`. It abstracts
+all endpoint communication using helper methods. Set credentials when
+initializing the object or afterward with `init`.
+
+```python
 from pumpwood_communication.microservices import PumpWoodMicroService
 
 microservice = PumpWoodMicroService(
@@ -28,9 +67,10 @@ microservice = PumpWoodMicroService(
 microservice.login()
 ```
 
-Some times is easier to create the object and then set the credentials,
-this can be done using the init method
-```
+Sometimes it is easier to create the object first and set credentials
+later with `init`:
+
+```python
 from pumpwood_communication.microservices import PumpWoodMicroService
 
 microservice = PumpWoodMicroService()
@@ -44,31 +84,29 @@ microservice.init(
 microservice.login()
 ```
 
-PumpWoodMicroService constructor and init method have some basic parameters.
-- <b>name:</b> Name of the microservice (object to make communication), it is
-  only used for debug proposes, and does not afect usage.
-- <b>server_url:</b> URL of the server to connect using a Pumpwood pattern.
-- <b>username:</b> Username for the connection.
-- <b>password:</b> Password for the connection.
-- <b>verify_ssl:</b> At sobre test enviroment the end-point may have a self
-  assigned certificates.
+`PumpWoodMicroService` constructor and `init` accept these parameters:
 
-## Quick start
-It will be explored some basic usage for the package, for more information
-check documentation.
+- **name:** Microservice name for debug purposes only; does not affect
+  usage.
+- **server_url:** Server URL using the PumpWood pattern.
+- **username:** Username for the connection.
+- **password:** Password for the connection.
+- **verify_ssl:** In some test environments the endpoint may use a
+  self-assigned certificate.
 
 ## Basic definition
-There are some concepts that might make it ease to understand the general
-structure of pumpwood based end-point.
 
-Pumpwood end-points are organized in `model_class` which is the class exposed
-thought the Pumpwood Api. Every object in Pumpwood have its own primary key,
-which is retrieved as pk at JSON responses indenpendetly how if is used at the
-database (pk may be a `id` or `indentification_id` at DB).
+These concepts help understand the general structure of PumpWood-based
+endpoints.
 
-All end-points for a given `model_class` are structured with the
-structure `rest/[model_class]/[end-point]/[?pk]&[query parameters]`. Some
-examples below:
+PumpWood endpoints are organized by `model_class`, the class exposed
+through the PumpWood API. Every object has its own primary key,
+returned as `pk` in JSON responses regardless of the database column
+name (`pk` may map to `id` or `identification_id` in the DB).
+
+All endpoints for a given `model_class` follow
+`rest/[model_class]/[endpoint]/[?pk]&[query parameters]`. Examples:
+
 - [POST] `rest/user/list/`
 - [POST] `rest/user/list-without-pag/`
 - [POST] `rest/user/save/`
@@ -78,11 +116,14 @@ examples below:
 - [GET] `rest/company/actions/`
 
 ## Raise and error treatment
-When a Pumpwood exception is identified on the request response the microservice re-raise it using the same exception. This helps debug and propagating errors on other end-points.
 
-It is possible to use exceptions defined at PumpWood microservice at exceptions.
+When a PumpWood exception is identified in the request response, the
+microservice re-raises it using the same exception type. This helps
+debugging and propagating errors across endpoints.
 
-```
+Exceptions defined in the package can be raised directly:
+
+```python
 from pumpwood_communication.exceptions import PumpWoodException
 
 raise PumpWoodException(
@@ -115,10 +156,11 @@ Correct spelling is ``PUMPWOOD_COMMUNICATION__*``. Legacy typo spelling
 correct name is not set.
 
 ### Parallel and requests
+
 - **PUMPWOOD_COMMUNICATION__N_PARALLEL:** Number of parallel requests.
   Default ``4``.
-- **PUMPWOOD_COMMUNICATION__PARALLEL_CHUNK_SIZE:** Chunk size for parallel
-  bulk save. Default ``10000``.
+- **PUMPWOOD_COMMUNICATION__PARALLEL_CHUNK_SIZE:** Chunk size for
+  parallel bulk save. Default ``10000``.
 - **PUMPWOOD_COMMUNICATION__DEFAULT_TIMEOUT:** Default HTTP request
   timeout in seconds. Default ``60``.
 - **PUMPWOOD_COMMUNICATION__DEBUG:** Refresh token on each request when
@@ -127,6 +169,7 @@ correct name is not set.
   when ``TRUE``. Default ``TRUE``.
 
 ### Cache
+
 - **PUMPWOOD_COMMUNICATION__CACHE_ENABLE:** Enable disk cache. Default
   ``TRUE``.
 - **PUMPWOOD_COMMUNICATION__CACHE_BASE_PATH:** Sub-path under
@@ -148,14 +191,21 @@ correct name is not set.
   authorization and row-permission cache. Default ``60``.
 
 ### Encryption
+
 - **PUMPWOOD_COMMUNICATION__CRYPTO_FERNET_KEY:** Fernet key for
   ``PumpwoodCryptography``. No default; encrypt/decrypt raise when unset.
 
 ## Basic usage
-### List and list without pagination
-Both methods list objects using dictionaries passed as payload on a post request.
 
-```
+The sections below cover common operations. For the full API, see the
+generated documentation.
+
+### List and list without pagination
+
+Both methods list objects using dictionaries passed as payload on a
+POST request.
+
+```python
 from pumpwood_communication.microservices import PumpWoodMicroService
 
 microservice = PumpWoodMicroService(
@@ -174,23 +224,21 @@ list_results = microservice.list(
 )
 ```
 
-Using `filter_dict` and `exclude_dict` is possible adjust the query of the objects. It is also possible to order the results
-using a list of fields, names starting with `-` will order
-in decrescent.
+Use `filter_dict` and `exclude_dict` to adjust the query. Order results
+with a list of fields; names starting with `-` sort in descending order.
 
-`list` method paginate the results acording to backend page
-size default. `list_without_pag` does not paginate and must
-be used with caution for a large number of objects. It is
-possible to paginate the results using the pks recived.
+`list` paginates results according to the backend page size.
+`list_without_pag` does not paginate and must be used with caution for
+large result sets. Manual pagination using received primary keys is
+also possible:
 
-```
+```python
 microservice = PumpWoodMicroService(
     server_url="http://0.0.0.0:8080/",
     username="pumpwood", password="pumpwood")
 microservice.login()
 
-# Get the first page results using the filters and the
-# order
+# Get the first page results using the filters and the order
 pag_1 = microservice.list(
     model_class="Company",
     filter_dict={
@@ -201,7 +249,7 @@ pag_1 = microservice.list(
     order_by=["holding_name", "-name"]
 )
 
-# Get the list of the pks recived
+# Get the list of the pks received
 pag_1_pks = [obj["pk"] for obj in pag_1]
 
 # Use in the next page query
@@ -217,44 +265,46 @@ pag_2 = microservice.list(
 )
 ```
 
-If is also possible to restrict the fields returned by end-point
-using `fields` parameter, if None the default columns with be
-returned.
+Restrict fields returned by the endpoint with the `fields` parameter.
+When `fields` is `None`, default columns are returned.
 
-Using `__` is possible to access related fields and apply
-operators to the request (almost equal to Django api). Some
-examples of operators:
+Use `__` to access related fields and apply operators (similar to the
+Django ORM). Some examples:
 
-#### Time/Date and Numeric
-- <b>gt:</b> Greater then.
-- <b>lt:</b> Less then.
-- <b>gte:</b> Greater then and equal.
-- <b>lte:</b> Less then and equal.
+#### Time, date, and numeric
+
+- **gt:** Greater than.
+- **lt:** Less than.
+- **gte:** Greater than or equal.
+- **lte:** Less than or equal.
 
 #### List of values
-- <b>in:</b> Check if a values is present in a list.
+
+- **in:** Check if a value is present in a list.
 
 #### Text field
-- <b>contains:</b> Check if a value contains another.
-- <b>icontains:</b> Check if a value contains another, case insensitive.
-- <b>unaccent_icontains:</b> Se o texto contém o texto especificado desconsiderando o case e os acentos.
-- <b>startswith:</b> Se o texto começa com.
-- <b>istartswith:</b> Se o texto começa com sem considerar o case.
-- <b>unaccent_istartswith:</b> Se o texto começa com sem considerar o case e os acentos.
-- <b>endswith:</b> Se o texto termina com.
-- <b>iendswith:</b> Se o texto termina com e desconsiderando o case.
-- <b>unaccent_iendswith:</b> Se o texto termina com e desconsiderando o case e os acentos.
 
-#### Campos de data e tempo:
-- <b>year:</b> Se a data é no ano especificado.
-- <b>month:</b> Se a data é no mês especificado.
-- <b>day:</b> Se a data é no dia especificado.
+- **contains:** Check if a value contains another.
+- **icontains:** Case-insensitive contains.
+- **unaccent_icontains:** Contains, case and accent insensitive.
+- **startswith:** Starts with the given text.
+- **istartswith:** Starts with, case insensitive.
+- **unaccent_istartswith:** Starts with, case and accent insensitive.
+- **endswith:** Ends with the given text.
+- **iendswith:** Ends with, case insensitive.
+- **unaccent_iendswith:** Ends with, case and accent insensitive.
 
-#### JSON Fields
+#### Date and time fields
 
-It is possible to access JSON key/value using `->` operator.
+- **year:** Date is in the specified year.
+- **month:** Date is in the specified month.
+- **day:** Date is on the specified day.
 
-```
+#### JSON fields
+
+Access JSON key/value pairs with the `->` operator.
+
+```python
 list_results = microservice.list(
     model_class="Company",
     filter_dict={
@@ -269,13 +319,13 @@ list_results = microservice.list(
 ```
 
 ### Saving and updating objects
-To save and update object it is possible to use the `save` method. It takes a dictionary with a model_class indicating the
-end-point that will be used.
 
-If a pk is passed at the dictionary then the object will be
-updated. pk=None also lead to adding a new object to database.
+Use the `save` method with a dictionary that includes `model_class` to
+select the endpoint.
 
-```
+If `pk` is present, the object is updated. `pk=None` creates a new row.
+
+```python
 # Creating a new object
 microservice.save(obj_dict={
   "model_class": "Company",
@@ -288,7 +338,7 @@ microservice.save(obj_dict={
   }
 })
 
-# Updating a object in database
+# Updating an object in the database
 microservice.save(obj_dict={
   "pk": 5,
   "model_class": "Company",
@@ -302,11 +352,32 @@ microservice.save(obj_dict={
 })
 ```
 
-### Actions: listing and executing
-At each model_class it is possible to associate actions, they
-can be regular or static (not associated with an object). For each model_class is possible to list the available actions using `list_actions` functions
+### Deleting objects
 
+Use `delete` to remove a single object by primary key. Some model
+classes soft-delete (`deleted=True`) instead of removing the row.
+
+Pass ``force_delete=True`` to request a hard delete when the backend
+supports it (default ``False``).
+
+```python
+microservice.delete(model_class="Company", pk=5)
+
+microservice.delete(
+    model_class="Company", pk=5, force_delete=True)
 ```
+
+Use `delete_many` with `filter_dict` and `exclude_dict` to remove
+multiple rows. ``force_delete`` is accepted on the simple endpoint but
+raises ``NotImplementedError`` when set to ``True`` until backend
+support is complete.
+
+### Actions: listing and executing
+
+Each `model_class` can expose actions, regular or static (not tied to
+an object). List available actions with `list_actions`:
+
+```python
 resp_list_actions = microservice.list_actions(
     model_class="Company")
 # [
@@ -349,10 +420,9 @@ resp_list_actions = microservice.list_actions(
 # ]
 ```
 
-To execute an action it is possible to use execute_action function. It
-execute at a model_class.
+Execute an action with `execute_action`:
 
-```
+```python
 microservice.execute_action(
     model_class="Company", pk=1, action="duplicate", parameters={
         "clone_id": True})
@@ -364,7 +434,8 @@ microservice.execute_action(
 ```
 
 ### Other functions
-It is possible to use other functions, the documentation can be gatered using the doc string. Some of the functions in microservice.
+Other methods are documented in their docstrings. Some of the helpers
+on `PumpWoodMicroService`:
 
 - error_handler
 - request_post

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.49-b.0] - 2026-07-21
+
+### Added
+- **``delete`` / ``delete_many``**: ``force_delete`` query parameter on
+  simple delete endpoints (default ``False``).
+
+### Changed
+- **``delete_many``**: raises ``NotImplementedError`` when
+  ``force_delete=True`` until parallel and backend support is ready.
+
 ## [2.4.48-b.0] - 2026-07-13
 
 ### Added
