@@ -27,7 +27,8 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
     def aggregate(self, model_class: str, group_by: List[str] | str, agg: dict,
                   filter_dict: None | dict = None, exclude_dict: dict = None,
                   order_by: List[str] = None, auth_header: dict = None,
-                  limit: int = None, as_dataframe: bool = False
+                  limit: int = None, as_dataframe: bool = False,
+                  show_deleted: bool = False,
                   ) -> pd.DataFrame:
         """Save a list of objects with one request.
 
@@ -57,6 +58,8 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
 
                 The dictinary keys will be used to return the results as
                 columns.
+            show_deleted (bool):
+                If deleted data should be returned.
             filter_dict (dict):
                 Filter that will be applied before the aggregation.
             exclude_dict (dict):
@@ -104,7 +107,7 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
         data = {
             'agg': agg, 'group_by': group_by, 'filter_dict': filter_dict,
             'exclude_dict': exclude_dict, 'order_by': order_by,
-            'limit': limit}
+            'limit': limit, 'show_deleted': show_deleted}
         return_data = self.request_post(
             url=url_str, data=data, auth_header=auth_header)
         if not as_dataframe:
