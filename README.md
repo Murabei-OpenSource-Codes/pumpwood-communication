@@ -32,9 +32,10 @@ helpers from workers, ETL jobs, notebooks, or other Murabei services.
 
 ### Scope
 
-Owns the HTTP client, serializers, cache, and exception mapping.
-Backend business rules, models, and deploy live in PumpWood API
-services. See the generated docs for the full method list.
+Owns the HTTP client, serializers, cache, exception mapping, and shared
+dataclass types for ETL payloads and view configuration. Backend
+business rules, models, and deploy live in PumpWood API services. See
+the generated docs for the full method list.
 
 ## Documentation
 
@@ -148,6 +149,23 @@ through unchanged.
 ``logout`` and ``logout_all`` clear the cached user, token, and auth
 header so ``is_superuser()`` and ``base_filter_skip`` defaults reset
 correctly.
+
+## Cloning the microservice client
+
+Use ``clone()`` on ``PumpWoodMicroService`` to build a second client with
+the same ``server_url``, credentials, and timeout settings. When
+``copy_session=True`` (default) and the instance is logged in, the clone
+receives a copy of the auth header and user so background threads can
+call the API without sharing mutable token state with the original
+client.
+
+```python
+worker_ms = microservice.clone()
+# use worker_ms in a thread or async worker
+```
+
+Pass ``copy_session=False`` to get a fresh client that must ``login()``
+on its first request.
 
 ## Environment variables
 
@@ -437,6 +455,7 @@ microservice.execute_action(
 Other methods are documented in their docstrings. Some of the helpers
 on `PumpWoodMicroService`:
 
+- clone
 - error_handler
 - request_post
 - request_get
