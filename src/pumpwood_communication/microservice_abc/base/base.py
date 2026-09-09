@@ -474,7 +474,39 @@ class PumpWoodMicroServiceBase:
         self.__token_expiry = token_expiry
         self.__user = user
         return True
-    
+
+    def clone(self, copy_session: bool = True) -> "PumpWoodMicroServiceBase":
+        """Create a copy of this microservice instance.
+
+        Builds a new instance of the same class with the same connection
+        configuration. When ``copy_session`` is True and this instance has
+        an active session, the auth header, token expiry, and user data
+        are copied so the clone can run requests independently (for
+        example in a background thread) without sharing mutable auth
+        state with the original.
+
+        Args:
+            copy_session (bool):
+                If True and this instance is logged in, copy the
+                authentication session to the clone. Defaults to True.
+
+        Returns:
+            PumpWoodMicroServiceBase:
+                A new microservice instance with the same configuration.
+        """
+        cloned = self.__class__(
+            name=self.name, server_url=self.server_url,
+            username=self.__username, password=self.__password,
+            verify_ssl=self._verify_ssl, debug=self._debug,
+            default_timeout=self._default_timeout)
+        if copy_session and self.__auth_header is not None:
+            cloned.set_auth_header(
+                auth_token=self.__auth_header['Authorization'],
+                token_expiry=self.__token_expiry,
+                user=copy.deepcopy(self.__user))
+            cloned._is_mfa_login = self._is_mfa_login
+        return cloned
+
     def is_superuser(self) -> bool:
         """Check if is superuser.
 
@@ -488,7 +520,7 @@ class PumpWoodMicroServiceBase:
         if user is None:
             return False
         return user.get("is_superuser", False)
-    
+
     def _resolve_base_filter_skip(self, base_filter_skip):
         """Resolve base filter skip.
 
@@ -506,7 +538,7 @@ class PumpWoodMicroServiceBase:
                 base_filter_skip = []
         return base_filter_skip
 
-    def _check_auth_header(self, auth_header: dict,
+    def _check_auth_header(self, auth_header: dict | None,
                            multipart: bool = False) -> dict:
         """Check if auth_header is set or auth_header if provided.
 
