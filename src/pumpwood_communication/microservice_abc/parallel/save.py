@@ -21,6 +21,7 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
                       base_filter_skip: list | list[list[str]] = None,
                       n_parallel: int | None = None,
                       upsert: bool | list[bool] = False,
+                      disable_etl_trigger: bool | list[bool] = False,
                       ) -> List[dict]:
         """Save or Update a new object.
 
@@ -70,6 +71,8 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
             upsert (bool):
                 Perform an upsert operation, if the object associated with the
                 pk is not found, it will be inserted on the database.
+            disable_etl_trigger (bool):
+                Disable the ETL trigger for the object.
 
         Returns:
             Return updated/created object data.
@@ -129,6 +132,8 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
             force_replicate=True)
         list_upsert = self.convert_to_list(
             argument=upsert, length=len(list_obj_dict))
+        list_disable_etl_trigger = self.convert_to_list(
+            argument=disable_etl_trigger, length=len(list_obj_dict))
 
         column_arg = {
             'obj_dict': list_obj_dict,
@@ -139,7 +144,8 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
             'related_fields': list_related_fields,
             'base_filter_skip': list_base_filter_skip,
             'files': list_files,
-            'upsert': list_upsert
+            'upsert': list_upsert,
+            'disable_etl_trigger': list_disable_etl_trigger,
         }
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(

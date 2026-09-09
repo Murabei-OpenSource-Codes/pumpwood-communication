@@ -38,7 +38,8 @@ class ABCSimpleActionMicroservice(ABC, PumpWoodMicroServiceBase):
     def execute_action(self, model_class: str, action: str, pk: int = None,
                        parameters: dict = {}, files: list = None,
                        auth_header: dict = None,
-                       base_filter_skip: list[str] | list[list[str]] = None
+                       base_filter_skip: list[str] | list[list[str]] = None,
+                       disable_etl_trigger: bool = False
                        ) -> dict:
         """Execute action associated with a model class.
 
@@ -100,4 +101,6 @@ class ABCSimpleActionMicroservice(ABC, PumpWoodMicroServiceBase):
             model_class=model_class, action=action, pk=pk)
         return self.request_post(
             url=url_str, data=parameters, files=files, auth_header=auth_header,
-            parameters={"base_filter_skip": base_filter_skip})
+            parameters={
+                "base_filter_skip": base_filter_skip,
+                "disable_etl_trigger": disable_etl_trigger})

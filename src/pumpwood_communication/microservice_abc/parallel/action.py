@@ -13,7 +13,8 @@ class ABCParallelActionMicroservice(ABCParallelBaseMicroservice):
                                 parameters: dict | list[dict] = {},
                                 n_parallel: int = None,
                                 auth_header: dict = None,
-                                base_filter_skip: list[str] | list[list[str]] = None # NOQA
+                                base_filter_skip: list[str] | list[list[str]] = None, # NOQA
+                                disable_etl_trigger: bool | list[bool] = False
                                 ) -> list[dict]:
         """Make [n_parallel] parallel execute_action requests.
 
@@ -40,6 +41,8 @@ class ABCParallelActionMicroservice(ABCParallelBaseMicroservice):
             base_filter_skip (list[str] | list[list[str]]):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            disable_etl_trigger (bool):
+                Disable the ETL trigger for the object.
 
         Returns:
             list of the execute_action request data.
@@ -65,12 +68,16 @@ class ABCParallelActionMicroservice(ABCParallelBaseMicroservice):
         list_base_filter_skip = self.convert_to_list(
             argument=base_filter_skip, length=len(list_pk),
             force_replicate=True)
+        list_disable_etl_trigger = self.convert_to_list(
+            argument=disable_etl_trigger, length=len(list_pk))
         column_arg = {
             'model_class': list_model_class,
             'action': list_action,
             'parameters': list_parameters,
             'auth_header': list_auth_header,
-            'base_filter_skip': list_base_filter_skip}
+            'base_filter_skip': list_base_filter_skip,
+            'disable_etl_trigger': list_disable_etl_trigger,
+        }
 
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
