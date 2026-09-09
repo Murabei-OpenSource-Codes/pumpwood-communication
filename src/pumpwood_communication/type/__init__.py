@@ -15,6 +15,8 @@ from .info import (
 from .views import (
     BulkSaveMicroserviceAutoFillField, BulkSaveLocalAutoFillField,
     BulkSaveDefaultField, MixinBulkSaveField)
+from .etl import (
+    ETLDimensions, ETLDataInputObject, ETLFact, ETLAuxResults)
 
 
 __all__ = [
@@ -27,4 +29,5 @@ __all__ = [
     PumpwoodLoggedUserType, LOGGED_USER, PumpwoodAutoFillType, AUTO_FILL,
     BulkSaveMicroserviceAutoFillField, BulkSaveLocalAutoFillField,
     BulkSaveDefaultField, MixinBulkSaveField, ActionInfomation,
-    ActionParameterType, ActionReturnType]
+    ActionParameterType, ActionReturnType,
+    ETLDimensions, ETLDataInputObject, ETLFact, ETLAuxResults]
