@@ -21,7 +21,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
              auth_header: dict = None, fields: list = None,
              default_fields: bool = False, foreign_key_fields: bool = False,
              related_fields: bool = False, base_filter_skip: list = None,
-             upsert: bool = False) -> dict[str, Any]:
+             upsert: bool = False, disable_etl_trigger: bool = False
+             ) -> dict[str, Any]:
         """Save or Update a new object.
 
         Function to save or update a new model_class object. If obj_dict['pk']
@@ -67,6 +68,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
             upsert (bool):
                 Perform an upsert operation, if the object associated with the
                 pk is not found, it will be inserted on the database.
+            disable_etl_trigger (bool):
+                Disable the ETL trigger for the object.
 
         Returns:
             Return updated/created object data.
@@ -104,7 +107,8 @@ class ABCSimpleSaveMicroservice(ABC, PumpWoodMicroServiceBase):
             "foreign_key_fields": foreign_key_fields,
             "related_fields": related_fields,
             "base_filter_skip": base_filter_skip,
-            "upsert": upsert}
+            "upsert": upsert,
+            "disable_etl_trigger": disable_etl_trigger}
         return self.request_post(
             url=url_str, data=obj_dict, parameters=parameters, files=files,
             auth_header=auth_header)

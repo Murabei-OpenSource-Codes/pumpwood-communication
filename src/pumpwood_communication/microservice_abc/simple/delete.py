@@ -13,7 +13,8 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
 
     def delete(self, model_class: str, pk: int,
                auth_header: dict = None, force_delete: bool = False,
-               base_filter_skip: list[str] | None = None) -> dict:
+               base_filter_skip: list[str] | None = None,
+               disable_etl_trigger: bool = False) -> dict:
         """Send delete request to a PumpWood object.
 
         Delete (or whatever the PumpWood system have been implemented) the
@@ -37,6 +38,8 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
             base_filter_skip (list[str]):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            disable_etl_trigger (bool):
+                Disable the ETL trigger for the object.
 
         Returns:
             Returns delete object.
@@ -54,7 +57,8 @@ class ABCSimpleDeleteMicroservice(ABC, PumpWoodMicroServiceBase):
             url=url_str, auth_header=auth_header,
             parameters={
                 "base_filter_skip": base_filter_skip,
-                "force_delete": force_delete})
+                "force_delete": force_delete,
+                "disable_etl_trigger": disable_etl_trigger})
 
     @staticmethod
     def _build_remove_file_field(model_class, pk):

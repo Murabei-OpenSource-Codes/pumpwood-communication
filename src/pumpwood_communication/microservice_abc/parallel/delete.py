@@ -10,7 +10,8 @@ class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
     def parallel_delete(self, model_class: Union[str, list[str]],
                         list_pk: list[int], n_parallel: int = None,
                         auth_header: dict = None,
-                        base_filter_skip: list[str] | list[list[str]] = None):
+                        base_filter_skip: list[str] | list[list[str]] = None,
+                        disable_etl_trigger: bool | list[bool] = False):
         """Make many [n_parallel] delete requests.
 
         Args:
@@ -28,6 +29,8 @@ class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
             base_filter_skip (list):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            disable_etl_trigger (bool):
+                Disable the ETL trigger for the object.
 
         Returns:
             List of the delete request data.
@@ -47,11 +50,15 @@ class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
         list_base_filter_skip = self.convert_to_list(
             argument=base_filter_skip, length=len(list_pk),
             force_replicate=True)
+        list_disable_etl_trigger = self.convert_to_list(
+            argument=disable_etl_trigger, length=len(list_pk))
         column_arg = {
             'model_class': list_model_class,
             'auth_header': list_auth_header,
             'base_filter_skip': list_base_filter_skip,
-            'pk': list_pk}
+            'pk': list_pk,
+            'disable_etl_trigger': list_disable_etl_trigger,
+        }
 
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
