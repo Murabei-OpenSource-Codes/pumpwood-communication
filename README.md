@@ -451,6 +451,26 @@ microservice.execute_action(
         "parameters": {"parm1": 1, "param2": 2}})
 ```
 
+## Disabling ETL triggers
+
+``save``, ``delete``, and ``execute_action`` accept an optional
+``disable_etl_trigger`` query parameter (default ``False``). Set it to
+``True`` to skip backend ETL triggers on that request.
+
+Parallel helpers ``parallel_save``, ``parallel_delete``, and
+``parallel_execute_action`` forward the same flag as a single ``bool``
+or a per-request ``list[bool]``.
+
+```python
+microservice.save(obj_dict={...}, disable_etl_trigger=True)
+
+microservice.delete(
+    model_class="Company", pk=5, disable_etl_trigger=True)
+
+microservice.parallel_save(
+    list_obj_dict=objects, disable_etl_trigger=True)
+```
+
 ### Other functions
 Other methods are documented in their docstrings. Some of the helpers
 on `PumpWoodMicroService`:
