@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.57-b.0] - 2026-09-15
+
+### Added
+- **`CompositePkBase64Converter.load`**: accept a flat ``dict``; reject
+  non-string keys with ``PumpWoodException``.
+
+### Changed
+- **`CompositePkBase64Converter.load`**: integer-like scalars (``int`` or
+  numeric strings) return ``{"id": <int>}`` instead of a bare ``int``.
+- **Error message**: non-integer float PK values use an updated message
+  prefix.
+
 ## [2.4.56-b.0] - 2026-09-15
 
 ### Added

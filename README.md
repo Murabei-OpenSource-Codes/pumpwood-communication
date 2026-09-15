@@ -105,6 +105,14 @@ through the PumpWood API. Every object has its own primary key,
 returned as `pk` in JSON responses regardless of the database column
 name (`pk` may map to `id` or `identification_id` in the DB).
 
+Composite keys may appear as a base64-encoded JSON string in ``pk``.
+Use ``CompositePkBase64Converter.load`` from
+``pumpwood_communication.serializers`` to decode to a flat dictionary
+with string keys.
+Integer-like values normalize to ``{"id": <int>}``; you can pass an
+already-decoded ``dict`` and non-string keys raise
+``PumpWoodException``.
+
 All endpoints for a given `model_class` follow
 `rest/[model_class]/[endpoint]/[?pk]&[query parameters]`. Examples:
 
@@ -254,7 +262,9 @@ once. It calls `list` repeatedly with `order_by=['id']`, a per-chunk
 `limit` (default chunk size ``10000``), and an ``id__gt`` cursor from
 the last row. Custom `order_by` is not supported. Optional ``limit``
 caps the total rows returned. Set ``foreign_key_fields=True`` to embed
-related objects like on ``list``.
+related objects like on ``list``. When ``pk`` is a composite string,
+``CompositePkBase64Converter.load`` supplies the ``id`` used for the
+cursor.
 
 ```python
 rows = microservice.list_by_chunks(

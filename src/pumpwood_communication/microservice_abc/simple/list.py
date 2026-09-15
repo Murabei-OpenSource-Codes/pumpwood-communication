@@ -253,7 +253,7 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
                 If True and ``fields`` is None, use backend default list
                 fields. Defaults to False.
             chunk_size (int):
-                Maximum rows per ``list`` call. Defaults to 50000.
+                Maximum rows per ``list`` call. Defaults to 10000.
             limit (int):
                 Maximum total rows to return across all chunks; None for no
                 cap.
