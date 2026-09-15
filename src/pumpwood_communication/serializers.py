@@ -231,7 +231,18 @@ class CompositePkBase64Converter:
 
     @classmethod
     def validate_primary_key_dict(cls, primary_key_dict: dict):
-        """."""
+        """Validate primary key dictionary.
+
+        Args:
+            primary_key_dict (dict):
+                Dictionary with the primary key values.
+
+        Raises:
+            PumpWoodNotImplementedError:
+                If primary key dictionary is not a dictionary.
+            PumpWoodException:
+                If primary key dictionary contains nested types.
+        """
         if not isinstance(primary_key_dict, dict):
             msg = "primary_key_dict must be a dictionary. Received: {type}"
             raise PumpWoodNotImplementedError(
@@ -268,29 +279,51 @@ class CompositePkBase64Converter:
         return base64_composite_pk
 
     @staticmethod
-    def load(value: Union[str, int]) -> Union[int, dict]:
-        """Convert encoded primary keys to values.
+    def load(value: Union[str, int, dict]) -> dict:
+        """Convert encoded primary keys to a flat dictionary.
 
-        If the primary key is a string, try to transform it to dictionary
-        decoding json base64 to a dictionary.
+        Integer-like scalars normalize to ``{"id": <int>}``. Base64 JSON
+        strings decode to a flat dict. A ``dict`` input is returned after
+        validating that all keys are strings.
 
         Args:
-            value:
-                Primary key value as an integer or as a base64
-                encoded json dictionary.
+            value (Union[str, int, dict]):
+                Primary key as int, numeric string, base64 JSON string,
+                or flat dict with string keys.
 
-        Return:
-            Return the primary key as integer if possible, or try to decoded
-            it to a dictionary from a base64 encoded json.
+        Returns:
+            dict:
+                Flat primary-key mapping; integer-like inputs use key
+                ``id``.
+
+        Raises:
+            PumpWoodException:
+                If ``value`` is a dict with non-string keys, a
+                non-integer float, or neither integer-like nor decodable
+                base64 JSON.
         """
+        if isinstance(value, dict):
+            non_string_keys = [
+                key for key in value if not isinstance(key, str)]
+            if non_string_keys:
+                msg = (
+                    "primary_key_dict keys must be strings. "
+                    "Non-string keys: {keys}")
+                raise PumpWoodException(
+                    message=msg.format(keys=non_string_keys),
+                    payload={
+                        "value": value, "non_string_keys": non_string_keys})
+            return value
+
         # Try to convert value to integer
         try:
             float_value = float(value)
             if float_value.is_integer():
-                return int(float_value)
+                return {"id": int(float_value)}
             else:
-                msg = "[{value}] value is a float, but not integer."
-                raise PumpWoodException(msg, payload={"value": value})
+                msg = "PK value [{value}]  is a float, but not integer."
+                raise PumpWoodException(
+                    msg, payload={"value": value})
 
         # If not possible, try to decode a base64 JSON dictionary
         except Exception as e1:
