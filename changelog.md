@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.56-b.0] - 2026-09-15
+
+### Added
+- **`list_by_chunks`**: ``foreign_key_fields`` argument; forwarded to each
+  chunk ``list`` call (default ``False``).
+
+### Changed
+- **`list_by_chunks`**: default ``chunk_size`` is ``10000`` (was ``50000``).
+- **`list_by_chunks`**: docstring describes primary-key cursor pagination
+  via ``order_by=['id']`` and ``id__gt``.
+- **`parallel_list_by_chunks`**: ``foreign_key_fields`` moved after
+  ``chunk_size`` in the signature (keyword callers unchanged).
+
 ## [2.4.53-b.0] - 2026-09-09
 
 ### Added

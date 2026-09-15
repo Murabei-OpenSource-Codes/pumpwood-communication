@@ -247,8 +247,29 @@ with a list of fields; names starting with `-` sort in descending order.
 
 `list` paginates results according to the backend page size.
 `list_without_pag` does not paginate and must be used with caution for
-large result sets. Manual pagination using received primary keys is
-also possible:
+large result sets.
+
+Use `list_by_chunks` to walk large tables without loading everything at
+once. It calls `list` repeatedly with `order_by=['id']`, a per-chunk
+`limit` (default chunk size ``10000``), and an ``id__gt`` cursor from
+the last row. Custom `order_by` is not supported. Optional ``limit``
+caps the total rows returned. Set ``foreign_key_fields=True`` to embed
+related objects like on ``list``.
+
+```python
+rows = microservice.list_by_chunks(
+    model_class="Company",
+    filter_dict={"status": "active"},
+    fields=["pk", "name", "id"],
+    chunk_size=10000,
+    limit=500000,
+)
+```
+
+``parallel_list_by_chunks`` runs the same pattern for multiple filter
+sets in parallel.
+
+Manual pagination using received primary keys is also possible:
 
 ```python
 microservice = PumpWoodMicroService(
@@ -484,6 +505,7 @@ on `PumpWoodMicroService`:
 - list_registered_endpoints
 - list
 - list_without_pag
+- list_by_chunks
 - list_dimentions
 - list_dimention_values
 - list_one
@@ -507,6 +529,7 @@ on `PumpWoodMicroService`:
 - parallel_retrieve
 - parallel_list
 - parallel_list_without_pag
+- parallel_list_by_chunks
 - parallel_list_one
 - parallel_save
 - parallel_delete
