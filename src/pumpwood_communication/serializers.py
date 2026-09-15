@@ -268,7 +268,7 @@ class CompositePkBase64Converter:
         return base64_composite_pk
 
     @staticmethod
-    def load(value: Union[str, int]) -> Union[int, dict]:
+    def load(value: Union[str, int, dict]) -> Union[int, dict]:
         """Convert encoded primary keys to values.
 
         If the primary key is a string, try to transform it to dictionary
@@ -283,14 +283,28 @@ class CompositePkBase64Converter:
             Return the primary key as integer if possible, or try to decoded
             it to a dictionary from a base64 encoded json.
         """
+        if isinstance(value, dict):
+            non_string_keys = [
+                key for key in value if not isinstance(key, str)]
+            if non_string_keys:
+                msg = (
+                    "primary_key_dict keys must be strings. "
+                    "Non-string keys: {keys}")
+                raise PumpWoodException(
+                    message=msg.format(keys=non_string_keys),
+                    payload={
+                        "value": value, "non_string_keys": non_string_keys})
+            return value
+
         # Try to convert value to integer
         try:
             float_value = float(value)
             if float_value.is_integer():
-                return int(float_value)
+                return {"id": int(float_value)}
             else:
-                msg = "[{value}] value is a float, but not integer."
-                raise PumpWoodException(msg, payload={"value": value})
+                msg = "PK value [{value}]  is a float, but not integer."
+                raise PumpWoodException(
+                    msg, payload={"value": value})
 
         # If not possible, try to decode a base64 JSON dictionary
         except Exception as e1:
