@@ -212,10 +212,10 @@ class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
                                 auth_header: dict = None,
                                 fields: list = None,
                                 default_fields: bool = False,
-                                foreign_key_fields: bool = False,
                                 base_filter_skip: list = None,
                                 n_parallel: int = None,
                                 chunk_size: int = 50000,
+                                foreign_key_fields: bool = False,
                                 flat_results: bool = True,
                                 as_dataframe: bool = False) -> List[dict]:
         """List objects by chunks.

@@ -198,7 +198,7 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
         filter_dict = {} if filter_dict is None else filter_dict
         exclude_dict = {} if exclude_dict is None else exclude_dict
         order_by = [] if order_by is None else order_by
-        
+
         base_filter_skip = self._resolve_base_filter_skip(
             base_filter_skip)
 
@@ -224,55 +224,63 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
     def list_by_chunks(self, model_class: str, filter_dict: dict = None,
                        exclude_dict: dict = None, auth_header: dict = None,
                        fields: list = None, default_fields: bool = False,
-                       chunk_size: int = 50000, limit: int = None,
+                       chunk_size: int = 10000, limit: int = None,
                        base_filter_skip: list = None,
+                       foreign_key_fields: bool = False,
                        as_dataframe: bool = False, **kwargs
                        ) -> Union[List[dict], pd.DataFrame]:
-        """List objects by fetching them in chunks using PK to paginate.
+        """List objects in chunks using primary-key cursor pagination.
 
-        Fetch data in chunks to handle large datasets without causing backend
-        timeouts or memory issues. Results are ordered by the 'id' column
-        to ensure consistent pagination. Note that custom ordering is not
-        supported in this method.
+        Repeatedly calls ``list`` with ``order_by=['id']`` and a per-chunk
+        ``limit`` to avoid backend timeouts and large in-memory responses.
+        After each chunk, adds ``id__gt`` to the filter from the last row's
+        ``id`` (including composite string ``pk`` values). Custom
+        ``order_by`` is not supported. An optional ``limit`` caps the total
+        rows returned and may shrink the last chunk request.
 
         Args:
             model_class (str):
                 Model class of the end-point.
             filter_dict (dict):
-                Filter dictionary for the query.
+                Filter dictionary for the query. Defaults to ``{}``.
             exclude_dict (dict):
-                Exclude dictionary for the query.
+                Exclude dictionary for the query. Defaults to ``{}``.
             auth_header (dict):
                 Authentication header for user impersonation.
             fields (list):
-                List of fields to be returned.
+                Fields returned by each chunk; forwarded to ``list``.
             default_fields (bool):
-                If True and fields is None, return default backend fields.
+                If True and ``fields`` is None, use backend default list
+                fields. Defaults to False.
             chunk_size (int):
-                Number of objects to fetch per query. Defaults to 50000.
-            base_filter_skip (list):
-                List of base query filters to skip (requires superuser).
+                Maximum rows per ``list`` call. Defaults to 50000.
             limit (int):
-                Maximum number of records to return.
+                Maximum total rows to return across all chunks; None for no
+                cap.
+            base_filter_skip (list):
+                Base query filters to skip (requires superuser).
+            foreign_key_fields (bool):
+                If True, embed related foreign-key objects in each row (see
+                ``list``). Defaults to False.
             as_dataframe (bool):
-                If True, returns the results as a pandas DataFrame.
+                If True, return a pandas DataFrame with columns from
+                ``fields``. Defaults to False.
             **kwargs:
                 Additional arguments for compatibility.
 
         Returns:
             Union[List[dict], pd.DataFrame]:
-                A list of dictionaries or a pandas DataFrame containing the
-                serialized objects.
+                Serialized objects as a list of dicts, or a DataFrame when
+                ``as_dataframe`` is True.
 
         Raises:
             PumpWoodException:
-                If there is an error during the request or data processing.
+                If a chunk request or response handling fails.
         """
         filter_dict = (
             {} if filter_dict is None else filter_dict)
         exclude_dict = (
             {} if exclude_dict is None else exclude_dict)
-        
         base_filter_skip = self._resolve_base_filter_skip(
             base_filter_skip)
 
@@ -298,6 +306,7 @@ class ABCSimpleListMicroservice(ABC, PumpWoodMicroServiceBase):
                 exclude_dict=exclude_dict, order_by=["id"],
                 auth_header=auth_header, fields=fields,
                 default_fields=default_fields, limit=chunk_size,
+                foreign_key_fields=foreign_key_fields,
                 base_filter_skip=base_filter_skip)
             results_count = results_count + len(temp_results)
 
