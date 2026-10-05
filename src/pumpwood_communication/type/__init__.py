@@ -16,7 +16,9 @@ from .views import (
     BulkSaveMicroserviceAutoFillField, BulkSaveLocalAutoFillField,
     BulkSaveDefaultField, MixinBulkSaveField)
 from .etl import (
-    ETLDimensions, ETLDataInputObject, ETLFact, ETLAuxResults)
+    ETLDimensions, ETLDataInputObject, ETLFact, ETLAuxResults,
+    ETLResultObjectSave, ETLResultObjectDelete,
+    ETLResultActionRun, ETLResultAuxInfo)
 
 
 __all__ = [
@@ -30,4 +32,6 @@ __all__ = [
     BulkSaveMicroserviceAutoFillField, BulkSaveLocalAutoFillField,
     BulkSaveDefaultField, MixinBulkSaveField, ActionInfomation,
     ActionParameterType, ActionReturnType,
-    ETLDimensions, ETLDataInputObject, ETLFact, ETLAuxResults]
+    ETLDimensions, ETLDataInputObject, ETLFact, ETLAuxResults,
+    ETLResultObjectSave, ETLResultObjectDelete,
+    ETLResultActionRun, ETLResultAuxInfo]

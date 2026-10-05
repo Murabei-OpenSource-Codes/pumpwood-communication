@@ -65,6 +65,8 @@ class ABCSimpleActionMicroservice(ABC, PumpWoodMicroServiceBase):
             base_filter_skip (list):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            disable_etl_trigger (bool):
+                If True, the ETL trigger will be disabled.
 
         Returns:
             Return a dictonary with keys:
