@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.4.57-b.0] - 2026-09-15
+## [2.4.58] - 2026-10-05
+
+### Added
+- **ETL result types**: ``ETLResultObjectSave``, ``ETLResultObjectDelete``,
+  ``ETLResultActionRun``, and ``ETLResultAuxInfo`` exported from
+  ``pumpwood_communication.type`` (subclasses of ``ETLAuxResults``).
+
+### Changed
+- **`ETLAuxResults`**: marker base class for typed ETL outcomes; no
+  shared ``result_key`` / ``data`` fields (use result subclasses).
+- **ETL optional fields**: ``ETLDimensions`` and ``ETLDataInputObject``
+  optional lists annotated as ``list[...] | None``.
+
+## [2.4.57] - 2026-09-15
 
 ### Added
 - **`CompositePkBase64Converter.load`**: accept a flat ``dict``; reject
@@ -17,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Error message**: non-integer float PK values use an updated message
   prefix.
 
-## [2.4.56-b.0] - 2026-09-15
+## [2.4.56] - 2026-09-15
 
 ### Added
 - **`list_by_chunks`**: ``foreign_key_fields`` argument; forwarded to each
@@ -30,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`parallel_list_by_chunks`**: ``foreign_key_fields`` moved after
   ``chunk_size`` in the signature (keyword callers unchanged).
 
-## [2.4.53-b.0] - 2026-09-09
+## [2.4.53] - 2026-09-09
 
 ### Added
 - **`disable_etl_trigger`**: query parameter on ``save``, ``delete``,
@@ -39,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ``parallel_execute_action`` accept ``disable_etl_trigger`` as ``bool``
   or per-request ``list[bool]``.
 
-## [2.4.52-b.0] - 2026-09-09
+## [2.4.52] - 2026-09-09
 
 ### Added
 - **`PumpWoodMicroServiceBase.clone`**: create an independent copy of a
@@ -53,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`_check_auth_header`**: type hint accepts ``dict | None`` for
   ``auth_header``.
 
-## [2.4.49-b.0] - 2026-07-21
+## [2.4.49] - 2026-07-21
 
 ### Added
 - **``delete`` / ``delete_many``**: ``force_delete`` query parameter on
@@ -63,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **``delete_many``**: raises ``NotImplementedError`` when
   ``force_delete=True`` until parallel and backend support is ready.
 
-## [2.4.48-b.0] - 2026-07-13
+## [2.4.48] - 2026-07-13
 
 ### Added
 - **``tag``**: translation context disambiguation on
