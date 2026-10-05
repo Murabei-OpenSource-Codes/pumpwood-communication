@@ -175,6 +175,21 @@ worker_ms = microservice.clone()
 Pass ``copy_session=False`` to get a fresh client that must ``login()``
 on its first request.
 
+## ETL dataclass types
+
+Shared ETL payloads live in ``pumpwood_communication.type``:
+
+- ``ETLDimensions``, ``ETLDataInputObject``, ``ETLFact`` — dimension
+  and fact data for loads.
+- ``ETLAuxResults`` — base type for ETL job outcomes.
+- ``ETLResultObjectSave``, ``ETLResultObjectDelete``,
+  ``ETLResultActionRun``, ``ETLResultAuxInfo`` — typed results for
+  save, delete, action runs, and auxiliary metadata.
+
+``ETLResultObjectDelete.pk`` accepts an ``int``, composite ``str``, or
+flat ``dict`` primary key (same shapes as composite PK handling
+elsewhere in the client).
+
 ## Environment variables
 
 Correct spelling is ``PUMPWOOD_COMMUNICATION__*``. Legacy typo spelling
