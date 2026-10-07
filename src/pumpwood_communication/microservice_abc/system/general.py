@@ -1,6 +1,7 @@
 """Pumpwood internal and auxiliary associated requests."""
 import requests
 from abc import ABC
+from typing import Literal
 from urllib.parse import urljoin
 from pumpwood_communication.microservice_abc.base import (
     PumpWoodMicroServiceBase)

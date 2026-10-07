@@ -72,6 +72,7 @@ class ABCParallelActionMicroservice(ABCParallelBaseMicroservice):
             argument=disable_etl_trigger, length=len(list_pk))
         column_arg = {
             'model_class': list_model_class,
+            'pk': list_pk,
             'action': list_action,
             'parameters': list_parameters,
             'auth_header': list_auth_header,

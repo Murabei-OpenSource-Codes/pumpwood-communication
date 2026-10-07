@@ -20,7 +20,7 @@ from pumpwood_communication.microservice_abc.parallel import (
     ABCParallelListMicroservice, ABCParallelRetriveMicroservice,
     ABCParallelSaveMicroservice, ABCParallelBatchMicroservice)
 from pumpwood_communication.microservice_abc.system import (
-    ABCSystemMicroservice, ABCPermissionMicroservice)
+    ABCSystemMicroservice, ABCPermissionMicroservice, ABCETLMicroservice)
 
 
 class PumpWoodMicroService(ABCPermissionMicroservice,
@@ -38,7 +38,8 @@ class PumpWoodMicroService(ABCPermissionMicroservice,
                            ABCParallelListMicroservice,
                            ABCParallelRetriveMicroservice,
                            ABCParallelSaveMicroservice,
-                           ABCParallelBatchMicroservice):
+                           ABCParallelBatchMicroservice,
+                           ABCETLMicroservice):
     """Class to define an inter-pumpwood MicroService.
 
     Create an object ot help communication with Pumpwood based backends. It
