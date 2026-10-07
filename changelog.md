@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.60] - 2026-10-07
+
+### Added
+- **`ABCETLMicroservice`**: mixin exported from
+  ``pumpwood_communication.microservice_abc.system``.
+- **`PumpWoodMicroService.trigger_etl_process`**: call
+  ``ETLTrigger.process_matching_triggers``; returns ``None`` when
+  ``pumpwood-etl-app`` is not registered at Kong.
+
+### Changed
+- **`trigger_etl_process`**: Google docstring and ``bool | None`` return
+  annotation aligned with Kong skip behavior.
+
+### Fixed
+- **`parallel_execute_action`**: include ``pk`` in parallel column
+  arguments passed to ``execute_action``.
+
 ## [2.4.58] - 2026-10-05
 
 ### Added

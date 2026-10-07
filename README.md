@@ -517,6 +517,37 @@ microservice.parallel_save(
     list_obj_dict=objects, disable_etl_trigger=True)
 ```
 
+## Triggering ETL processes
+
+Use ``trigger_etl_process`` when a worker or script must run ETL
+matching rules explicitly (for example after a custom pipeline step).
+The client calls ``ETLTrigger.process_matching_triggers`` on the API.
+If ``pumpwood-etl-app`` is not registered at Kong, the method returns
+``None`` and sends no request.
+
+``trigger_type`` is one of ``create``, ``update``, ``delete``,
+``action``, or ``process_finish``. Pass ``object_id`` when the trigger
+targets a row; pass ``action_name`` when ``trigger_type`` is
+``action``. Optional ``process_name`` limits which ETL rules match;
+``parameters`` forwards extra context. ``send_to_rabbitmq`` defaults to
+``True``.
+
+```python
+microservice.trigger_etl_process(
+    model_class="Company",
+    trigger_type="update",
+    object_id=5,
+)
+
+microservice.trigger_etl_process(
+    model_class="Company",
+    trigger_type="action",
+    object_id=5,
+    action_name="duplicate",
+    parameters={"clone_id": True},
+)
+```
+
 ### Other functions
 Other methods are documented in their docstrings. Some of the helpers
 on `PumpWoodMicroService`:
@@ -544,6 +575,7 @@ on `PumpWoodMicroService`:
 - delete_many
 - list_actions
 - execute_action
+- trigger_etl_process
 - search_options
 - fill_options
 - pivot
