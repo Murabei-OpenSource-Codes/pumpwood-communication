@@ -215,7 +215,7 @@ class ABCSimpleBatchMicroservice(ABC, PumpWoodMicroServiceBase):
         post_data = {
             'columns': columns, 'format': format,
             'filter_dict': filter_dict, 'exclude_dict': exclude_dict,
-            'order_by': order_by, "variables": variables,
+            'order_by': order_by, "variables": fields,
             "show_deleted": show_deleted, "add_pk_column": add_pk_column}
         pivot_results = self.request_post(
             url=url_str, data=post_data, auth_header=auth_header)
