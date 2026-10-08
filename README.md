@@ -497,6 +497,22 @@ microservice.execute_action(
         "parameters": {"parm1": 1, "param2": 2}})
 ```
 
+### Pivot
+
+Use ``fields`` to restrict columns returned by ``pivot`` and
+``parallel_pivot`` (same meaning as on ``list``). The ``variables``
+argument is deprecated; when you pass only ``fields``, the client sends
+that list in the pivot request payload.
+
+```python
+microservice.pivot(
+    model_class="Company",
+    columns=["status"],
+    fields=["name", "holding_name"],
+    filter_dict={"status": "active"},
+)
+```
+
 ## Disabling ETL triggers
 
 ``save``, ``delete``, and ``execute_action`` accept an optional
