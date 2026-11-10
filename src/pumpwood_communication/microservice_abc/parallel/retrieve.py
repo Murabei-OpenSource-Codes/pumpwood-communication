@@ -1,6 +1,8 @@
 """Module for parallel functions of microservice."""
 from pumpwood_communication.microservice_abc.parallel.base import (
     ABCParallelBaseMicroservice)
+from pumpwood_communication.microservice_abc.parallel.error_handler import (
+    ParallelErrorHandlerInput)
 
 
 class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
@@ -18,7 +20,8 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
                           disk_cache_expire: int | list[int] = None,
                           base_filter_skip: list[str] | list[list[str]] = None,
                           n_parallel: int | None = None,
-                          ) -> list[dict]:
+                          error_handler: ParallelErrorHandlerInput =
+                          None, filter_errors: bool = True) -> list[dict]:
         """Retrieve an object from PumpWood.
 
         Function to get object serialized by retrieve end-point
@@ -63,6 +66,11 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
                 be superuser to skip base query filters.
             n_parallel (int | None):
                 N parallel request that will be done on backend.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             Return object with the correspondent pk.
@@ -112,7 +120,8 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
             function=self.retrieve, function_args=function_args,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
 
     def parallel_list_one(self, model_class: str | list[str],
                           list_pk: list[int],
@@ -125,7 +134,9 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
                           use_app_cache: bool | list[bool] = False,
                           disk_cache_expire: int | list[int] = None,
                           base_filter_skip: list[str] | list[list[str]] = None,
-                          n_parallel: int | None = None
+                          n_parallel: int | None = None,
+                          error_handler: ParallelErrorHandlerInput =
+                          None, filter_errors: bool = True
                           ) -> list[dict]:
         """Retrieve an object from PumpWood.
 
@@ -171,6 +182,11 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
                 be superuser to skip base query filters.
             n_parallel (int | None):
                 N parallel request that will be done on backend.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             Return object with the correspondent pk.
@@ -220,7 +236,8 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
             function=self.list_one, function_args=function_args,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
 
     def parallel_retrieve_file(self, model_class: str | list[str],
                                list_pk: list[int],
@@ -231,7 +248,8 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
                                file_name: str | list[str] = None,
                                if_exists: str | list[str] = "fail",
                                base_filter_skip: list[str] | list[list[str]] = None,  #NOQA
-                               n_parallel: int | None = None
+                               n_parallel: int | None = None,
+                               error_handler: ParallelErrorHandlerInput = None, filter_errors: bool = True
                                ) -> list[str] | list[dict]:
         """Retrieve a file from PumpWood.
 
@@ -270,6 +288,11 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
             n_parallel (int):
                 Number of parallel requests, if None will use the default
                 one.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             May return the file name if save_file=True; If false will return
@@ -330,7 +353,8 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
             function=self.retrieve_file, function_args=function_args,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
 
     def parallel_retrieve_streaming_file(self, model_class: str,
                                          list_pk: list[int],
@@ -340,7 +364,9 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
                                          save_path: str | list[str] = "./",
                                          if_exists: str | list[str] = "fail",
                                          base_filter_skip: list | list[list] = None, # NOQA
-                                         n_parallel: int | None = None
+                                         n_parallel: int | None = None,
+                                         error_handler: ParallelErrorHandlerInput = None, # NOQA
+                                         filter_errors: bool = True
                                          ) -> str:
         """Retrieve a file from PumpWood using streaming to retrieve content.
 
@@ -379,6 +405,11 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
             n_parallel (int):
                 Number of parallel requests, if None will use the default
                 one.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             Returns the file path that recived the file content.
@@ -435,4 +466,5 @@ class ABCParallelRetriveMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
             function=self.retrieve_streaming_file, function_args=function_args,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)

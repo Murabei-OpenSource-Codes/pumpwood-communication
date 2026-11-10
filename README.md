@@ -15,14 +15,16 @@ and is under the BSD-3-Clause license.
 ## Objective and motivation
 
 Python client library for PumpWood-style REST backends: login, CRUD,
-actions, batch and parallel calls, disk cache, and typed exceptions.
+actions, batch and parallel calls (optional per-task failure handling
+on ``parallel_*`` helpers), disk cache, and typed exceptions.
 
 ### Why this exists
 
 PumpWood services share a common endpoint layout (`rest/<model>/…`).
 This package centralizes HTTP calls, auth token handling, error
-rehydration, and parallel chunking so workers and scripts do not
-reimplement that wiring.
+rehydration, parallel chunking, and optional partial-failure handling
+on parallel batches so workers and scripts do not reimplement that
+wiring.
 
 ### How it is used
 
@@ -533,6 +535,67 @@ microservice.parallel_save(
     list_obj_dict=objects, disable_etl_trigger=True)
 ```
 
+## Parallel partial failures
+
+Pass ``error_handler`` on any ``parallel_*`` helper (or
+``parallel_call``) when some tasks may fail and the batch should
+continue (for example partial ``parallel_save``).
+
+The callback is **not** ``PumpWoodMicroService.error_handler`` (HTTP
+JSON errors). On a failed task the runner calls
+``error_handler(index=..., args=..., error=...)`` with a normalized
+exception.
+
+Pass a bare callable with those parameter names, or wrap it in
+``ParallelTaskErrorHandler`` so the signature is checked at
+construction time. Invalid callables raise ``PumpWoodWrongParameters``.
+Any other return value from the handler raises
+``PumpWoodNotImplementedError``.
+
+| Handler outcome | Effect |
+|-----------------|--------|
+| Raises | Batch aborts |
+| Returns ``None`` | Task marked ``ParallelErrorSentinel``; batch continues |
+| Returns an ``Exception`` | That error is raised (same rules as unhandled) |
+| Returns anything else | ``PumpWoodNotImplementedError``; batch aborts |
+
+``filter_errors`` defaults to ``True``: return a flat list of successes
+only. Set ``filter_errors=False`` to get
+``{"result": [...], "errors": [ParallelErrorSentinel, ...]}`` (task
+order preserved in each list). ``errors`` holds ``ParallelErrorSentinel``
+instances (index, args, error). Use ``result`` for ``pd.DataFrame(...)``
+when needed.
+
+```python
+import pandas as pd
+
+failed = []
+
+
+def log_save_error(index, args, error):
+    failed.append({"index": index, "obj_dict": args.get("obj_dict")})
+    if error.status_code in (401, 403):
+        return error
+    return None
+
+
+from pumpwood_communication.microservice_abc.parallel import (
+    ParallelTaskErrorHandler,
+)
+
+handler = ParallelTaskErrorHandler(log_save_error)
+# Same as error_handler=log_save_error; coerce wraps bare callables.
+out = microservice.parallel_save(
+    list_obj_dict=objects,
+    error_handler=handler,
+    filter_errors=False,
+)
+saved = pd.DataFrame(out["result"])
+error_sentinels = out["errors"]
+```
+
+Console progress: ``.`` success, ``x`` handled failure, ``|`` end of batch.
+
 ## Triggering ETL processes
 
 Use ``trigger_etl_process`` when a worker or script must run ETL
@@ -610,3 +673,9 @@ on `PumpWoodMicroService`:
 - parallel_execute_action
 - parallel_bulk_save
 - parallel_pivot
+- parallel_call (``ABCParallelBaseMicroservice``; ``error_handler``,
+  ``filter_errors``)
+- ParallelErrorSentinel, ParallelTaskErrorHandler,
+  ParallelErrorHandlerInput, coerce_parallel_task_error_handler,
+  is_parallel_error_sentinel, partition_parallel_results
+- finalize_parallel_output (``ABCParallelBaseMicroservice``)

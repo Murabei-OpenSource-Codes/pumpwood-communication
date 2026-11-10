@@ -3,6 +3,8 @@ import pandas as pd
 from typing import Union, List, Any
 from pumpwood_communication.microservice_abc.parallel.base import (
     ABCParallelBaseMicroservice)
+from pumpwood_communication.microservice_abc.parallel.error_handler import (
+    ParallelErrorHandlerInput)
 
 
 class ABCParallelBatchMicroservice(ABCParallelBaseMicroservice):
@@ -19,7 +21,10 @@ class ABCParallelBatchMicroservice(ABCParallelBaseMicroservice):
                        auth_header: dict = None,
                        as_dataframe: bool = False,
                        n_parallel: int = None,
-                       flat_results: bool = True) -> Union[List[dict], pd.DataFrame]: # NOQA
+                       flat_results: bool = True,
+                       error_handler: ParallelErrorHandlerInput = None,
+                       filter_errors: bool = True
+                       ) -> Union[List[dict], pd.DataFrame]: # NOQA
         """Execute parallel calls for pivot end-points.
 
         This method performs multiple calls to a pivot end-point in
@@ -58,6 +63,11 @@ class ABCParallelBatchMicroservice(ABCParallelBaseMicroservice):
             flat_results (bool):
                 If True, results will be joined into a single list or
                 DataFrame. Defaults to True.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             Union[List[dict], pd.DataFrame]:
@@ -112,9 +122,8 @@ class ABCParallelBatchMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         parallel_results = self.parallel_call(
             function=self.pivot, function_args=function_args,
-            n_parallel=n_parallel)
-        if flat_results:
-            return self.flatten_parallel(
-                parallel_results, as_dataframe=as_dataframe)
-        else:
-            return parallel_results
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
+        return self.finalize_parallel_output(
+            parallel_results, flat_results=flat_results,
+            as_dataframe=as_dataframe)

@@ -2,6 +2,8 @@
 from typing import Union
 from pumpwood_communication.microservice_abc.parallel.base import (
     ABCParallelBaseMicroservice)
+from pumpwood_communication.microservice_abc.parallel.error_handler import (
+    ParallelErrorHandlerInput)
 
 
 class ABCParallelActionMicroservice(ABCParallelBaseMicroservice):
@@ -14,7 +16,8 @@ class ABCParallelActionMicroservice(ABCParallelBaseMicroservice):
                                 n_parallel: int = None,
                                 auth_header: dict = None,
                                 base_filter_skip: list[str] | list[list[str]] = None, # NOQA
-                                disable_etl_trigger: bool | list[bool] = False
+                                disable_etl_trigger: bool | list[bool] = False,
+                                error_handler: ParallelErrorHandlerInput = None, filter_errors: bool = True
                                 ) -> list[dict]:
         """Make [n_parallel] parallel execute_action requests.
 
@@ -43,6 +46,11 @@ class ABCParallelActionMicroservice(ABCParallelBaseMicroservice):
                 be superuser to skip base query filters.
             disable_etl_trigger (bool):
                 Disable the ETL trigger for the object.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             list of the execute_action request data.
@@ -83,4 +91,5 @@ class ABCParallelActionMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
             function=self.execute_action, function_args=function_args,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
