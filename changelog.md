@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **`parallel_call`**: optional ``error_handler`` and ``filter_errors``.
+  Handlers receive ``index``, ``args``, and ``error``; ``return None``
+  records ``ParallelErrorSentinel`` and continues; ``return`` an
+  ``Exception`` to abort with the same normalization as an unhandled
+  worker failure; raising from the handler also aborts.
+- **`ParallelErrorSentinel`** and **`ParallelTaskErrorHandler`** (wraps
+  and validates ``index`` / ``args`` / ``error``) exported from
+  ``pumpwood_communication.microservice_abc.parallel``.
+- **`ParallelErrorHandlerInput`** type alias and
+  **`coerce_parallel_task_error_handler`** for bare callables on
+  ``parallel_call`` and ``parallel_*`` helpers.
+- **Handler validation**: ``PumpWoodWrongParameters`` when a parallel
+  ``error_handler`` lacks ``index``, ``args``, and ``error``;
+  ``PumpWoodNotImplementedError`` when the handler returns a value other
+  than ``None`` or an ``Exception``.
+- **Parallel helpers**: ``error_handler`` and ``filter_errors`` forwarded
+  on all ``parallel_*`` methods that call ``parallel_call``.
+- **`filter_errors=False`**: ``parallel_call`` returns
+  ``{"result": [...], "errors": [ParallelErrorSentinel, ...]}``;
+  ``partition_parallel_results`` and ``finalize_parallel_output`` for
+  list/pivot flattening.
+
 ## [2.4.61] - 2026-10-08
 
 ### Fixed

@@ -2,6 +2,8 @@
 from typing import Union, List
 from pumpwood_communication.microservice_abc.parallel.base import (
     ABCParallelBaseMicroservice)
+from pumpwood_communication.microservice_abc.parallel.error_handler import (
+    ParallelErrorHandlerInput)
 
 
 class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
@@ -11,7 +13,9 @@ class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
                         list_pk: list[int], n_parallel: int = None,
                         auth_header: dict = None,
                         base_filter_skip: list[str] | list[list[str]] = None,
-                        disable_etl_trigger: bool | list[bool] = False):
+                        disable_etl_trigger: bool | list[bool] = False,
+                        error_handler: ParallelErrorHandlerInput =
+                        None, filter_errors: bool = True):
         """Make many [n_parallel] delete requests.
 
         Args:
@@ -31,6 +35,11 @@ class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
                 be superuser to skip base query filters.
             disable_etl_trigger (bool):
                 Disable the ETL trigger for the object.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             List of the delete request data.
@@ -63,12 +72,15 @@ class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
             function=self.delete, function_args=function_args,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
 
     def parallel_delete_many(self, model_class: Union[str, List[str]],
                              list_args: List[dict], n_parallel: int = None,
                              auth_header: dict = None,
-                             base_filter_skip: list[str] | list[list[str]] = None # NOQA
+                             base_filter_skip: list[str] | list[list[str]] = None, # NOQA
+                             error_handler: ParallelErrorHandlerInput =
+                             None, filter_errors: bool = True
                              ) -> List[dict]:
         """Make [n_parallel] parallel delete_many request.
 
@@ -87,6 +99,11 @@ class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
             base_filter_skip (list):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             List of the delete many request reponses.
@@ -120,4 +137,5 @@ class ABCParallelDeleteMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
             function=self.delete_many, function_args=function_args,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)

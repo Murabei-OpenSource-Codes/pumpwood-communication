@@ -2,6 +2,8 @@
 from typing import Union, List
 from pumpwood_communication.microservice_abc.parallel.base import (
     ABCParallelBaseMicroservice)
+from pumpwood_communication.microservice_abc.parallel.error_handler import (
+    ParallelErrorHandlerInput)
 
 
 class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
@@ -15,7 +17,9 @@ class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
                       base_filter_skip: list = None,
                       n_parallel: int = None,
                       flat_results: bool = True,
-                      as_dataframe: bool = False) -> List[dict]:
+                      as_dataframe: bool = False,
+                      error_handler: ParallelErrorHandlerInput = None,
+                      filter_errors: bool = True) -> List[dict]:
         """List objects with pagination.
 
         Args:
@@ -59,6 +63,11 @@ class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
                 The results will be joined on a single list.
             as_dataframe (bool):
                 If True, returns the results as a pandas DataFrame.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
           Containing objects serialized by list Serializer.
@@ -105,11 +114,10 @@ class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         parallel_results = self.parallel_call(
             function=self.list, function_args=function_args,
-            n_parallel=n_parallel)
-        if flat_results:
-            return self.flatten_parallel(parallel_results)
-        else:
-            return parallel_results
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
+        return self.finalize_parallel_output(
+            parallel_results, flat_results=flat_results)
 
     def parallel_list_without_pag(self, model_class: Union[str, List[str]],
                                   list_args: List[dict],
@@ -120,7 +128,9 @@ class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
                                   base_filter_skip: list = None,
                                   n_parallel: int = None,
                                   flat_results: bool = True,
-                                  as_dataframe: bool = False) -> List[dict]:
+                                  as_dataframe: bool = False,
+                                  error_handler: ParallelErrorHandlerInput = None, filter_errors: bool = True
+                                  ) -> List[dict]:
         """List objects with pagination.
 
         Args:
@@ -156,6 +166,11 @@ class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
                 The results will be joined on a single list.
             as_dataframe (bool):
                 If True, returns the results as a pandas DataFrame.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
           Containing objects serialized by list Serializer.
@@ -200,12 +215,11 @@ class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         parallel_results = self.parallel_call(
             function=self.list_without_pag, function_args=function_args,
-            n_parallel=n_parallel)
-        if flat_results:
-            return self.flatten_parallel(
-                parallel_results, as_dataframe=as_dataframe)
-        else:
-            return parallel_results
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
+        return self.finalize_parallel_output(
+            parallel_results, flat_results=flat_results,
+            as_dataframe=as_dataframe)
 
     def parallel_list_by_chunks(self, model_class: Union[str, List[str]],
                                 list_args: List[dict],
@@ -217,7 +231,9 @@ class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
                                 chunk_size: int = 50000,
                                 foreign_key_fields: bool = False,
                                 flat_results: bool = True,
-                                as_dataframe: bool = False) -> List[dict]:
+                                as_dataframe: bool = False,
+                                error_handler: ParallelErrorHandlerInput = None, filter_errors: bool = True
+                                ) -> List[dict]:
         """List objects by chunks.
 
         Order by arguments on list by chunks will be ignored.
@@ -257,6 +273,11 @@ class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
                 If True, returns the results as a pandas DataFrame.
             chunk_size (int):
                 Number of objects to fetch per query. Defaults to 50000.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
           Containing objects serialized by list Serializer.
@@ -305,9 +326,8 @@ class ABCParallelListMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         parallel_results = self.parallel_call(
             function=self.list_by_chunks, function_args=function_args,
-            n_parallel=n_parallel)
-        if flat_results:
-            return self.flatten_parallel(
-                parallel_results, as_dataframe=as_dataframe)
-        else:
-            return parallel_results
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
+        return self.finalize_parallel_output(
+            parallel_results, flat_results=flat_results,
+            as_dataframe=as_dataframe)

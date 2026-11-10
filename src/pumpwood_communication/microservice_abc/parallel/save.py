@@ -1,9 +1,11 @@
 """Module for parallel save functions of microservice."""
 import pandas as pd
-from typing import List
+from typing import Any
 from pumpwood_communication.exceptions import PumpWoodException
 from pumpwood_communication.microservice_abc.parallel.base import (
     ABCParallelBaseMicroservice)
+from pumpwood_communication.microservice_abc.parallel.error_handler import (
+    ParallelErrorHandlerInput)
 from pumpwood_communication.misc import break_in_chunks
 from pumpwood_communication.config import PARALLEL_CHUNK_SIZE
 
@@ -22,7 +24,9 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
                       n_parallel: int | None = None,
                       upsert: bool | list[bool] = False,
                       disable_etl_trigger: bool | list[bool] = False,
-                      ) -> List[dict]:
+                      error_handler: ParallelErrorHandlerInput = None,
+                      filter_errors: bool = True
+                      ) -> list[dict] | dict[str, list[Any]]:
         """Save or Update a new object.
 
         Function to save or update a new model_class object. If obj_dict['pk']
@@ -73,11 +77,23 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
                 pk is not found, it will be inserted on the database.
             disable_etl_trigger (bool):
                 Disable the ETL trigger for the object.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call`` (handler validation and
+                per-task failure behavior).
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return value matches ``parallel_call`` (partition
+                dict with ``result`` and ``errors``).
 
         Returns:
-            Return updated/created object data.
+            list[dict] | dict[str, list[Any]]:
+                Saved object payloads when ``filter_errors`` is ``True``;
+                otherwise the ``parallel_call`` partition dict.
 
         Raises:
+            PumpWoodWrongParameters:
+                Invalid ``error_handler`` signature (forwarded from
+                ``parallel_call``).
             PumpWoodObjectSavingException:
                 'To save an object obj_dict must have model_class defined.'
                 This indicates that the obj_dict must have key `model_class`
@@ -150,13 +166,17 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
             function=self.save, function_args=function_args,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
 
     def parallel_bulk_save(self, model_class: str,
                            data_to_save: pd.DataFrame | list[dict],
                            n_parallel: int = None, chunksize: int = None,
                            base_filter_skip: list[str] | list[list[str]] = None, # NOQA
-                           auth_header: dict = None):
+                           auth_header: dict = None,
+                           error_handler: ParallelErrorHandlerInput =
+                           None, filter_errors: bool = True
+                           ) -> list[Any] | dict[str, list[Any]]:
         """Break data_to_save in many parallel bulk_save requests.
 
         Args:
@@ -178,9 +198,16 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
             base_filter_skip (list):
                 List of base query filter to be skiped, it is necessary to
                 be superuser to skip base query filters.
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return value matches ``parallel_call``.
 
         Returns:
-            list of the responses of bulk_save.
+            list[Any] | dict[str, list[Any]]:
+                ``bulk_save`` responses when ``filter_errors`` is ``True``;
+                otherwise the ``parallel_call`` partition dict.
         """
         n_parallel = self.get_n_parallel(n_parallel=n_parallel)
         if type(data_to_save) is list:
@@ -208,4 +235,5 @@ class ABCParallelSaveMicroservice(ABCParallelBaseMicroservice):
         function_args = self.transpose_args(dict_list=column_arg)
         return self.parallel_call(
             function=self.bulk_save, function_args=function_args,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)

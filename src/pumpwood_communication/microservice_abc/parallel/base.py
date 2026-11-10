@@ -8,6 +8,11 @@ from pumpwood_communication.config import N_PARALLEL
 from pumpwood_communication.exceptions import (
     PumpWoodException, PumpWoodNotImplementedError,
     PumpWoodOtherException)
+from pumpwood_communication.microservice_abc.parallel.error_handler import (
+    ParallelErrorSentinel, ParallelErrorHandlerInput,
+    ParallelTaskErrorHandler,
+    coerce_parallel_task_error_handler, is_parallel_error_sentinel,
+    partition_parallel_results)
 
 
 class ABCParallelBaseMicroservice(ABC):
@@ -113,51 +118,184 @@ class ABCParallelBaseMicroservice(ABC):
     def parallel_call(cls,
                       function: callable,
                       function_args: list[dict],
-                      n_parallel: int = None) -> list[Any]:
-        """Concat all parallel return to one list.
+                      n_parallel: int = None,
+                      error_handler: ParallelErrorHandlerInput = None,
+                      filter_errors: bool = True) -> list[Any] | dict[
+                          str, list[Any]]:
+        """Run ``function`` once per dict in ``function_args``.
+
+        Each worker receives ``function(**one_arg_dict)``.
 
         Args:
             function (callable):
-                Function callable used on parallel call.
-            function_args:
-                Args that will be associated with parallel call.
-            n_parallel (int):
-                Args that will be associated with parallel call.
+                Callable used on each parallel task.
+            function_args (list[dict]):
+                Keyword arguments for each parallel call.
+            n_parallel (int | None):
+                Worker count; uses ``N_PARALLEL`` when ``None``.
+            error_handler (ParallelErrorHandlerInput):
+                Optional per-task exception callback. Not the HTTP
+                ``error_handler`` on ``PumpWoodMicroServiceBase``. Pass a
+                ``ParallelTaskErrorHandler`` instance or any callable whose
+                parameters include ``index``, ``args``, and ``error`` (bare
+                callables are wrapped and validated). When set, a failing
+                task calls ``error_handler(index=..., args=..., error=...)``.
+                If the callback raises, the batch aborts. If it returns
+                ``None``, the task is recorded as ``ParallelErrorSentinel``.
+                If it returns an ``Exception``, that error is raised. When
+                ``None``, the first worker error aborts the batch.
+            filter_errors (bool):
+                If ``True`` (default), return a flat list of successes
+                only (sentinels removed). If ``False``, return a dict with
+                keys ``result`` (success values) and ``errors`` (list of
+                ``ParallelErrorSentinel`` objects), both in task order.
 
         Returns:
-            A list with all sub list itens.
+            list[Any] | dict[str, list[Any]]:
+                Success list, or partitioned dict when
+                ``filter_errors`` is ``False``.
+
+        Raises:
+            PumpWoodWrongParameters:
+                If ``error_handler`` is a callable missing ``index``,
+                ``args``, or ``error``.
+            PumpWoodException:
+                First unhandled worker error when ``error_handler`` is
+                ``None``, when the handler re-raises, or when the handler
+                returns an ``Exception``.
+            PumpWoodNotImplementedError:
+                When ``error_handler`` returns a value that is neither
+                ``None`` nor an ``Exception``.
         """
         n_parallel = cls.get_n_parallel(n_parallel=n_parallel)
+        error_handler = coerce_parallel_task_error_handler(error_handler)
 
-        def _thread_wrapper(args):
-            """Internal wrapper to handle the progress dots and error."""
+        def _propagate_parallel_error(to_raise: Exception) -> None:
+            """Raise ``to_raise`` with parallel error normalization."""
+            # Pumpwood errors only need parallel=True before re-raise.
+            if isinstance(to_raise, PumpWoodException):
+                to_raise.parallel = True
+                raise to_raise
+
+            # PumpWoodOtherException does not format {error} from payload;
+            # bake the text into message and keep payload for serialization.
+            error_template = "Error in parallel call: {error}"\
+                .format(error=str(to_raise))
+            raise PumpWoodOtherException(
+                message=error_template, parallel=True,
+                payload={"error": str(to_raise)})
+
+        def _thread_wrapper(indexed_args):
+            """Internal wrapper for progress dots and error handling."""
+            index, args = indexed_args
             try:
                 result = function(**args)
                 sys.stdout.write(".")
                 sys.stdout.flush()
                 return result
             except Exception as e:
+                # Normalize every worker error to exc before handler or raise.
                 if isinstance(e, PumpWoodException):
                     e.parallel = True
-                    raise e
+                    exc = e
                 else:
-                    error_template = "Error in parallel call: {error}"
-                    raise PumpWoodOtherException(
+                    error_template = "Error in parallel call: {error}"\
+                        .format(error=str(e))
+                    exc = PumpWoodOtherException(
                         message=error_template, parallel=True,
                         payload={"error": str(e)})
+
+                # Optional per-task callback (not HTTP error_handler).
+                # It may log failures and choose raise vs handled failure:
+                #   raise from handler -> abort (same as no handler).
+                #   return None -> handled failure; sentinel keeps index,
+                #       args, and original exc for auditing.
+                #   return Exception -> treat as new error to propagate
+                #       (handler may swap or return the same exc).
+                if error_handler is not None:
+                    handler_result = error_handler(
+                        index=index, args=args, error=exc)
+
+                    # None: do not raise; slot becomes ParallelErrorSentinel.
+                    if handler_result is None:
+                        sys.stdout.write("x")
+                        sys.stdout.flush()
+                        return ParallelErrorSentinel(
+                            index=index, args=args, error=exc)
+                    elif isinstance(handler_result, Exception):
+                        exc = handler_result
+                    else:
+                        # Programmer error: only None or Exception allowed.
+                        handler_type = type(handler_result).__name__
+                        msg = (
+                            "Error handler returned invalid type [{type}] "
+                            "it must return None, to skip exception or an "
+                            "error to be raised.")
+                        raise PumpWoodNotImplementedError(
+                            message=msg, parallel=True,
+                            payload={"type": handler_type})
+
+                # No handler, or handler returned an Exception to propagate.
+                _propagate_parallel_error(exc)
 
         # Use ThreadPoolExecutor for I/O bound tasks (Network requests)
         with ThreadPoolExecutor(max_workers=n_parallel) as executor:
             # executor.map maintains the order of the input list
-            results = list(executor.map(_thread_wrapper, function_args))
+            indexed_args = enumerate(function_args)
+            results = list(executor.map(_thread_wrapper, indexed_args))
+
+        # Default: flat list of successes (backward compatible).
+        # filter_errors=False -> dict result/errors for DataFrame workflows.
+        if filter_errors:
+            results = [
+                result for result in results
+                if not is_parallel_error_sentinel(result)]
+        else:
+            results = partition_parallel_results(results)
 
         sys.stdout.write("|\n")
         sys.stdout.flush()
         return results
 
+    @classmethod
+    def finalize_parallel_output(cls, parallel_results: list[Any] | dict[
+            str, list[Any]], flat_results: bool = False,
+            as_dataframe: bool = False) -> list[Any] | dict[str, Any]:
+        """Flatten per-task lists when ``flat_results`` is set.
+
+        When ``parallel_results`` is a partitioned dict (``filter_errors``
+        was ``False``), only the ``result`` key is flattened; ``errors`` is
+        unchanged.
+
+        Args:
+            parallel_results (list[Any] | dict[str, list[Any]]):
+                Output from ``parallel_call``.
+            flat_results (bool):
+                Whether to join nested list results.
+            as_dataframe (bool):
+                Return a DataFrame when flattening.
+
+        Returns:
+            list[Any] | dict[str, Any]:
+                Same shape as input, optionally flattened.
+        """
+        if not flat_results:
+            return parallel_results
+        if isinstance(parallel_results, dict):
+            return {
+                "result": cls.flatten_parallel(
+                    parallel_results["result"],
+                    as_dataframe=as_dataframe),
+                "errors": parallel_results["errors"],
+            }
+        return cls.flatten_parallel(
+            parallel_results, as_dataframe=as_dataframe)
+
     def parallel_request_get(self, urls_list: list, n_parallel: int = None,
                              parameters: Union[List[dict], dict] = None,
-                             auth_header: dict = None) -> List[any]:
+                             auth_header: dict = None,
+                             error_handler: ParallelErrorHandlerInput =
+                             None, filter_errors: bool = True) -> List[any]:
         """Make [n_parallel] parallel get requests.
 
         Args:
@@ -175,6 +313,11 @@ class ABCParallelBaseMicroservice(ABC):
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             Return a list with all get request reponses. The results are
@@ -224,13 +367,16 @@ class ABCParallelBaseMicroservice(ABC):
 
         return self.parallel_call(
             function=self.request_get, function_args=pool_arguments,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
 
     def parallel_request_post(self, urls_list: List[str],
                               data_list: List[dict],
                               parameters: Union[List[dict], dict] = None,
                               n_parallel: int = None,
-                              auth_header: dict = None) -> List[any]:
+                              auth_header: dict = None,
+                              error_handler: ParallelErrorHandlerInput =
+                              None, filter_errors: bool = True) -> List[any]:
         """Make [n_parallel] parallel post request.
 
         Args:
@@ -247,6 +393,11 @@ class ABCParallelBaseMicroservice(ABC):
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             List of the post request reponses.
@@ -301,12 +452,14 @@ class ABCParallelBaseMicroservice(ABC):
 
         return self.parallel_call(
             function=self.request_post, function_args=pool_arguments,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
 
     def parallel_request_delete(self, urls_list: List[str],
                                 parameters: Union[List[dict], dict] = None,
                                 n_parallel: int = None,
-                                auth_header: dict = None):
+                                auth_header: dict = None,
+                                error_handler: ParallelErrorHandlerInput = None, filter_errors: bool = True):
         """Make [n_parallel] parallel delete request.
 
         Args:
@@ -321,6 +474,11 @@ class ABCParallelBaseMicroservice(ABC):
             auth_header:
                 Auth header to substitute the microservice original
                 at the request (user impersonation).
+            error_handler (ParallelErrorHandlerInput):
+                Forwarded to ``parallel_call``.
+            filter_errors (bool):
+                Forwarded to ``parallel_call``. Default ``True``. When
+                ``False``, return shape matches ``parallel_call``.
 
         Returns:
             list: List of the get request reponses.
@@ -364,4 +522,5 @@ class ABCParallelBaseMicroservice(ABC):
 
         return self.parallel_call(
             function=self.request_delete, function_args=pool_arguments,
-            n_parallel=n_parallel)
+            n_parallel=n_parallel, error_handler=error_handler,
+            filter_errors=filter_errors)
