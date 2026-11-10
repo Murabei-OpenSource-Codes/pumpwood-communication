@@ -15,14 +15,16 @@ and is under the BSD-3-Clause license.
 ## Objective and motivation
 
 Python client library for PumpWood-style REST backends: login, CRUD,
-actions, batch and parallel calls, disk cache, and typed exceptions.
+actions, batch and parallel calls (optional per-task failure handling
+on ``parallel_*`` helpers), disk cache, and typed exceptions.
 
 ### Why this exists
 
 PumpWood services share a common endpoint layout (`rest/<model>/…`).
 This package centralizes HTTP calls, auth token handling, error
-rehydration, and parallel chunking so workers and scripts do not
-reimplement that wiring.
+rehydration, parallel chunking, and optional partial-failure handling
+on parallel batches so workers and scripts do not reimplement that
+wiring.
 
 ### How it is used
 
