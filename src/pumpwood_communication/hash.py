@@ -63,3 +63,36 @@ def create_hash_from_str(index: str, salt: str = "",
         salt.encode() + index.encode())
     pbHash = hash_object.hexdigest()
     return pbHash
+
+
+def create_hash_from_file(file_path: str, salt: str = "",
+                          get_env: bool = True) -> str:
+    """Create a hash from the file content.
+
+    Args:
+        file_path:
+            Path to the file whose bytes are hashed.
+        salt:
+            String to be used as salt to generate the hash.
+        get_env:
+            If environment variable `HASH_SALT` should be used
+            to create a salt string.
+
+    Returns:
+        Hash string from parameters passed.
+    """
+    # If get_env set as True and salt not set try to get from env variable
+    if salt == "" and get_env:
+        salt = os.getenv("HASH_SALT", "")
+
+    hash_object = hashlib.sha1()  # NOQA
+    hash_object.update(salt.encode())
+    chunk_size = 65536
+    with open(file_path, "rb") as file_handle:
+        while True:
+            chunk = file_handle.read(chunk_size)
+            if not chunk:
+                break
+            hash_object.update(chunk)
+    pbHash = hash_object.hexdigest()
+    return pbHash

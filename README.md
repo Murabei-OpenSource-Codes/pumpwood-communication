@@ -34,7 +34,8 @@ helpers from workers, ETL jobs, notebooks, or other Murabei services.
 
 ### Scope
 
-Owns the HTTP client, serializers, cache, exception mapping, and shared
+Owns the HTTP client, serializers, cache, hash helpers
+(``pumpwood_communication.hash``), exception mapping, and shared
 dataclass types for ETL payloads and view configuration. Backend
 business rules, models, and deploy live in PumpWood API services. See
 the generated docs for the full method list.
@@ -237,6 +238,13 @@ correct name is not set.
 
 - **PUMPWOOD_COMMUNICATION__CRYPTO_FERNET_KEY:** Fernet key for
   ``PumpwoodCryptography``. No default; encrypt/decrypt raise when unset.
+
+### Hash
+
+- **HASH_SALT:** Salt prefix for SHA-1 helpers
+  (``create_hash_from_dict``, ``create_hash_from_str``,
+  ``create_hash_from_file``) when ``get_env`` is ``True`` and ``salt`` is
+  empty. No default.
 
 ## Basic usage
 
